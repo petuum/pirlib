@@ -1,0 +1,143 @@
+graphs:
+- name: train_pipeline
+  nodes:
+  - name: clean
+    config: {}
+    inputs:
+    - name: dataset
+      iotype: DIRECTORY
+      source:
+        node_output: null
+        graph_input: train_dataset
+    outputs:
+    - name: '0'
+      iotype: DIRECTORY
+    entrypoint:
+      version: v1
+      handler: example.example:clean
+      runtime: python:3.8
+      codeuri: null
+      image: pircli-build:8822c518-529b-46b9-a750-d76763a21e64
+    framework: null
+  - name: train
+    config: {}
+    inputs:
+    - name: dataset
+      iotype: DIRECTORY
+      source:
+        node_output:
+          node_name: clean
+          output_name: '0'
+        graph_input: null
+    outputs:
+    - name: '0'
+      iotype: FILE
+    entrypoint:
+      version: v1
+      handler: example.example:train
+      runtime: python:3.8
+      codeuri: null
+      image: pircli-build:8822c518-529b-46b9-a750-d76763a21e64
+    framework:
+      name: adaptdl
+      config:
+        min_replicas: 1
+        max_replicas: 4
+  - name: infer_pipeline.translate_1
+    config:
+      key: value
+    inputs:
+    - name: model
+      iotype: FILE
+      source:
+        node_output: null
+        graph_input: translate_model
+    - name: sentences
+      iotype: DIRECTORY
+      source:
+        node_output: null
+        graph_input: sentences
+    outputs:
+    - name: '0'
+      iotype: DIRECTORY
+    entrypoint:
+      version: v1
+      handler: example.example:translate
+      runtime: python:3.8
+      codeuri: null
+      image: pircli-build:8822c518-529b-46b9-a750-d76763a21e64
+    framework: null
+  - name: infer_pipeline.sentiment
+    config: {}
+    inputs:
+    - name: model
+      iotype: FILE
+      source:
+        node_output:
+          node_name: train
+          output_name: '0'
+        graph_input: null
+    - name: sentences
+      iotype: DIRECTORY
+      source:
+        node_output:
+          node_name: infer_pipeline.translate_1
+          output_name: '0'
+        graph_input: null
+    outputs:
+    - name: '0'
+      iotype: DIRECTORY
+    entrypoint:
+      version: v1
+      handler: example.example:sentiment
+      runtime: python:3.8
+      codeuri: null
+      image: pircli-build:8822c518-529b-46b9-a750-d76763a21e64
+    framework: null
+  - name: evaluate
+    config: {}
+    inputs:
+    - name: test_dataset
+      iotype: DIRECTORY
+      source:
+        node_output: null
+        graph_input: sentences
+    - name: predictions
+      iotype: DIRECTORY
+      source:
+        node_output:
+          node_name: infer_pipeline.sentiment
+          output_name: '0'
+        graph_input: null
+    outputs:
+    - name: '0'
+      iotype: DATAFRAME
+    entrypoint:
+      version: v1
+      handler: example.example:evaluate
+      runtime: python:3.8
+      codeuri: null
+      image: pircli-build:8822c518-529b-46b9-a750-d76763a21e64
+    framework: null
+  inputs:
+  - name: train_dataset
+    iotype: DIRECTORY
+  - name: translate_model
+    iotype: FILE
+  - name: sentences
+    iotype: DIRECTORY
+  outputs:
+  - name: '0'
+    iotype: FILE
+    source:
+      node_output:
+        node_name: train
+        output_name: '0'
+      graph_input: null
+  - name: '1'
+    iotype: DATAFRAME
+    source:
+      node_output:
+        node_name: evaluate
+        output_name: '0'
+      graph_input: null

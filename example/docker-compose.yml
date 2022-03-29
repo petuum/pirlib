@@ -1,0 +1,99 @@
+services:
+  train_pipeline:
+    command:
+    - python
+    - -m
+    - pirlib.backends.docker_batch
+    - graph
+    - gASVEAEAAAAAAABdlCiMDHBpcmxpYi5ncmFwaJSMC0dyYXBoT3V0cHV0lJOUKYGUfZQojARuYW1llIwBMJSMBmlvdHlwZZSMBEZJTEWUjAZzb3VyY2WUaAGMCkRhdGFTb3VyY2WUk5QpgZR9lCiMC25vZGVfb3V0cHV0lGgBjA1Ob2RlT3V0cHV0UmVmlJOUKYGUfZQojAlub2RlX25hbWWUjAV0cmFpbpSMC291dHB1dF9uYW1llGgHdWKMC2dyYXBoX2lucHV0lE51YnViaAMpgZR9lChoBowBMZRoCIwJREFUQUZSQU1FlGgKaAwpgZR9lChoD2gRKYGUfZQoaBSMCGV2YWx1YXRllGgWaAd1YmgXTnVidWJlLg==
+    depends_on:
+      train_pipeline.clean:
+        condition: service_completed_successfully
+      train_pipeline.evaluate:
+        condition: service_completed_successfully
+      train_pipeline.infer_pipeline.sentiment:
+        condition: service_completed_successfully
+      train_pipeline.infer_pipeline.translate_1:
+        condition: service_completed_successfully
+      train_pipeline.train:
+        condition: service_completed_successfully
+    image: pircli-build:8822c518-529b-46b9-a750-d76763a21e64
+    volumes:
+    - node_outputs:/mnt/node_outputs
+    - ${INPUT_train_dataset:?err}:/mnt/graph_inputs/train_dataset
+    - ${INPUT_translate_model:?err}:/mnt/graph_inputs/translate_model
+    - ${INPUT_sentences:?err}:/mnt/graph_inputs/sentences
+    - ${OUTPUT:?err}:/mnt/graph_outputs
+  train_pipeline.clean:
+    command:
+    - python
+    - -m
+    - pirlib.backends.docker_batch
+    - node
+    - gASVywEAAAAAAACMDHBpcmxpYi5ncmFwaJSMBE5vZGWUk5QpgZR9lCiMBG5hbWWUjAVjbGVhbpSMBmNvbmZpZ5R9lIwGaW5wdXRzlF2UaACMCU5vZGVJbnB1dJSTlCmBlH2UKGgFjAdkYXRhc2V0lIwGaW90eXBllIwJRElSRUNUT1JZlIwGc291cmNllGgAjApEYXRhU291cmNllJOUKYGUfZQojAtub2RlX291dHB1dJROjAtncmFwaF9pbnB1dJSMDXRyYWluX2RhdGFzZXSUdWJ1YmGMB291dHB1dHOUXZRoAIwKTm9kZU91dHB1dJSTlCmBlH2UKGgFjAEwlGgQjAlESVJFQ1RPUlmUdWJhjAplbnRyeXBvaW50lGgAjApFbnRyeXBvaW50lJOUKYGUfZQojAd2ZXJzaW9ulIwCdjGUjAdoYW5kbGVylIwVZXhhbXBsZS5leGFtcGxlOmNsZWFulIwHcnVudGltZZSMCnB5dGhvbjozLjiUjAdjb2RldXJplE6MBWltYWdllIwxcGlyY2xpLWJ1aWxkOjg4MjJjNTE4LTUyOWItNDZiOS1hNzUwLWQ3Njc2M2EyMWU2NJR1YowJZnJhbWV3b3JrlE51Yi4=
+    - gASVpAAAAAAAAABdlCiMDHBpcmxpYi5ncmFwaJSMCkdyYXBoSW5wdXSUk5QpgZR9lCiMBG5hbWWUjA10cmFpbl9kYXRhc2V0lIwGaW90eXBllIwJRElSRUNUT1JZlHViaAMpgZR9lChoBowPdHJhbnNsYXRlX21vZGVslGgIjARGSUxFlHViaAMpgZR9lChoBowJc2VudGVuY2VzlGgIjAlESVJFQ1RPUlmUdWJlLg==
+    image: pircli-build:8822c518-529b-46b9-a750-d76763a21e64
+    volumes:
+    - node_outputs:/mnt/node_outputs
+    - ${INPUT_train_dataset:?err}:/mnt/graph_inputs/train_dataset
+  train_pipeline.evaluate:
+    command:
+    - python
+    - -m
+    - pirlib.backends.docker_batch
+    - node
+    - gASVXwIAAAAAAACMDHBpcmxpYi5ncmFwaJSMBE5vZGWUk5QpgZR9lCiMBG5hbWWUjAhldmFsdWF0ZZSMBmNvbmZpZ5R9lIwGaW5wdXRzlF2UKGgAjAlOb2RlSW5wdXSUk5QpgZR9lChoBYwMdGVzdF9kYXRhc2V0lIwGaW90eXBllIwJRElSRUNUT1JZlIwGc291cmNllGgAjApEYXRhU291cmNllJOUKYGUfZQojAtub2RlX291dHB1dJROjAtncmFwaF9pbnB1dJSMCXNlbnRlbmNlc5R1YnViaAwpgZR9lChoBYwLcHJlZGljdGlvbnOUaBCMCURJUkVDVE9SWZRoEmgUKYGUfZQoaBdoAIwNTm9kZU91dHB1dFJlZpSTlCmBlH2UKIwJbm9kZV9uYW1llIwYaW5mZXJfcGlwZWxpbmUuc2VudGltZW50lIwLb3V0cHV0X25hbWWUjAEwlHViaBhOdWJ1YmWMB291dHB1dHOUXZRoAIwKTm9kZU91dHB1dJSTlCmBlH2UKGgFaCdoEIwJREFUQUZSQU1FlHViYYwKZW50cnlwb2ludJRoAIwKRW50cnlwb2ludJSTlCmBlH2UKIwHdmVyc2lvbpSMAnYxlIwHaGFuZGxlcpSMGGV4YW1wbGUuZXhhbXBsZTpldmFsdWF0ZZSMB3J1bnRpbWWUjApweXRob246My44lIwHY29kZXVyaZROjAVpbWFnZZSMMXBpcmNsaS1idWlsZDo4ODIyYzUxOC01MjliLTQ2YjktYTc1MC1kNzY3NjNhMjFlNjSUdWKMCWZyYW1ld29ya5ROdWIu
+    - gASVpAAAAAAAAABdlCiMDHBpcmxpYi5ncmFwaJSMCkdyYXBoSW5wdXSUk5QpgZR9lCiMBG5hbWWUjA10cmFpbl9kYXRhc2V0lIwGaW90eXBllIwJRElSRUNUT1JZlHViaAMpgZR9lChoBowPdHJhbnNsYXRlX21vZGVslGgIjARGSUxFlHViaAMpgZR9lChoBowJc2VudGVuY2VzlGgIjAlESVJFQ1RPUlmUdWJlLg==
+    depends_on:
+      train_pipeline.infer_pipeline.sentiment:
+        condition: service_completed_successfully
+    image: pircli-build:8822c518-529b-46b9-a750-d76763a21e64
+    volumes:
+    - node_outputs:/mnt/node_outputs
+    - ${INPUT_sentences:?err}:/mnt/graph_inputs/sentences
+  train_pipeline.infer_pipeline.sentiment:
+    command:
+    - python
+    - -m
+    - pirlib.backends.docker_batch
+    - node
+    - gASVcAIAAAAAAACMDHBpcmxpYi5ncmFwaJSMBE5vZGWUk5QpgZR9lCiMBG5hbWWUjBhpbmZlcl9waXBlbGluZS5zZW50aW1lbnSUjAZjb25maWeUfZSMBmlucHV0c5RdlChoAIwJTm9kZUlucHV0lJOUKYGUfZQoaAWMBW1vZGVslIwGaW90eXBllIwERklMRZSMBnNvdXJjZZRoAIwKRGF0YVNvdXJjZZSTlCmBlH2UKIwLbm9kZV9vdXRwdXSUaACMDU5vZGVPdXRwdXRSZWaUk5QpgZR9lCiMCW5vZGVfbmFtZZSMBXRyYWlulIwLb3V0cHV0X25hbWWUjAEwlHVijAtncmFwaF9pbnB1dJROdWJ1YmgMKYGUfZQoaAWMCXNlbnRlbmNlc5RoEIwJRElSRUNUT1JZlGgSaBQpgZR9lChoF2gZKYGUfZQoaByMGmluZmVyX3BpcGVsaW5lLnRyYW5zbGF0ZV8xlGgeaB91YmggTnVidWJljAdvdXRwdXRzlF2UaACMCk5vZGVPdXRwdXSUk5QpgZR9lChoBWgfaBCMCURJUkVDVE9SWZR1YmGMCmVudHJ5cG9pbnSUaACMCkVudHJ5cG9pbnSUk5QpgZR9lCiMB3ZlcnNpb26UjAJ2MZSMB2hhbmRsZXKUjBlleGFtcGxlLmV4YW1wbGU6c2VudGltZW50lIwHcnVudGltZZSMCnB5dGhvbjozLjiUjAdjb2RldXJplE6MBWltYWdllIwxcGlyY2xpLWJ1aWxkOjg4MjJjNTE4LTUyOWItNDZiOS1hNzUwLWQ3Njc2M2EyMWU2NJR1YowJZnJhbWV3b3JrlE51Yi4=
+    - gASVpAAAAAAAAABdlCiMDHBpcmxpYi5ncmFwaJSMCkdyYXBoSW5wdXSUk5QpgZR9lCiMBG5hbWWUjA10cmFpbl9kYXRhc2V0lIwGaW90eXBllIwJRElSRUNUT1JZlHViaAMpgZR9lChoBowPdHJhbnNsYXRlX21vZGVslGgIjARGSUxFlHViaAMpgZR9lChoBowJc2VudGVuY2VzlGgIjAlESVJFQ1RPUlmUdWJlLg==
+    depends_on:
+      train_pipeline.infer_pipeline.translate_1:
+        condition: service_completed_successfully
+      train_pipeline.train:
+        condition: service_completed_successfully
+    image: pircli-build:8822c518-529b-46b9-a750-d76763a21e64
+    volumes:
+    - node_outputs:/mnt/node_outputs
+  train_pipeline.infer_pipeline.translate_1:
+    command:
+    - python
+    - -m
+    - pirlib.backends.docker_batch
+    - node
+    - gASVMgIAAAAAAACMDHBpcmxpYi5ncmFwaJSMBE5vZGWUk5QpgZR9lCiMBG5hbWWUjBppbmZlcl9waXBlbGluZS50cmFuc2xhdGVfMZSMBmNvbmZpZ5R9lIwDa2V5lIwFdmFsdWWUc4wGaW5wdXRzlF2UKGgAjAlOb2RlSW5wdXSUk5QpgZR9lChoBYwFbW9kZWyUjAZpb3R5cGWUjARGSUxFlIwGc291cmNllGgAjApEYXRhU291cmNllJOUKYGUfZQojAtub2RlX291dHB1dJROjAtncmFwaF9pbnB1dJSMD3RyYW5zbGF0ZV9tb2RlbJR1YnViaA4pgZR9lChoBYwJc2VudGVuY2VzlGgSjAlESVJFQ1RPUlmUaBRoFimBlH2UKGgZTmgajAlzZW50ZW5jZXOUdWJ1YmWMB291dHB1dHOUXZRoAIwKTm9kZU91dHB1dJSTlCmBlH2UKGgFjAEwlGgSjAlESVJFQ1RPUlmUdWJhjAplbnRyeXBvaW50lGgAjApFbnRyeXBvaW50lJOUKYGUfZQojAd2ZXJzaW9ulIwCdjGUjAdoYW5kbGVylIwZZXhhbXBsZS5leGFtcGxlOnRyYW5zbGF0ZZSMB3J1bnRpbWWUjApweXRob246My44lIwHY29kZXVyaZROjAVpbWFnZZSMMXBpcmNsaS1idWlsZDo4ODIyYzUxOC01MjliLTQ2YjktYTc1MC1kNzY3NjNhMjFlNjSUdWKMCWZyYW1ld29ya5ROdWIu
+    - gASVpAAAAAAAAABdlCiMDHBpcmxpYi5ncmFwaJSMCkdyYXBoSW5wdXSUk5QpgZR9lCiMBG5hbWWUjA10cmFpbl9kYXRhc2V0lIwGaW90eXBllIwJRElSRUNUT1JZlHViaAMpgZR9lChoBowPdHJhbnNsYXRlX21vZGVslGgIjARGSUxFlHViaAMpgZR9lChoBowJc2VudGVuY2VzlGgIjAlESVJFQ1RPUlmUdWJlLg==
+    image: pircli-build:8822c518-529b-46b9-a750-d76763a21e64
+    volumes:
+    - node_outputs:/mnt/node_outputs
+    - ${INPUT_translate_model:?err}:/mnt/graph_inputs/translate_model
+    - ${INPUT_sentences:?err}:/mnt/graph_inputs/sentences
+  train_pipeline.train:
+    command:
+    - python
+    - -m
+    - pirlib.backends.docker_batch
+    - node
+    - gASVQQIAAAAAAACMDHBpcmxpYi5ncmFwaJSMBE5vZGWUk5QpgZR9lCiMBG5hbWWUjAV0cmFpbpSMBmNvbmZpZ5R9lIwGaW5wdXRzlF2UaACMCU5vZGVJbnB1dJSTlCmBlH2UKGgFjAdkYXRhc2V0lIwGaW90eXBllIwJRElSRUNUT1JZlIwGc291cmNllGgAjApEYXRhU291cmNllJOUKYGUfZQojAtub2RlX291dHB1dJRoAIwNTm9kZU91dHB1dFJlZpSTlCmBlH2UKIwJbm9kZV9uYW1llIwFY2xlYW6UjAtvdXRwdXRfbmFtZZSMATCUdWKMC2dyYXBoX2lucHV0lE51YnViYYwHb3V0cHV0c5RdlGgAjApOb2RlT3V0cHV0lJOUKYGUfZQoaAVoH2gQjARGSUxFlHViYYwKZW50cnlwb2ludJRoAIwKRW50cnlwb2ludJSTlCmBlH2UKIwHdmVyc2lvbpSMAnYxlIwHaGFuZGxlcpSMFWV4YW1wbGUuZXhhbXBsZTp0cmFpbpSMB3J1bnRpbWWUjApweXRob246My44lIwHY29kZXVyaZROjAVpbWFnZZSMMXBpcmNsaS1idWlsZDo4ODIyYzUxOC01MjliLTQ2YjktYTc1MC1kNzY3NjNhMjFlNjSUdWKMCWZyYW1ld29ya5RoAIwJRnJhbWV3b3JrlJOUKYGUfZQoaAWMB2FkYXB0ZGyUaAd9lCiMDG1pbl9yZXBsaWNhc5RLAYwMbWF4X3JlcGxpY2FzlEsEdXVidWIu
+    - gASVpAAAAAAAAABdlCiMDHBpcmxpYi5ncmFwaJSMCkdyYXBoSW5wdXSUk5QpgZR9lCiMBG5hbWWUjA10cmFpbl9kYXRhc2V0lIwGaW90eXBllIwJRElSRUNUT1JZlHViaAMpgZR9lChoBowPdHJhbnNsYXRlX21vZGVslGgIjARGSUxFlHViaAMpgZR9lChoBowJc2VudGVuY2VzlGgIjAlESVJFQ1RPUlmUdWJlLg==
+    depends_on:
+      train_pipeline.clean:
+        condition: service_completed_successfully
+    image: pircli-build:8822c518-529b-46b9-a750-d76763a21e64
+    volumes:
+    - node_outputs:/mnt/node_outputs
+version: '3.9'
+volumes:
+  node_outputs: {}
