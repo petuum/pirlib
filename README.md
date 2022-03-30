@@ -6,6 +6,9 @@ This repository is under construction.
 
 ```
 $ conda create -n pirlib python=3.8
+$ conda activate pirlib
+$ git clone https://github.com/petuum/pirlib
+$ cd pirlib
 $ pip install -r requirements.txt
 $ export PYTHONPATH=$PWD
 ```
@@ -41,6 +44,7 @@ Open up `example/run_inproc.sh` and `example/package_inproc.yml` and
 see what's inside.
 
 ### Running locally as a Docker workflow:
+The following steps require a existing docker installation.
 
 ```
 $ bash example/run_docker.sh
