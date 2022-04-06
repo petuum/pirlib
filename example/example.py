@@ -2,7 +2,7 @@ import pandas
 import tempfile
 import yaml
 from dataclasses import asdict
-from typing import Tuple
+from typing import Tuple, TypedDict
 
 from pirlib.frameworks.adaptdl import AdaptDL
 from pirlib.iotypes import DirectoryPath, FilePath
@@ -30,8 +30,15 @@ def train(dataset: DirectoryPath) -> FilePath:
     return outfile
 
 
+class EvaluateInput(TypedDict):
+    test_dataset: DirectoryPath
+    predictions: DirectoryPath
+
+
 @operator
-def evaluate(test_dataset: DirectoryPath, predictions: DirectoryPath) -> pandas.DataFrame:
+def evaluate(kwargs: EvaluateInput) -> pandas.DataFrame:
+    test_dataset = kwargs["test_dataset"]
+    predictions = kwargs["predictions"]
     with open(test_dataset / "file.txt") as f, open(predictions / "file.txt") as g:
         print("evaluate({}, {})".format(f.read().strip(), g.read().strip()))
     outdir = operator.context().output
@@ -40,7 +47,8 @@ def evaluate(test_dataset: DirectoryPath, predictions: DirectoryPath) -> pandas.
 
 
 @operator
-def translate(model: FilePath, sentences: DirectoryPath) -> DirectoryPath:
+def translate(args: Tuple[FilePath, DirectoryPath]) -> DirectoryPath:
+    model, sentences = args
     opctx = operator.context()
     with open(model) as f, open(sentences / "file.txt") as g:
         print("translate({}, {}, config={})".format(f.read().strip(), g.read().strip(), opctx.config))
@@ -63,10 +71,10 @@ def sentiment(model: FilePath, sentences: DirectoryPath) -> DirectoryPath:
 @pipeline
 def infer_pipeline(translate_model: FilePath,
                    sentiment_model: FilePath,
-                   sentences: DirectoryPath) -> pandas.DataFrame:
+                   sentences: DirectoryPath) -> DirectoryPath:
     translate_1 = translate.instance("translate_1")
     translate_1.config["key"] = "value"
-    return sentiment(sentiment_model, translate_1(translate_model, sentences))
+    return sentiment(sentiment_model, translate_1((translate_model, sentences)))
 
 
 @pipeline
@@ -77,7 +85,8 @@ def train_pipeline(
     ) -> Tuple[FilePath, pandas.DataFrame]:
     sentiment_model = train(clean(train_dataset))
     sentiment = infer_pipeline(translate_model, sentiment_model, sentences)
-    return sentiment_model, evaluate(sentences, sentiment)
+    eval_input = {"test_dataset": sentences, "predictions": sentiment}
+    return sentiment_model, evaluate(eval_input)
 
 
 if __name__ == "__main__":

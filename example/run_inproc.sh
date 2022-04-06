@@ -12,5 +12,5 @@ PYTHONPATH=$ROOTDIR $ROOTDIR/bin/pircli execute \
 	--input train_dataset=$EXAMPLEDIR/inputs/train_dataset \
 	--input translate_model=$EXAMPLEDIR/inputs/translate_model.txt \
 	--input sentences=$EXAMPLEDIR/inputs/sentences \
-	--output 0=$EXAMPLEDIR/outputs/0 \
-	--output 1=$EXAMPLEDIR/outputs/1
+	--output return.0=$EXAMPLEDIR/outputs/return.0 \
+	--output return.1=$EXAMPLEDIR/outputs/return.1

@@ -10,7 +10,7 @@ from typing import Any, Callable, Dict, Optional
 import pirlib.graph
 from pirlib.graph import Framework
 from pirlib.handlers.v1 import HandlerV1
-from pirlib.trace import operator_call
+from pirlib.trace import recurse_hint, operator_call
 
 _OP_CONTEXT = contextvars.ContextVar("_OP_CONTEXT")
 
@@ -117,30 +117,23 @@ class OperatorDefinition(HandlerV1):
         ) -> None:
         context = OperatorContext(node.config, None)
         sig = inspect.signature(self.func)
-        if typing.get_origin(sig.return_annotation) == tuple:
-            context.output = []
-            for idx, pytype in enumerate(typing.get_args(return_annotation)):
-                context.output.append(outputs.get(f"{idx}", None))
-            context.output = tuple(context.output)
-        else:
-            context.output = outputs.get("0", None)
+        context.output = recurse_hint(lambda name, hint: outputs[name],
+                                      "return", sig.return_annotation)
+        args, kwargs = [], {}
+        for param in sig.parameters.values():
+            value = recurse_hint(lambda name, hint: inputs[name],
+                                 param.name, param.annotation)
+            if param.kind == param.KEYWORD_ONLY:
+                kwargs[param.name] = value
+            else:
+                args.append(value)
         token = _OP_CONTEXT.set(context)
         try:
-            args = []
-            kwargs = {}
-            for name, param in sig.parameters.items():
-                if param.kind == param.KEYWORD_ONLY:
-                    kwargs[param.name] = inputs[param.name]
-                else:
-                    args.append(inputs[param.name])
-            ret = self.func(*args, **kwargs)
-            if isinstance(ret, tuple):
-                for idx, val in enumerate(ret):
-                    outputs[f"{idx}"] = val
-            else:
-                outputs["0"] = ret
+            return_value = self.func(*args, **kwargs)
         finally:
             _OP_CONTEXT.reset(token)
+        recurse_hint(lambda n, h, v: outputs.__setitem__(n, v),
+                     "return", sig.return_annotation, return_value)
 
 
 def operator(

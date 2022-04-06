@@ -67,7 +67,7 @@ Open up `example/run_docker.sh`, `example/package_docker.yml`, and
 - Packinging nested pipelines into subgraphs instead of a single flattened graph.
 - Better thought out config file handling.
 - Docker serve backend.
-- Supporting (nested) Tuple/TypedDict argument and return values.
+- ~~Supporting (nested) Tuple/TypedDict argument and return values.~~
 - Supporting factory functions that produce handlers dynamically.
 - More comments and any unit tests at all.
 - Packaging a pip-installable and registering to pypi.

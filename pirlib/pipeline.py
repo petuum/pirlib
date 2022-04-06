@@ -1,13 +1,14 @@
 import copy
 import functools
 import inspect
+import typeguard
 import typing
 
 from typing import Any, Callable, Optional
 
 from pirlib.backends.inproc import InprocBackend
 from pirlib.graph import Package
-from pirlib.trace import package_pipeline, pipeline_call
+from pirlib.trace import package_pipeline, pipeline_call, recurse_hint
 
 
 class PipelineInstance(object):
@@ -34,16 +35,15 @@ class PipelineInstance(object):
         package = package_pipeline(self.func, self.name, self.config)
         inputs = {}
         sig = inspect.signature(self.func)
-        for idx, (name, param) in enumerate(sig.parameters.items()):
-            inputs[name] = args[idx] if idx < len(args) else kwargs[name]
+        for idx, param in enumerate(sig.parameters.values()):
+            input_value = args[idx] if idx < len(args) else kwargs[param.name]
+            recurse_hint(lambda name, hint, val: inputs.update({name: val}),
+                         param.name, param.annotation, input_value)
         backend = InprocBackend()
         outputs = backend.execute(package, self.name, self.config,
                                   inputs=inputs)
-        ret = [outputs[f"{idx}"] for idx in range(len(outputs))]
-        return_type = typing.get_origin(sig.return_annotation)
-        if return_type == tuple:
-            return tuple(ret)
-        return ret[0]
+        return recurse_hint(lambda name, hint: outputs[name],
+                            "return", sig.return_annotation)
 
 
 class PipelineDefinition(object):
@@ -55,7 +55,7 @@ class PipelineDefinition(object):
             name: Optional[str] = None,
             config: Optional[dict] = None,
         ):
-        self._func = func
+        self._func = func if func is None else typeguard.typechecked(func)
         self._name = name if name else getattr(func, "__name__", None)
         self._config = copy.deepcopy(config) if config else None
 

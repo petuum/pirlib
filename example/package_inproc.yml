@@ -5,18 +5,18 @@ graphs:
     config:
       key: value
     inputs:
-    - name: model
+    - name: args.0
       iotype: FILE
       source:
         node_output: null
         graph_input: translate_model
-    - name: sentences
+    - name: args.1
       iotype: DIRECTORY
       source:
         node_output: null
         graph_input: sentences
     outputs:
-    - name: '0'
+    - name: return
       iotype: DIRECTORY
     entrypoint:
       version: v1
@@ -38,10 +38,10 @@ graphs:
       source:
         node_output:
           node_name: translate_1
-          output_name: '0'
+          output_name: return
         graph_input: null
     outputs:
-    - name: '0'
+    - name: return
       iotype: DIRECTORY
     entrypoint:
       version: v1
@@ -58,12 +58,12 @@ graphs:
   - name: sentences
     iotype: DIRECTORY
   outputs:
-  - name: '0'
-    iotype: DATAFRAME
+  - name: return
+    iotype: DIRECTORY
     source:
       node_output:
         node_name: sentiment
-        output_name: '0'
+        output_name: return
       graph_input: null
 - name: train_pipeline
   nodes:
@@ -76,7 +76,7 @@ graphs:
         node_output: null
         graph_input: train_dataset
     outputs:
-    - name: '0'
+    - name: return
       iotype: DIRECTORY
     entrypoint:
       version: v1
@@ -93,10 +93,10 @@ graphs:
       source:
         node_output:
           node_name: clean
-          output_name: '0'
+          output_name: return
         graph_input: null
     outputs:
-    - name: '0'
+    - name: return
       iotype: FILE
     entrypoint:
       version: v1
@@ -113,18 +113,18 @@ graphs:
     config:
       key: value
     inputs:
-    - name: model
+    - name: args.0
       iotype: FILE
       source:
         node_output: null
         graph_input: translate_model
-    - name: sentences
+    - name: args.1
       iotype: DIRECTORY
       source:
         node_output: null
         graph_input: sentences
     outputs:
-    - name: '0'
+    - name: return
       iotype: DIRECTORY
     entrypoint:
       version: v1
@@ -141,17 +141,17 @@ graphs:
       source:
         node_output:
           node_name: train
-          output_name: '0'
+          output_name: return
         graph_input: null
     - name: sentences
       iotype: DIRECTORY
       source:
         node_output:
           node_name: infer_pipeline.translate_1
-          output_name: '0'
+          output_name: return
         graph_input: null
     outputs:
-    - name: '0'
+    - name: return
       iotype: DIRECTORY
     entrypoint:
       version: v1
@@ -163,20 +163,20 @@ graphs:
   - name: evaluate
     config: {}
     inputs:
-    - name: test_dataset
+    - name: kwargs.test_dataset
       iotype: DIRECTORY
       source:
         node_output: null
         graph_input: sentences
-    - name: predictions
+    - name: kwargs.predictions
       iotype: DIRECTORY
       source:
         node_output:
           node_name: infer_pipeline.sentiment
-          output_name: '0'
+          output_name: return
         graph_input: null
     outputs:
-    - name: '0'
+    - name: return
       iotype: DATAFRAME
     entrypoint:
       version: v1
@@ -193,17 +193,17 @@ graphs:
   - name: sentences
     iotype: DIRECTORY
   outputs:
-  - name: '0'
+  - name: return.0
     iotype: FILE
     source:
       node_output:
         node_name: train
-        output_name: '0'
+        output_name: return
       graph_input: null
-  - name: '1'
+  - name: return.1
     iotype: DATAFRAME
     source:
       node_output:
         node_name: evaluate
-        output_name: '0'
+        output_name: return
       graph_input: null
