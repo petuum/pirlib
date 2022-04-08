@@ -7,7 +7,9 @@ graphs:
     - name: dataset
       iotype: DIRECTORY
       source:
-        node_output: null
+        node: null
+        subgraph: null
+        output: null
         graph_input: train_dataset
     outputs:
     - name: return
@@ -17,7 +19,7 @@ graphs:
       handler: example.example:clean
       runtime: python:3.8
       codeuri: null
-      image: pircli-build:588ffbcf-ac3a-4408-8b47-1f9b41b1a682
+      image: pircli-build:968a7332-fddd-48f8-bafb-2771089b17e9
     framework: null
   - name: train
     config: {}
@@ -25,9 +27,9 @@ graphs:
     - name: dataset
       iotype: DIRECTORY
       source:
-        node_output:
-          node_name: clean
-          output_name: return
+        node: clean
+        subgraph: null
+        output: return
         graph_input: null
     outputs:
     - name: return
@@ -37,77 +39,28 @@ graphs:
       handler: example.example:train
       runtime: python:3.8
       codeuri: null
-      image: pircli-build:588ffbcf-ac3a-4408-8b47-1f9b41b1a682
+      image: pircli-build:968a7332-fddd-48f8-bafb-2771089b17e9
     framework:
       name: adaptdl
       config:
         min_replicas: 1
         max_replicas: 4
-  - name: infer_pipeline.translate_1
-    config:
-      key: value
-    inputs:
-    - name: args.0
-      iotype: FILE
-      source:
-        node_output: null
-        graph_input: translate_model
-    - name: args.1
-      iotype: DIRECTORY
-      source:
-        node_output: null
-        graph_input: sentences
-    outputs:
-    - name: return
-      iotype: DIRECTORY
-    entrypoint:
-      version: v1
-      handler: example.example:translate
-      runtime: python:3.8
-      codeuri: null
-      image: pircli-build:588ffbcf-ac3a-4408-8b47-1f9b41b1a682
-    framework: null
-  - name: infer_pipeline.sentiment
-    config: {}
-    inputs:
-    - name: model
-      iotype: FILE
-      source:
-        node_output:
-          node_name: train
-          output_name: return
-        graph_input: null
-    - name: sentences
-      iotype: DIRECTORY
-      source:
-        node_output:
-          node_name: infer_pipeline.translate_1
-          output_name: return
-        graph_input: null
-    outputs:
-    - name: return
-      iotype: DIRECTORY
-    entrypoint:
-      version: v1
-      handler: example.example:sentiment
-      runtime: python:3.8
-      codeuri: null
-      image: pircli-build:588ffbcf-ac3a-4408-8b47-1f9b41b1a682
-    framework: null
   - name: evaluate
     config: {}
     inputs:
     - name: kwargs.test_dataset
       iotype: DIRECTORY
       source:
-        node_output: null
+        node: null
+        subgraph: null
+        output: null
         graph_input: sentences
     - name: kwargs.predictions
       iotype: DIRECTORY
       source:
-        node_output:
-          node_name: infer_pipeline.sentiment
-          output_name: return
+        node: infer_pipeline.sentiment
+        subgraph: null
+        output: return
         graph_input: null
     outputs:
     - name: return
@@ -117,8 +70,64 @@ graphs:
       handler: example.example:evaluate
       runtime: python:3.8
       codeuri: null
-      image: pircli-build:588ffbcf-ac3a-4408-8b47-1f9b41b1a682
+      image: pircli-build:968a7332-fddd-48f8-bafb-2771089b17e9
     framework: null
+  - name: infer_pipeline.translate_1
+    config:
+      key: value
+    inputs:
+    - name: args.0
+      iotype: FILE
+      source:
+        node: null
+        subgraph: null
+        output: null
+        graph_input: translate_model
+    - name: args.1
+      iotype: DIRECTORY
+      source:
+        node: null
+        subgraph: null
+        output: null
+        graph_input: sentences
+    outputs:
+    - name: return
+      iotype: DIRECTORY
+    entrypoint:
+      version: v1
+      handler: example.example:translate
+      runtime: python:3.8
+      codeuri: null
+      image: pircli-build:968a7332-fddd-48f8-bafb-2771089b17e9
+    framework: null
+  - name: infer_pipeline.sentiment
+    config: {}
+    inputs:
+    - name: model
+      iotype: FILE
+      source:
+        node: train
+        subgraph: null
+        output: return
+        graph_input: null
+    - name: sentences
+      iotype: DIRECTORY
+      source:
+        node: infer_pipeline.translate_1
+        subgraph: null
+        output: return
+        graph_input: null
+    outputs:
+    - name: return
+      iotype: DIRECTORY
+    entrypoint:
+      version: v1
+      handler: example.example:sentiment
+      runtime: python:3.8
+      codeuri: null
+      image: pircli-build:968a7332-fddd-48f8-bafb-2771089b17e9
+    framework: null
+  subgraphs: []
   inputs:
   - name: train_dataset
     iotype: DIRECTORY
@@ -130,14 +139,14 @@ graphs:
   - name: return.0
     iotype: FILE
     source:
-      node_output:
-        node_name: train
-        output_name: return
+      node: train
+      subgraph: null
+      output: return
       graph_input: null
   - name: return.1
     iotype: DATAFRAME
     source:
-      node_output:
-        node_name: evaluate
-        output_name: return
+      node: evaluate
+      subgraph: null
+      output: return
       graph_input: null

@@ -13,9 +13,10 @@ from typing import Optional
 from pirlib.iotypes import pytype_to_iotype
 from pirlib.graph import (DataSource, Entrypoint, Graph, GraphInput,
                           GraphOutput, Node, NodeInput, NodeOutput,
-                          DataSource, NodeOutputRef, Package)
+                          DataSource, Package, Subgraph, find_by_name)
 
 _PACKAGE = contextvars.ContextVar("_PACKAGE")
+_GRAPH = contextvars.ContextVar("_GRAPH")
 
 
 def _create_ivalue(pytype, source):
@@ -58,7 +59,7 @@ def recurse_hint(func, prefix, hint, *values):
     return func(prefix, hint, *values)
 
 
-def iter_type_hints(prefix, hint, *values):
+def iter_hints(prefix, hint, *values):
     hints = []
     recurse_hint(lambda *args: hints.append(args), prefix, hint, *values)
     return iter(hints)
@@ -104,32 +105,40 @@ def _pipeline_to_graph(pipeline_func: callable,
                        pipeline_name: str,
                        pipeline_config: dict) -> Graph:
     sig = inspect.signature(pipeline_func)
-    graph = Graph(name=pipeline_name, nodes=[], inputs=[], outputs=[])
-    package = _PACKAGE.get()
-    package.graphs.append(graph)
+    graph = Graph(name=pipeline_name, nodes=[], subgraphs=[],
+                  inputs=[], outputs=[])
+    token = _GRAPH.set(graph)
 
     def add_input(name, hint):
         iotype = pytype_to_iotype(hint)
         source = DataSource(graph_input=name)
         graph.inputs.append(GraphInput(name=name, iotype=iotype))
         return _create_ivalue(pytype=hint, source=source)
-    args, kwargs = [], {}
-    for param in sig.parameters.values():
-        if param.kind in (param.VAR_POSITIONAL, param.VAR_KEYWORD):
-            raise ValueError("{} not supported".format(param))
-        input_ivalue = recurse_hint(add_input, param.name, param.annotation)
-        if param.kind == param.KEYWORD_ONLY:
-            kwargs[param.name] = input_ivalue
-        else:
-            args.append(input_ivalue)
 
-    return_ivalue = pipeline_func(*args, **kwargs)
-    flat_outputs = iter_type_hints(
-        "return", sig.return_annotation, return_ivalue)
-    for name, hint, ivalue in flat_outputs:
-        iotype = pytype_to_iotype(ivalue.pytype)
-        graph.outputs.append(GraphOutput(name=name, iotype=iotype,
-                                         source=ivalue.source))
+    try:
+        args, kwargs = [], {}
+        for param in sig.parameters.values():
+            if param.kind in (param.VAR_POSITIONAL, param.VAR_KEYWORD):
+                raise ValueError("{} not supported".format(param))
+            input_ivalue = recurse_hint(add_input, param.name,
+                                        param.annotation)
+            if param.kind == param.KEYWORD_ONLY:
+                kwargs[param.name] = input_ivalue
+            else:
+                args.append(input_ivalue)
+        return_ivalue = pipeline_func(*args, **kwargs)
+        flat_outputs = iter_hints(
+            "return", sig.return_annotation, return_ivalue)
+        for name, hint, ivalue in flat_outputs:
+            iotype = pytype_to_iotype(ivalue.pytype)
+            graph.outputs.append(GraphOutput(name=name, iotype=iotype,
+                                             source=ivalue.source))
+        package = _PACKAGE.get()
+        assert find_by_name(package.graphs, graph.name) is None
+        package.graphs.append(graph)
+        return graph
+    finally:
+        _GRAPH.reset(token)
 
 
 def pipeline_call(method):
@@ -138,46 +147,35 @@ def pipeline_call(method):
     def wrapper(instance, *args, **kwargs):
         if not is_packaging():
             return method(instance, *args, **kwargs)
-        sig = inspect.signature(instance.func)
-        _pipeline_to_graph(
+        graph = _GRAPH.get()
+        g = _pipeline_to_graph(
             pipeline_func=instance.func,
             pipeline_name=instance.name,
             pipeline_config=instance.config,
         )
-        subgraph = _PACKAGE.get().graphs.pop()
-        graph = _PACKAGE.get().graphs[-1]
-        # Flatten-merge the subgraph into the current graph.
-        input_map = {}  # GraphInput.name -> IntermediateValue
+        subgraph = Subgraph(
+            name=instance.name, 
+            graph=g.name,
+            config=instance.config,
+            inputs=[],
+            outputs=[],
+        )
+        sig = inspect.signature(instance.func)
         for idx, param in enumerate(sig.parameters.values()):
-            input_value = args[idx] if idx < len(args) else kwargs[param.name]
-            recurse_hint(lambda n, h, v: input_map.update({n: v}),
-                         param.name, param.annotation, input_value)
-        for node in subgraph.nodes:
-            node.name = f"{subgraph.name}.{node.name}"
-            for inp in node.inputs:
-                source = inp.source
-                if source.node_output is not None:
-                    ref = source.node_output
-                    ref.node_name = f"{subgraph.name}.{ref.node_name}"
-                if source.graph_input is not None:
-                    inp.source = input_map[source.graph_input].source
-            graph.nodes.append(node)
+            value = args[idx] if idx < len(args) else kwargs[param.name]
+            for n, h, v in iter_hints(param.name, param.annotation, value):
+                iotype = pytype_to_iotype(h)
+                subgraph.inputs.append(
+                    NodeInput(name=n, iotype=iotype, source=v.source))
 
-        # Create intermediate values for subgraph outputs.
-        def flatten_outputs(name, hint):
-            for out in subgraph.outputs:
-                if out.name == name:
-                    source = out.source
-                    break
-            else:
-                raise  # FIXME: raise proper error
-            if source.node_output is not None:
-                ref = source.node_output
-                ref.node_name = f"{subgraph.name}.{ref.node_name}"
-            if source.graph_input is not None:
-                source = input_map[source.graph_input].source
+        def return_value(name, hint):
+            iotype = pytype_to_iotype(hint)
+            source = DataSource(subgraph=subgraph.name, output=name)
+            subgraph.outputs.append(NodeOutput(name=name, iotype=iotype))
             return _create_ivalue(pytype=hint, source=source)
-        return recurse_hint(flatten_outputs, "return", sig.return_annotation)
+        value = recurse_hint(return_value, "return", sig.return_annotation)
+        graph.subgraphs.append(subgraph)
+        return value
     return wrapper
 
 
@@ -188,8 +186,7 @@ def _add_node_input(node, name, hint, ivalue):
 
 
 def _add_node_output(node, name, hint):
-    ref = NodeOutputRef(node_name=node.name, output_name=name)
-    source = DataSource(node_output=ref)
+    source = DataSource(node=node.name, output=name)
     iotype = pytype_to_iotype(hint)
     node.outputs.append(NodeOutput(name=name, iotype=iotype))
     return _create_ivalue(pytype=hint, source=source)
@@ -216,7 +213,7 @@ def operator_call(func):
     def wrapper(instance, *args, **kwargs):
         if not is_packaging():
             return func(instance, *args, **kwargs)
-        graph = _PACKAGE.get().graphs[-1]
+        graph = _GRAPH.get()
         if instance.name in [node.name for node in graph.nodes]:
             raise ValueError(f"pipeline already contains node {nodename}")
         node = _create_node_template(instance)

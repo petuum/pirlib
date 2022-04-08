@@ -3,7 +3,8 @@ ROOTDIR=$EXAMPLEDIR/..
 
 PYTHONPATH=$ROOTDIR $ROOTDIR/bin/pircli dockerize --auto $ROOTDIR \
 	--pipeline example.example:train_pipeline \
-	--output $EXAMPLEDIR/package_docker.yml
+	--output $EXAMPLEDIR/package_docker.yml \
+    --flatten
 
 PYTHONPATH=$ROOTDIR $ROOTDIR/bin/pircli generate $EXAMPLEDIR/package_docker.yml \
 	--target pirlib.backends.docker_batch:DockerBatchBackend \

@@ -1,6 +1,6 @@
 import argparse
 import importlib
-from typing import List
+from typing import List, Optional
 
 from pirlib.backends import Backend
 from pirlib.graph import Package
@@ -27,10 +27,13 @@ def pipeline_def(arg: str) -> PipelineDefinition:
 
 
 def package_pipelines(parser: argparse.ArgumentParser,
-                      pipelines: List[PipelineDefinition]) -> Package:
+                      pipelines: List[PipelineDefinition],
+                      flatten: Optional[bool] = False) -> Package:
     package = Package(graphs=[])
     for pipeline in pipelines:
         pkg = pipeline.package()
+        if flatten:
+            pkg.graphs = [pkg.flatten_graph(pipeline.name, validate=True)]
         for g in pkg.graphs:
             for graph in package.graphs:
                 if g.name == graph.name:

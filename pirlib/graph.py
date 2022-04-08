@@ -1,3 +1,4 @@
+import copy
 import re
 import typeguard
 from dataclasses import dataclass
@@ -33,25 +34,33 @@ def _validate_names(items: Any, label: str) -> None:
         raise ValidationError(f"duplicate {label} name(s): {text}")
 
 
-@dataclass
-class NodeOutputRef:
-    node_name: str
-    output_name: str
-
-    def validate(self):
-        _validate_fields(self)
+def find_by_name(iterable, name):
+    for item in iterable:
+        if item.name == name:
+            return item
 
 
 @dataclass
 class DataSource:
-    node_output: Optional[NodeOutputRef] = None
+    node: Optional[str] = None
+    subgraph: Optional[str] = None
+    output: Optional[str] = None
     graph_input: Optional[str] = None
 
-    def validate(self):  # TODO: merge NodeOutputRef
+    def validate(self):
         _validate_fields(self)
-        if not (self.node_output is None) ^ (self.graph_input is None):
-            raise ValidationError("exactly one of node_output "
-                                  "or graph_input is required")
+        count = sum([
+            self.node is not None,
+            self.subgraph is not None,
+            self.graph_input is not None,
+        ])
+        if count != 1:
+            raise ValidationError("exactly one of 'node', 'subgraph', "
+                                  "or 'graph_input' is expected")
+        if self.node is not None or self.subgraph is not None:
+            if self.output is None:
+                raise ValidationError("'output' is required if either "
+                                      "'node' or 'subgraph' is provided")
 
 
 @dataclass
@@ -137,6 +146,30 @@ class Node:
 
 
 @dataclass
+class Subgraph:
+    name: str
+    graph: str
+    config: Dict[str, Any]
+    inputs: List[NodeInput]
+    outputs: List[NodeOutput]
+
+    def validate(self):
+        _validate_fields(self)
+        for inp in self.inputs:
+            try:
+                inp.validate()
+            except ValidationError as err:
+                raise ValidationError(f"input '{inp.name}': {err}") from None
+        _validate_names(self.inputs, "input")
+        for out in self.outputs:
+            try:
+                out.validate()
+            except ValidationError as err:
+                raise ValidationError(f"output '{out.name}': {err}") from None
+        _validate_names(self.outputs, "output")
+
+
+@dataclass
 class GraphInput:
     name: str
     iotype: str
@@ -160,6 +193,7 @@ class GraphOutput:
 class Graph:
     name: str
     nodes: List[Node]
+    subgraphs: List[Subgraph]
     inputs: List[GraphInput]
     outputs: List[GraphOutput]
 
@@ -171,6 +205,13 @@ class Graph:
             except ValidationError as err:
                 raise ValidationError(f"node '{node.name}': {err}") from None
         _validate_names(self.nodes, "node")
+        for subgraph in self.subgraphs:
+            try:
+                subgraph.validate()
+            except ValidationError as err:
+                raise ValidationError(
+                    f"subgraph '{subgraph.name}': {err}") from None
+        _validate_names(self.subgraphs, "subgraph")
         for inp in self.inputs:
             try:
                 inp.validate()
@@ -205,36 +246,41 @@ class Graph:
 
     def _validate_source(self, source, iotype):
         if source.graph_input is not None:
-            for graph_input in self.inputs:
-                if graph_input.name == source.graph_input:
-                    break
-            else:
+            graph_input = find_by_name(self.inputs, source.graph_input)
+            if graph_input is None:
                 raise ValidationError(f"reference to missing graph "
                                       f"input '{source.graph_input}'")
             source_iotype = graph_input.iotype
-        elif source.node_output is not None:
-            for node in self.nodes:
-                if node.name == source.node_output.node_name:
-                    break
-            else:
-                raise ValidationError(f"reference to missing node "
-                                      f"'{source.node_output.node_name}'")
-            ref = source.node_output
-            for node_output in node.outputs:
-                if node_output.name == ref.output_name:
-                    break
-            else:
+        elif source.node is not None:
+            node = find_by_name(self.nodes, source.node)
+            if node is None:
+                raise ValidationError(
+                    f"reference to missing node '{source.node}'")
+            output = find_by_name(node.outputs, source.output)
+            if output is None:
                 raise ValidationError(f"reference to missing output "
-                                      f"'{ref.output_name}' of node "
+                                      f"'{source.output}' of node "
                                       f"'{node.name}'")
-            source_iotype = node_output.iotype
+            source_iotype = output.iotype
+        elif source.subgraph is not None:
+            subgraph = find_by_name(self.subgraphs, source.subgraph)
+            if subgraph is None:
+                raise ValidationError(
+                    f"reference to missing subgraph '{source.subgraph}'")
+            output = find_by_name(subgraph.outputs, source.output)
+            if output is None:
+                raise ValidationError(f"reference to missing output "
+                                      f"'{source.output}' of subgraph "
+                                      f"'{subgraph.name}'")
+            source_iotype = output.iotype
         if source_iotype != iotype:
             raise ValidationError(f"iotype '{iotype}' differs from "
                                   f"source iotype '{source_iotype}'")
 
     def _validate_acyclicity(self):
         visited_node_names = set()
-        for root in self.nodes:
+        visited_subgraph_names = set()
+        for root in self.nodes + self.subgraphs:
             stack = [root]
             while stack:
                 item = stack.pop()
@@ -242,21 +288,67 @@ class Graph:
                     if item.name in visited_node_names:
                         continue
                     visited_node_names.add(item.name)
-                elif isinstance(item, Node):
-                    pass  # TODO: consider subgraphs
+                elif isinstance(item, Subgraph):
+                    if item.name in visited_subgraph_names:
+                        continue
+                    visited_subgraph_names.add(item.name)
                 for inp in item.inputs:
-                    if inp.source.node_output is not None:
-                        name = inp.source.node_output.node_name
-                        node = next(n for n in self.nodes if n.name == name)
+                    if inp.source.node is not None:
+                        name = inp.source.node
+                        node = find_by_name(self.nodes, name)
                         if node == root:
                             raise ValidationError(
                                 f"cycle detected containing node '{name}'")
                         stack.append(node)
+                    elif inp.source.subgraph is not None:
+                        name = inp.source.subgraph
+                        subgraph = find_by_name(self.subgraphs, name)
+                        if subgraph == root:
+                            raise ValidationError(
+                                f"cycle detected containing subgraph '{name}'")
+                        stack.append(subgraph)
 
 
 @dataclass
 class Package:
     graphs: List[Graph]
+
+    def flatten_graph(self, graph_name, validate=False):
+        # TODO: error checking
+        graph = copy.deepcopy(find_by_name(self.graphs, graph_name))
+        for subgraph in graph.subgraphs:
+            g = self.flatten_graph(subgraph.graph)
+            # Add prefix to subgraph nodes names.
+            for n in g.nodes:
+                n.name = f"{subgraph.name}.{n.name}"
+                for i in n.inputs:
+                    if i.source.node is not None:
+                        i.source.node = f"{subgraph.name}.{i.source.node}"
+            for o in g.outputs:
+                if o.source.node is not None:
+                    o.source.node = f"{subgraph.name}.{o.source.node}"
+            # Merge subgraph into main graph.
+            for node in graph.nodes:
+                for inp in node.inputs:
+                    if inp.source.subgraph == subgraph.name:
+                        for o in g.outputs:
+                            if o.name == inp.source.output:
+                                inp.source = o.source
+            for out in graph.outputs:
+                if out.source.subgraph == subgraph.name:
+                    for o in g.outputs:
+                        if o.name == out.source.output:
+                            out.source = o.source
+            for n in g.nodes:
+                for i in n.inputs:
+                    if i.source.graph_input is not None:
+                        for si in subgraph.inputs:
+                            if i.source.graph_input == si.name:
+                                i.source = si.source
+            graph.nodes.extend(g.nodes)
+        graph.subgraphs = []
+        graph.validate()
+        return graph
 
     def validate(self):
         _validate_names(self.graphs, "graph")
@@ -265,3 +357,13 @@ class Package:
                 graph.validate()
             except ValidationError as err:
                 raise ValidationError(f"graph '{graph.name}': {err}") from None
+            for subgraph in graph.subgraphs:
+                self._validate_subgraph(subgraph)
+        # TODO: check for infinitely nested subgraphs
+
+    def _validate_subgraph(self, subgraph):
+        graph = find_by_name(self.graphs, subgraph.graph)
+        if graph is None:
+            raise ValidationError(f"subgraph '{subgraph.name}': reference "
+                                  f"to missing graph '{subgraph.graph}'")
+        # TODO: check subgraph inputs and outputs match graph inputs and outputs

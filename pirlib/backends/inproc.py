@@ -22,8 +22,7 @@ class InprocBackend(Backend):
             *,  # Keyword-only arguments below.
             inputs: Optional[Dict[str, Any]] = None,
         ) -> None:
-        graph = next(graph for graph in package.graphs
-                     if graph.name == graph_name)
+        graph = package.flatten_graph(graph_name, validate=True)
         inputs = {} if inputs is None else inputs
         if args is not None:
             for spec in args.input:
@@ -56,14 +55,14 @@ class InprocBackend(Backend):
                 for inp in node.inputs:
                     if inp.source.graph_input is not None:
                         node_inputs[inp.name] = inputs[inp.source.graph_input]
-                    if inp.source.node_output is not None:
-                        ref = inp.source.node_output
-                        if ref.node_name not in node_outputs:
+                    if inp.source.node is not None:
+                        if inp.source.node not in node_outputs:
                             break
-                        if ref.output_name not in node_outputs[ref.node_name]:
+                        if inp.source.output not in \
+                                node_outputs[inp.source.node]:
                             break
                         node_inputs[inp.name] = \
-                            node_outputs[ref.node_name][ref.output_name]
+                            node_outputs[inp.source.node][inp.source.output]
                 else:
                     break
             else:
@@ -72,10 +71,9 @@ class InprocBackend(Backend):
             node_outputs[node.name] = self._execute_node(node, node_inputs)
         outputs = {}
         for out in graph.outputs:
-            if out.source.node_output is not None:
-                ref = out.source.node_output
+            if out.source.node is not None:
                 outputs[out.name] = \
-                    node_outputs[ref.node_name][ref.output_name]
+                    node_outputs[out.source.node][out.source.output]
             if out.source.graph_input is not None:
                 outputs[out.name] = inputs[out.source.graph_input]
         if args is not None:

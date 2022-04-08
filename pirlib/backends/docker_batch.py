@@ -51,8 +51,8 @@ class DockerBatchBackend(Backend):
                 "volumes": ["node_outputs:/mnt/node_outputs"],
             }
             for inp in node.inputs:
-                if inp.source.node_output is not None:
-                    name = f"{graph.name}.{inp.source.node_output.node_name}"
+                if inp.source.node is not None:
+                    name = f"{graph.name}.{inp.source.node}"
                     service.setdefault("depends_on", {})[name] = {
                         "condition": "service_completed_successfully",
                     }
@@ -92,9 +92,8 @@ def run_node(node, graph_inputs):
     handler = getattr(importlib.import_module(module_name), handler_name)
     inputs = {}
     for inp in node.inputs:
-        if inp.source.node_output is not None:
-            ref = inp.source.node_output
-            path = f"/mnt/node_outputs/{ref.node_name}/{ref.output_name}"
+        if inp.source.node is not None:
+            path = f"/mnt/node_outputs/{inp.source.node}/{inp.source.output}"
         if inp.source.graph_input is not None:
             path = f"/mnt/graph_inputs/{inp.source.graph_input}"
         if inp.iotype == "DIRECTORY":
@@ -127,11 +126,11 @@ def run_node(node, graph_inputs):
 def run_graph(graph_outputs):
     import shutil
     for g_out in graph_outputs:
-        if g_out.source.node_output is not None:
-            ref = g_out.source.node_output
-            path_from = f"/mnt/node_outputs/{ref.node_name}/{ref.output_name}"
-        if g_out.source.graph_input is not None:
-            path_from = f"/mnt/graph_inputs/{g_out.source.graph_input}"
+        source = g_out.source
+        if source.node is not None:
+            path_from = f"/mnt/node_outputs/{source.node}/{source.output}"
+        if source.graph_input is not None:
+            path_from = f"/mnt/graph_inputs/{source.graph_input}"
         path_to = f"/mnt/graph_outputs/{g_out.name}"
         if g_out.iotype == "DIRECTORY":
             shutil.coptytree(path_from, path_to)

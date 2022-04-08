@@ -25,12 +25,14 @@ def config_dockerize_parser(parser: argparse.ArgumentParser) -> None:
                        help="path to the Dockerfile (only if not --auto)")
     parser.add_argument("-o", "--output", type=argparse.FileType("w"),
                         help="path to output file (or - for stdout)")
+    parser.add_argument("--flatten", action="store_true",
+                        help="flatten pipeline(s)")
     parser.set_defaults(parser=parser, handler=_dockerize_handler)
 
 
 def _dockerize_handler(parser: argparse.ArgumentParser,
                        args: argparse.Namespace) -> None:
-    package = package_pipelines(parser, args.pipeline)
+    package = package_pipelines(parser, args.pipeline, flatten=args.flatten)
     image = f"pircli-build:{uuid.uuid4()}"
     command = ["docker", "build", args.path, "-t", image]
     if args.auto:
