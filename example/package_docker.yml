@@ -17,7 +17,7 @@ graphs:
       handler: example.example:clean
       runtime: python:3.8
       codeuri: null
-      image: pircli-build:c1d1311a-96e7-4093-8eef-f475e4f77c6a
+      image: pircli-build:588ffbcf-ac3a-4408-8b47-1f9b41b1a682
     framework: null
   - name: train
     config: {}
@@ -37,7 +37,7 @@ graphs:
       handler: example.example:train
       runtime: python:3.8
       codeuri: null
-      image: pircli-build:c1d1311a-96e7-4093-8eef-f475e4f77c6a
+      image: pircli-build:588ffbcf-ac3a-4408-8b47-1f9b41b1a682
     framework:
       name: adaptdl
       config:
@@ -65,7 +65,7 @@ graphs:
       handler: example.example:translate
       runtime: python:3.8
       codeuri: null
-      image: pircli-build:c1d1311a-96e7-4093-8eef-f475e4f77c6a
+      image: pircli-build:588ffbcf-ac3a-4408-8b47-1f9b41b1a682
     framework: null
   - name: infer_pipeline.sentiment
     config: {}
@@ -92,7 +92,7 @@ graphs:
       handler: example.example:sentiment
       runtime: python:3.8
       codeuri: null
-      image: pircli-build:c1d1311a-96e7-4093-8eef-f475e4f77c6a
+      image: pircli-build:588ffbcf-ac3a-4408-8b47-1f9b41b1a682
     framework: null
   - name: evaluate
     config: {}
@@ -117,7 +117,7 @@ graphs:
       handler: example.example:evaluate
       runtime: python:3.8
       codeuri: null
-      image: pircli-build:c1d1311a-96e7-4093-8eef-f475e4f77c6a
+      image: pircli-build:588ffbcf-ac3a-4408-8b47-1f9b41b1a682
     framework: null
   inputs:
   - name: train_dataset

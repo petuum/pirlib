@@ -3,6 +3,7 @@ import copy
 import functools
 import inspect
 import threading
+import typeguard
 import typing
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Optional
@@ -63,7 +64,7 @@ class OperatorDefinition(HandlerV1):
             config: Optional[dict] = None,
             framework: Optional[Framework] = None,
         ):
-        self._func = func
+        self._func = func if func is None else typeguard.typechecked(func)
         self._name = name if name else getattr(func, "__name__", None)
         self._config = copy.deepcopy(config) if config else None
         self._framework = framework
