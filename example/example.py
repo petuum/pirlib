@@ -92,6 +92,7 @@ def train_pipeline(
 if __name__ == "__main__":
     package = train_pipeline.package()
     print(yaml.dump(asdict(package), sort_keys=False))
+    # Prepare inputs.
     dir_1 = tempfile.TemporaryDirectory()
     file_2 = tempfile.NamedTemporaryFile()
     dir_3 = tempfile.TemporaryDirectory()
@@ -101,9 +102,15 @@ if __name__ == "__main__":
         f.write("translate_model")
     with open(f"{dir_3.name}/file.txt", "w") as f:
         f.write("sentences")
+    # Test calling end-to-end pipeline.
     model_path, metrics = train_pipeline(DirectoryPath(dir_1.name),
                                          FilePath(file_2.name),
                                          DirectoryPath(dir_3.name))
     with open(model_path) as f:
         print("pipeline model: {}".format(f.read().strip()))
     print("pipeline metrics: {}".format(metrics.to_records()))
+
+    # Test calling single operator.
+    cleaned_path = clean(DirectoryPath(dir_1.name))
+    with open(cleaned_path / "file.txt") as f:
+        print("cleaned dataset: {}".format(f.read().strip()))

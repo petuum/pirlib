@@ -9,9 +9,10 @@ from dataclasses import dataclass
 from typing import Any, Callable, Dict, Optional
 
 import pirlib.graph
+from pirlib.backends.inproc import InprocBackend
 from pirlib.graph import Framework
 from pirlib.handlers.v1 import HandlerV1
-from pirlib.trace import recurse_hint, operator_call
+from pirlib.trace import recurse_hint, operator_call, package_operator
 
 _OP_CONTEXT = contextvars.ContextVar("_OP_CONTEXT")
 
@@ -27,15 +28,18 @@ def operator_context() -> OperatorContext:
 
 
 class OperatorInstance(object):
-    def __init__(self, func, name, config=None, framework=None):
-        self._func = func
+    def __init__(self, defn, name, config=None):
+        self._defn = defn
         self._name = name
         self._config = copy.deepcopy(config) if config else {}
-        self._framework = framework
+
+    @property
+    def defn(self):
+        return self._defn
 
     @property
     def func(self):
-        return self._func
+        return self.defn.func
 
     @property
     def name(self):
@@ -47,11 +51,22 @@ class OperatorInstance(object):
 
     @property
     def framework(self):
-        return self._framework
+        return self.defn.framework
 
     @operator_call
     def __call__(self, *args, **kwargs):
-        graph = pirlib.trace.operator_to_graph()
+        package = package_operator(self)
+        inputs = {}
+        sig = inspect.signature(self.func)
+        for idx, param in enumerate(sig.parameters.values()):
+            input_value = args[idx] if idx < len(args) else kwargs[param.name]
+            recurse_hint(lambda name, hint, val: inputs.update({name: val}),
+                         param.name, param.annotation, input_value)
+        backend = InprocBackend()
+        outputs = backend.execute(package, self.name, self.config,
+                                  inputs=inputs)
+        return recurse_hint(lambda name, hint: outputs[name],
+                            "return", sig.return_annotation)
 
 
 class OperatorDefinition(HandlerV1):
@@ -98,8 +113,7 @@ class OperatorDefinition(HandlerV1):
         return self.instance(self.name)(*args, **kwargs)
 
     def instance(self, name: str) -> OperatorInstance:
-        return OperatorInstance(self.func, name, config=self.config,
-                                framework=self.framework)
+        return OperatorInstance(self, name, config=self.config)
 
     def get_input_type(self, input_name: str) -> type:
         sig = inspect.signature(self.func)

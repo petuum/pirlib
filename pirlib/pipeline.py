@@ -13,14 +13,18 @@ from pirlib.trace import package_pipeline, pipeline_call, recurse_hint
 
 class PipelineInstance(object):
 
-    def __init__(self, func, name, config=None):
-        self._func = func
+    def __init__(self, defn, name, config=None):
+        self._defn = defn
         self._name = name
         self._config = copy.deepcopy(config) if config else {}
 
     @property
+    def defn(self):
+        return self._defn
+
+    @property
     def func(self):
-        return self._func
+        return self.defn.func
 
     @property
     def name(self):
@@ -32,7 +36,7 @@ class PipelineInstance(object):
 
     @pipeline_call
     def __call__(self, *args, **kwargs):
-        package = package_pipeline(self.func, self.name, self.config)
+        package = package_pipeline(self.defn)
         inputs = {}
         sig = inspect.signature(self.func)
         for idx, param in enumerate(sig.parameters.values()):
@@ -83,10 +87,10 @@ class PipelineDefinition(object):
         return self.instance(self.name)(*args, **kwargs)
 
     def instance(self, name: str) -> PipelineInstance:
-        return PipelineInstance(self.func, name, config=self.config)
+        return PipelineInstance(self, name, config=self.config)
 
     def package(self) -> Package:
-        return package_pipeline(self.func, self.name, self.config)
+        return package_pipeline(self)
 
 
 def pipeline(

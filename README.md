@@ -61,7 +61,7 @@ Open up `example/run_docker.sh`, `example/package_docker.yml`, and
 
 ## TODOs
 
-- Running a single operator by calling it python-function style.
+- ~~Running a single operator by calling it python-function style.~~
 - More comprehensive error checking and reporting.
 - More pluggable system for input readers and output writers.
 - ~~Packinging nested pipelines into subgraphs instead of a single flattened graph.~~

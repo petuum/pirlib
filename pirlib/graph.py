@@ -1,7 +1,7 @@
 import copy
 import re
 import typeguard
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 
@@ -64,7 +64,7 @@ class DataSource:
 
 
 @dataclass
-class NodeInput:
+class Input:
     name: str
     iotype: str
     source: DataSource
@@ -78,7 +78,7 @@ class NodeInput:
 
 
 @dataclass
-class NodeOutput:
+class Output:
     name: str
     iotype: str
 
@@ -89,7 +89,7 @@ class NodeOutput:
 @dataclass
 class Framework:
     name: str
-    config: Dict[str, Any]
+    config: Dict[str, Any] = field(default_factory=dict)
 
     def validate(self):
         _validate_fields(self)
@@ -114,11 +114,11 @@ class Entrypoint:
 @dataclass
 class Node:
     name: str
-    config: Dict[str, Any]
-    inputs: List[NodeInput]
-    outputs: List[NodeOutput]
     entrypoint: Entrypoint
     framework: Optional[Framework] = None
+    config: Dict[str, Any] = field(default_factory=dict)
+    inputs: List[Input] = field(default_factory=list)
+    outputs: List[Output] = field(default_factory=list)
 
     def validate(self):
         _validate_fields(self)
@@ -149,9 +149,9 @@ class Node:
 class Subgraph:
     name: str
     graph: str
-    config: Dict[str, Any]
-    inputs: List[NodeInput]
-    outputs: List[NodeOutput]
+    config: Dict[str, Any] = field(default_factory=dict)
+    inputs: List[Input] = field(default_factory=list)
+    outputs: List[Output] = field(default_factory=list)
 
     def validate(self):
         _validate_fields(self)
@@ -192,10 +192,10 @@ class GraphOutput:
 @dataclass
 class Graph:
     name: str
-    nodes: List[Node]
-    subgraphs: List[Subgraph]
-    inputs: List[GraphInput]
-    outputs: List[GraphOutput]
+    nodes: List[Node] = field(default_factory=list)
+    subgraphs: List[Subgraph] = field(default_factory=list)
+    inputs: List[GraphInput] = field(default_factory=list)
+    outputs: List[GraphOutput] = field(default_factory=list)
 
     def validate(self):
         _validate_fields(self)
@@ -311,7 +311,7 @@ class Graph:
 
 @dataclass
 class Package:
-    graphs: List[Graph]
+    graphs: List[Graph] = field(default_factory=list)
 
     def flatten_graph(self, graph_name, validate=False):
         # TODO: error checking
