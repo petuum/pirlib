@@ -6,7 +6,6 @@ import pirlib.graph
 
 
 class Backend(object):
-
     def generate_parser(self) -> Optional[argparse.ArgumentParser]:
         return None
 
@@ -14,17 +13,17 @@ class Backend(object):
         return None
 
     def generate(
-            self,
-            graph: pirlib.graph.Graph,
-            config: Optional[dict] = None,
-            args: Optional[argparse.Namespace] = None,
-        ) -> Any:
+        self,
+        graph: pirlib.graph.Graph,
+        config: Optional[dict] = None,
+        args: Optional[argparse.Namespace] = None,
+    ) -> Any:
         raise NotImplementedError
 
     def execute(
-            self,
-            graph: pirlib.graph.Graph,
-            config: Optional[dict] = None,
-            args: Optional[argparse.Namespace] = None,
-        ) -> Any:
+        self,
+        graph: pirlib.graph.Graph,
+        config: Optional[dict] = None,
+        args: Optional[argparse.Namespace] = None,
+    ) -> Any:
         raise NotImplementedError

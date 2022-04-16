@@ -14,8 +14,7 @@ class IOSpec:
             self.url = urllib.parse.urlparse(url)
         except ValueError as err:
             raise ValueError(
-                f"could not parse '{spec_str}', expected: "
-                f"'<name>[:<format>]=<url>'"
+                f"could not parse '{spec_str}', expected: " f"'<name>[:<format>]=<url>'"
             ) from None
         name, *fmt = spec_str.rsplit(":", 1)
         self.name = name

@@ -8,7 +8,6 @@ from pirlib.utils import find_by_name
 
 
 class ValidationError(ValueError):
-
     def __init__(self, message):
         super().__init__(message)
 
@@ -45,18 +44,22 @@ class DataSource:
 
     def validate(self):
         _validate_fields(self)
-        count = sum([
-            self.node is not None,
-            self.subgraph is not None,
-            self.graph_input is not None,
-        ])
+        count = sum(
+            [
+                self.node is not None,
+                self.subgraph is not None,
+                self.graph_input is not None,
+            ]
+        )
         if count != 1:
-            raise ValidationError("exactly one of 'node', 'subgraph', "
-                                  "or 'graph_input' is expected")
+            raise ValidationError(
+                "exactly one of 'node', 'subgraph', " "or 'graph_input' is expected"
+            )
         if self.node is not None or self.subgraph is not None:
             if self.output is None:
-                raise ValidationError("'output' is required if either "
-                                      "'node' or 'subgraph' is provided")
+                raise ValidationError(
+                    "'output' is required if either " "'node' or 'subgraph' is provided"
+                )
 
 
 @dataclass
@@ -205,22 +208,19 @@ class Graph:
             try:
                 subgraph.validate()
             except ValidationError as err:
-                raise ValidationError(
-                    f"subgraph '{subgraph.name}': {err}") from None
+                raise ValidationError(f"subgraph '{subgraph.name}': {err}") from None
         _validate_names(self.subgraphs, "subgraph")
         for inp in self.inputs:
             try:
                 inp.validate()
             except ValidationError as err:
-                raise ValidationError(
-                    f"graph input '{inp.name}': {err}") from None
+                raise ValidationError(f"graph input '{inp.name}': {err}") from None
         _validate_names(self.inputs, "graph input")
         for out in self.outputs:
             try:
                 out.validate()
             except ValidationError as err:
-                raise ValidationError(
-                    f"graph output '{out.name}': {err}") from None
+                raise ValidationError(f"graph output '{out.name}': {err}") from None
         _validate_names(self.outputs, "graph output")
         self._validate_connectivity()
         self._validate_acyclicity()
@@ -230,48 +230,54 @@ class Graph:
             try:
                 self._validate_source(out.source, out.iotype)
             except ValidationError as err:
-                raise ValidationError(
-                    f"graph output '{out.name}': {err}") from None
+                raise ValidationError(f"graph output '{out.name}': {err}") from None
         for node in self.nodes:
             for inp in node.inputs:
                 try:
                     self._validate_source(inp.source, inp.iotype)
                 except ValidationError as err:
-                    raise ValidationError(f"node '{node.name}': input "
-                                          f"'{inp.name}': {err}") from None
+                    raise ValidationError(
+                        f"node '{node.name}': input " f"'{inp.name}': {err}"
+                    ) from None
 
     def _validate_source(self, source, iotype):
         if source.graph_input is not None:
             graph_input = find_by_name(self.inputs, source.graph_input)
             if graph_input is None:
-                raise ValidationError(f"reference to missing graph "
-                                      f"input '{source.graph_input}'")
+                raise ValidationError(
+                    f"reference to missing graph " f"input '{source.graph_input}'"
+                )
             source_iotype = graph_input.iotype
         elif source.node is not None:
             node = find_by_name(self.nodes, source.node)
             if node is None:
-                raise ValidationError(
-                    f"reference to missing node '{source.node}'")
+                raise ValidationError(f"reference to missing node '{source.node}'")
             output = find_by_name(node.outputs, source.output)
             if output is None:
-                raise ValidationError(f"reference to missing output "
-                                      f"'{source.output}' of node "
-                                      f"'{node.name}'")
+                raise ValidationError(
+                    f"reference to missing output "
+                    f"'{source.output}' of node "
+                    f"'{node.name}'"
+                )
             source_iotype = output.iotype
         elif source.subgraph is not None:
             subgraph = find_by_name(self.subgraphs, source.subgraph)
             if subgraph is None:
                 raise ValidationError(
-                    f"reference to missing subgraph '{source.subgraph}'")
+                    f"reference to missing subgraph '{source.subgraph}'"
+                )
             output = find_by_name(subgraph.outputs, source.output)
             if output is None:
-                raise ValidationError(f"reference to missing output "
-                                      f"'{source.output}' of subgraph "
-                                      f"'{subgraph.name}'")
+                raise ValidationError(
+                    f"reference to missing output "
+                    f"'{source.output}' of subgraph "
+                    f"'{subgraph.name}'"
+                )
             source_iotype = output.iotype
         if source_iotype != iotype:
-            raise ValidationError(f"iotype '{iotype}' differs from "
-                                  f"source iotype '{source_iotype}'")
+            raise ValidationError(
+                f"iotype '{iotype}' differs from " f"source iotype '{source_iotype}'"
+            )
 
     def _validate_acyclicity(self):
         visited_node_names = set()
@@ -294,14 +300,16 @@ class Graph:
                         node = find_by_name(self.nodes, name)
                         if node == root:
                             raise ValidationError(
-                                f"cycle detected containing node '{name}'")
+                                f"cycle detected containing node '{name}'"
+                            )
                         stack.append(node)
                     elif inp.source.subgraph is not None:
                         name = inp.source.subgraph
                         subgraph = find_by_name(self.subgraphs, name)
                         if subgraph == root:
                             raise ValidationError(
-                                f"cycle detected containing subgraph '{name}'")
+                                f"cycle detected containing subgraph '{name}'"
+                            )
                         stack.append(subgraph)
 
 
@@ -360,6 +368,8 @@ class Package:
     def _validate_subgraph(self, subgraph):
         graph = find_by_name(self.graphs, subgraph.graph)
         if graph is None:
-            raise ValidationError(f"subgraph '{subgraph.name}': reference "
-                                  f"to missing graph '{subgraph.graph}'")
+            raise ValidationError(
+                f"subgraph '{subgraph.name}': reference "
+                f"to missing graph '{subgraph.graph}'"
+            )
         # TODO: check subgraph inputs and outputs match graph inputs and outputs

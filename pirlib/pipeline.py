@@ -12,7 +12,6 @@ from pirlib.package import package_pipeline, pipeline_call, recurse_hint
 
 
 class PipelineInstance(object):
-
     def __init__(self, defn, name, config=None):
         self._defn = defn
         self._name = name
@@ -41,24 +40,27 @@ class PipelineInstance(object):
         sig = inspect.signature(self.func)
         for idx, param in enumerate(sig.parameters.values()):
             input_value = args[idx] if idx < len(args) else kwargs[param.name]
-            recurse_hint(lambda name, hint, val: inputs.update({name: val}),
-                         param.name, param.annotation, input_value)
+            recurse_hint(
+                lambda name, hint, val: inputs.update({name: val}),
+                param.name,
+                param.annotation,
+                input_value,
+            )
         backend = InprocBackend()
-        outputs = backend.execute(package, self.name, self.config,
-                                  inputs=inputs)
-        return recurse_hint(lambda name, hint: outputs[name],
-                            "return", sig.return_annotation)
+        outputs = backend.execute(package, self.name, self.config, inputs=inputs)
+        return recurse_hint(
+            lambda name, hint: outputs[name], "return", sig.return_annotation
+        )
 
 
 class PipelineDefinition(object):
-
     def __init__(
-            self,
-            func: Optional[Callable] = None,
-            *,  # Keyword-only arguments below.
-            name: Optional[str] = None,
-            config: Optional[dict] = None,
-        ):
+        self,
+        func: Optional[Callable] = None,
+        *,  # Keyword-only arguments below.
+        name: Optional[str] = None,
+        config: Optional[dict] = None,
+    ):
         self._func = func if func is None else typeguard.typechecked(func)
         self._name = name if name else getattr(func, "__name__", None)
         self._config = copy.deepcopy(config) if config else None
@@ -94,11 +96,11 @@ class PipelineDefinition(object):
 
 
 def pipeline(
-        func: Optional[Callable] = None,
-        *,  # Keyword-only arguments below.
-        name: Optional[str] = None,
-        config: Optional[dict] = None,
-    ) -> PipelineDefinition:
+    func: Optional[Callable] = None,
+    *,  # Keyword-only arguments below.
+    name: Optional[str] = None,
+    config: Optional[dict] = None,
+) -> PipelineDefinition:
     wrapper = PipelineDefinition(
         func=func,
         name=name,

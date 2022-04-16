@@ -60,25 +60,28 @@ class OperatorInstance(object):
         sig = inspect.signature(self.func)
         for idx, param in enumerate(sig.parameters.values()):
             input_value = args[idx] if idx < len(args) else kwargs[param.name]
-            recurse_hint(lambda name, hint, val: inputs.update({name: val}),
-                         param.name, param.annotation, input_value)
+            recurse_hint(
+                lambda name, hint, val: inputs.update({name: val}),
+                param.name,
+                param.annotation,
+                input_value,
+            )
         backend = InprocBackend()
-        outputs = backend.execute(package, self.name, self.config,
-                                  inputs=inputs)
-        return recurse_hint(lambda name, hint: outputs[name],
-                            "return", sig.return_annotation)
+        outputs = backend.execute(package, self.name, self.config, inputs=inputs)
+        return recurse_hint(
+            lambda name, hint: outputs[name], "return", sig.return_annotation
+        )
 
 
 class OperatorDefinition(HandlerV1):
-
     def __init__(
-            self,
-            func: Optional[Callable] = None,
-            *,  # Keyword-only arguments below.
-            name: Optional[str] = None,
-            config: Optional[dict] = None,
-            framework: Optional[Framework] = None,
-        ):
+        self,
+        func: Optional[Callable] = None,
+        *,  # Keyword-only arguments below.
+        name: Optional[str] = None,
+        config: Optional[dict] = None,
+        framework: Optional[Framework] = None,
+    ):
         self._func = func if func is None else typeguard.typechecked(func)
         self._name = name if name else getattr(func, "__name__", None)
         self._config = copy.deepcopy(config) if config else None
@@ -125,19 +128,21 @@ class OperatorDefinition(HandlerV1):
         pass
 
     def run_handler(
-            self,
-            node: pirlib.graph.Node,
-            inputs: Dict[str, Any],
-            outputs: Dict[str, Any],
-        ) -> None:
+        self,
+        node: pirlib.graph.Node,
+        inputs: Dict[str, Any],
+        outputs: Dict[str, Any],
+    ) -> None:
         context = OperatorContext(node.config, None)
         sig = inspect.signature(self.func)
-        context.output = recurse_hint(lambda name, hint: outputs[name],
-                                      "return", sig.return_annotation)
+        context.output = recurse_hint(
+            lambda name, hint: outputs[name], "return", sig.return_annotation
+        )
         args, kwargs = [], {}
         for param in sig.parameters.values():
-            value = recurse_hint(lambda name, hint: inputs[name],
-                                 param.name, param.annotation)
+            value = recurse_hint(
+                lambda name, hint: inputs[name], param.name, param.annotation
+            )
             if param.kind == param.KEYWORD_ONLY:
                 kwargs[param.name] = value
             else:
@@ -147,17 +152,21 @@ class OperatorDefinition(HandlerV1):
             return_value = self.func(*args, **kwargs)
         finally:
             _OP_CONTEXT.reset(token)
-        recurse_hint(lambda n, h, v: outputs.__setitem__(n, v),
-                     "return", sig.return_annotation, return_value)
+        recurse_hint(
+            lambda n, h, v: outputs.__setitem__(n, v),
+            "return",
+            sig.return_annotation,
+            return_value,
+        )
 
 
 def operator(
-        func: Optional[Callable] = None,
-        *,  # Keyword-only arguments below.
-        name: Optional[str] = None,
-        config: Optional[dict] = None,
-        framework: Optional[Framework] = None
-    ) -> OperatorDefinition:
+    func: Optional[Callable] = None,
+    *,  # Keyword-only arguments below.
+    name: Optional[str] = None,
+    config: Optional[dict] = None,
+    framework: Optional[Framework] = None,
+) -> OperatorDefinition:
     wrapper = OperatorDefinition(
         func=func,
         name=name,
@@ -166,5 +175,6 @@ def operator(
     )
     functools.update_wrapper(wrapper, func)
     return wrapper
+
 
 operator.context = operator_context

@@ -36,7 +36,7 @@ def main():
             help="export pipelines for execution in current environment",
         )
     )
-    
+
     args = parser.parse_args()
     try:
         args.handler(args.parser, args)

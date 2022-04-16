@@ -11,16 +11,25 @@ from dataclasses import dataclass
 from typing import Optional
 
 from pirlib.iotypes import pytype_to_iotype
-from pirlib.graph import (DataSource, Entrypoint, Graph, GraphInput,
-                          GraphOutput, Node, Input, Output, Package,
-                          Subgraph, find_by_name)
+from pirlib.graph import (
+    DataSource,
+    Entrypoint,
+    Graph,
+    GraphInput,
+    GraphOutput,
+    Node,
+    Input,
+    Output,
+    Package,
+    Subgraph,
+    find_by_name,
+)
 
 _PACKAGE = contextvars.ContextVar("_PACKAGE")
 _GRAPH = contextvars.ContextVar("_GRAPH")
 
 
 def _create_ivalue(pytype, source):
-
     class IntermediateValue:
 
         __module__ = pytype.__module__
@@ -49,13 +58,15 @@ def _is_typeddict(hint):
 
 def recurse_hint(func, prefix, hint, *values):
     if _is_typeddict(hint):
-        return {k: recurse_hint(func, f"{prefix}.{k}", h,
-                                *(val[k] for val in values))
-                for k, h in hint.__annotations__.items()}
+        return {
+            k: recurse_hint(func, f"{prefix}.{k}", h, *(val[k] for val in values))
+            for k, h in hint.__annotations__.items()
+        }
     if typing.get_origin(hint) is tuple:
-        return tuple(recurse_hint(func, f"{prefix}.{k}", h,
-                                  *(val[k] for val in values))
-                     for k, h in enumerate(typing.get_args(hint)))
+        return tuple(
+            recurse_hint(func, f"{prefix}.{k}", h, *(val[k] for val in values))
+            for k, h in enumerate(typing.get_args(hint))
+        )
     return func(prefix, hint, *values)
 
 
@@ -101,8 +112,8 @@ def package_operator(definition) -> Package:
         name=definition.name,
         entrypoint=_create_entrypoint(definition.func),
         framework=definition.framework,
-        config=definition.config, 
-        inputs=_inspect_inputs(definition.func, args, kwargs)
+        config=definition.config,
+        inputs=_inspect_inputs(definition.func, args, kwargs),
     )
     node.outputs, value = _inspect_outputs(definition.func, node=node.name)
     graph.outputs = _inspect_graph_outputs(definition.func, value)
@@ -125,9 +136,9 @@ def package_pipeline(definition) -> Package:
     return package
 
 
-def _pipeline_to_graph(pipeline_func: callable,
-                       pipeline_name: str,
-                       pipeline_config: dict) -> Graph:
+def _pipeline_to_graph(
+    pipeline_func: callable, pipeline_name: str, pipeline_config: dict
+) -> Graph:
     graph = Graph(name=pipeline_name)
     graph.inputs, args, kwargs = _inspect_graph_inputs(pipeline_func)
     token = _GRAPH.set(graph)
@@ -143,7 +154,6 @@ def _pipeline_to_graph(pipeline_func: callable,
 
 
 def pipeline_call(method):
-
     @functools.wraps(method)
     def wrapper(instance, *args, **kwargs):
         if not is_packaging():
@@ -155,15 +165,17 @@ def pipeline_call(method):
             pipeline_config=instance.defn.config,
         )
         subgraph = Subgraph(
-            name=instance.name, 
+            name=instance.name,
             graph=g.name,
             config=instance.config,
             inputs=_inspect_inputs(instance.func, args, kwargs),
         )
-        subgraph.outputs, value = \
-            _inspect_outputs(instance.func, subgraph=subgraph.name)
+        subgraph.outputs, value = _inspect_outputs(
+            instance.func, subgraph=subgraph.name
+        )
         graph.subgraphs.append(subgraph)
         return value
+
     return wrapper
 
 
@@ -207,7 +219,6 @@ def _create_entrypoint(func):
 
 
 def operator_call(func):
-
     @functools.wraps(func)
     def wrapper(instance, *args, **kwargs):
         if not is_packaging():
@@ -219,10 +230,11 @@ def operator_call(func):
             name=instance.name,
             entrypoint=_create_entrypoint(instance.func),
             framework=instance.framework,
-            config=instance.config, 
-            inputs=_inspect_inputs(instance.func, args, kwargs)
+            config=instance.config,
+            inputs=_inspect_inputs(instance.func, args, kwargs),
         )
         node.outputs, value = _inspect_outputs(instance.func, node=node.name)
         graph.nodes.append(node)
         return value
+
     return wrapper

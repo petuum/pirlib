@@ -14,11 +14,13 @@ def config_generate_parser(parser: argparse.ArgumentParser) -> None:
     parser.set_defaults(parser=parser, handler=_generate_handler)
 
 
-def _generate_handler(parser: argparse.ArgumentParser,
-                      args: argparse.Namespace) -> None:
+def _generate_handler(
+    parser: argparse.ArgumentParser, args: argparse.Namespace
+) -> None:
     if args.target.count(":") != 1:
         raise argparse.ArgumentTypeError(
-            f"malformatted reference to backend class '{args.target}'")
+            f"malformatted reference to backend class '{args.target}'"
+        )
     module_name, backend_name = args.target.split(":")
     try:
         module = importlib.import_module(module_name)
@@ -29,7 +31,6 @@ def _generate_handler(parser: argparse.ArgumentParser,
     except AttributeError as err:
         raise argparse.ArgumentTypeError(f"{err}")
     with open(args.package) as f:
-        package = dacite.from_dict(data_class=Package,
-                                   data=yaml.safe_load(f))
+        package = dacite.from_dict(data_class=Package, data=yaml.safe_load(f))
     backend = backend_class()
     backend.generate(package, args=args)

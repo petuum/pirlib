@@ -10,7 +10,8 @@ from pirlib.pipeline import PipelineDefinition
 def pipeline_def(arg: str) -> PipelineDefinition:
     if arg.count(":") != 1:
         raise argparse.ArgumentTypeError(
-            f"malformatted reference to pipeline definition '{arg}'")
+            f"malformatted reference to pipeline definition '{arg}'"
+        )
     module_name, pipeline_name = arg.split(":")
     try:
         module = importlib.import_module(module_name)
@@ -21,14 +22,15 @@ def pipeline_def(arg: str) -> PipelineDefinition:
     except AttributeError as err:
         raise argparse.ArgumentTypeError(f"{err}")
     if not isinstance(pipeline, PipelineDefinition):
-        raise argparse.ArgumentTypeError(
-            f"{arg} has unexpected type {type(pipeline)}")
+        raise argparse.ArgumentTypeError(f"{arg} has unexpected type {type(pipeline)}")
     return pipeline
 
 
-def package_pipelines(parser: argparse.ArgumentParser,
-                      pipelines: List[PipelineDefinition],
-                      flatten: Optional[bool] = False) -> Package:
+def package_pipelines(
+    parser: argparse.ArgumentParser,
+    pipelines: List[PipelineDefinition],
+    flatten: Optional[bool] = False,
+) -> Package:
     package = Package(graphs=[])
     for pipeline in pipelines:
         pkg = pipeline.package()

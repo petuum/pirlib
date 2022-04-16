@@ -20,7 +20,6 @@ def decode(x):
 
 
 class DockerBatchBackend(Backend):
-
     def execute_parser(self):
         pass
 
@@ -31,11 +30,11 @@ class DockerBatchBackend(Backend):
         pass
 
     def generate(
-            self,
-            package: pirlib.graph.Package,
-            config: Optional[dict] = None,
-            args: Optional[argparse.Namespace] = None,
-        ) -> None:
+        self,
+        package: pirlib.graph.Package,
+        config: Optional[dict] = None,
+        args: Optional[argparse.Namespace] = None,
+    ) -> None:
         compose = {
             "version": "3.9",
             "services": {},
@@ -46,8 +45,14 @@ class DockerBatchBackend(Backend):
         for node in graph.nodes:
             service = compose["services"][f"{graph.name}.{node.name}"] = {
                 "image": node.entrypoint.image,
-                "command": ["python", "-m", __name__, "node",
-                            encode(node), encode(graph.inputs)],
+                "command": [
+                    "python",
+                    "-m",
+                    __name__,
+                    "node",
+                    encode(node),
+                    encode(graph.inputs),
+                ],
                 "volumes": ["node_outputs:/mnt/node_outputs"],
             }
             for inp in node.inputs:
@@ -59,12 +64,10 @@ class DockerBatchBackend(Backend):
                 if inp.source.graph_input is not None:
                     name = inp.source.graph_input
                     path = f"${{INPUT_{name}:?err}}"
-                    service["volumes"].append(
-                        f"{path}:/mnt/graph_inputs/{name}")
+                    service["volumes"].append(f"{path}:/mnt/graph_inputs/{name}")
         service = compose["services"][f"{graph.name}"] = {
             "image": node.entrypoint.image,  # FIXME: a bit of a hack.
-            "command": ["python", "-m", __name__, "graph",
-                        encode(graph.outputs)],
+            "command": ["python", "-m", __name__, "graph", encode(graph.outputs)],
             "volumes": ["node_outputs:/mnt/node_outputs"],
         }
         for g_inp in graph.inputs:
@@ -88,6 +91,7 @@ def run_node(node, graph_inputs):
     import pandas
     import pathlib
     from pirlib.iotypes import DirectoryPath, FilePath
+
     module_name, handler_name = node.entrypoint.handler.split(":")
     handler = getattr(importlib.import_module(module_name), handler_name)
     inputs = {}
@@ -125,6 +129,7 @@ def run_node(node, graph_inputs):
 
 def run_graph(graph_outputs):
     import shutil
+
     for g_out in graph_outputs:
         source = g_out.source
         if source.node is not None:

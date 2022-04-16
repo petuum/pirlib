@@ -13,16 +13,15 @@ from pirlib.utils import find_by_name
 
 
 class InprocBackend(Backend):
-
     def execute(
-            self,
-            package: pirlib.graph.Package,
-            graph_name: str,
-            config: Optional[dict] = None,
-            args: Optional[argparse.Namespace] = None,
-            *,  # Keyword-only arguments below.
-            inputs: Optional[Dict[str, Any]] = None,
-        ) -> None:
+        self,
+        package: pirlib.graph.Package,
+        graph_name: str,
+        config: Optional[dict] = None,
+        args: Optional[argparse.Namespace] = None,
+        *,  # Keyword-only arguments below.
+        inputs: Optional[Dict[str, Any]] = None,
+    ) -> None:
         graph = package.flatten_graph(graph_name, validate=True)
         inputs = {} if inputs is None else inputs
         if args is not None:
@@ -43,8 +42,9 @@ class InprocBackend(Backend):
         # Execute nodes one at a time.
         node_outputs = {}
         while True:
-            remaining_nodes = [node for node in graph.nodes
-                               if node.name not in node_outputs]
+            remaining_nodes = [
+                node for node in graph.nodes if node.name not in node_outputs
+            ]
             if not remaining_nodes:
                 break
             # Find a node that has all inputs ready.
@@ -56,11 +56,11 @@ class InprocBackend(Backend):
                     if inp.source.node is not None:
                         if inp.source.node not in node_outputs:
                             break
-                        if inp.source.output not in \
-                                node_outputs[inp.source.node]:
+                        if inp.source.output not in node_outputs[inp.source.node]:
                             break
-                        node_inputs[inp.name] = \
-                            node_outputs[inp.source.node][inp.source.output]
+                        node_inputs[inp.name] = node_outputs[inp.source.node][
+                            inp.source.output
+                        ]
                 else:
                     break
             else:
@@ -70,8 +70,7 @@ class InprocBackend(Backend):
         outputs = {}
         for out in graph.outputs:
             if out.source.node is not None:
-                outputs[out.name] = \
-                    node_outputs[out.source.node][out.source.output]
+                outputs[out.name] = node_outputs[out.source.node][out.source.output]
             if out.source.graph_input is not None:
                 outputs[out.name] = inputs[out.source.graph_input]
         if args is not None:

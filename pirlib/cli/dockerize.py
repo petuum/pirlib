@@ -12,26 +12,40 @@ from .utils import package_pipelines, pipeline_def
 
 
 def config_dockerize_parser(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("path", type=pathlib.Path,
-                        help="path to docker build context")
+    parser.add_argument("path", type=pathlib.Path, help="path to docker build context")
     parser.add_argument(
-        "-p", "--pipeline", type=pipeline_def, action="append", required=True,
+        "-p",
+        "--pipeline",
+        type=pipeline_def,
+        action="append",
+        required=True,
         help="pipeline to be packaged (package.module:name)",
     )
     group = parser.add_mutually_exclusive_group()
-    group.add_argument("--auto", action="store_true",
-                       help="try to automatically generate the Dockerfile")
-    group.add_argument("-f", "--file", type=pathlib.Path,
-                       help="path to the Dockerfile (only if not --auto)")
-    parser.add_argument("-o", "--output", type=argparse.FileType("w"),
-                        help="path to output file (or - for stdout)")
-    parser.add_argument("--flatten", action="store_true",
-                        help="flatten pipeline(s)")
+    group.add_argument(
+        "--auto",
+        action="store_true",
+        help="try to automatically generate the Dockerfile",
+    )
+    group.add_argument(
+        "-f",
+        "--file",
+        type=pathlib.Path,
+        help="path to the Dockerfile (only if not --auto)",
+    )
+    parser.add_argument(
+        "-o",
+        "--output",
+        type=argparse.FileType("w"),
+        help="path to output file (or - for stdout)",
+    )
+    parser.add_argument("--flatten", action="store_true", help="flatten pipeline(s)")
     parser.set_defaults(parser=parser, handler=_dockerize_handler)
 
 
-def _dockerize_handler(parser: argparse.ArgumentParser,
-                       args: argparse.Namespace) -> None:
+def _dockerize_handler(
+    parser: argparse.ArgumentParser, args: argparse.Namespace
+) -> None:
     package = package_pipelines(parser, args.pipeline, flatten=args.flatten)
     image = f"pircli-build:{uuid.uuid4()}"
     command = ["docker", "build", args.path, "-t", image]
@@ -70,19 +84,23 @@ def _generate_dockerfile(context_path: pathlib.Path) -> str:
     miniconda3 = "/pircli/miniconda3"
     conda = f"{miniconda3}/bin/conda"
     pythonpath = _infer_pythonpath(context_path, workdir)
-    return "\n".join([
-        f"FROM python:{sys.version_info.major}.{sys.version_info.minor}",
-        f"ARG CONDA_ENV_B64",
-        ("RUN wget https://repo.anaconda.com/miniconda/Miniconda3"
-         "-latest-Linux-$(uname -m).sh -O /tmp/Miniconda3.sh"),
-        f"RUN bash /tmp/Miniconda3.sh -b -p {miniconda3}",
-        f"RUN echo $CONDA_ENV_B64 | base64 -d > /tmp/environment.yml",
-        f"RUN {conda} env create -n pircli -f /tmp/environment.yml",
-        f'ENTRYPOINT ["{conda}", "run", "-n", "pircli"]',
-        f"ENV PYTHONPATH={pythonpath}",
-        f"COPY . {workdir}",
-        f"WORKDIR {workdir}",
-    ])
+    return "\n".join(
+        [
+            f"FROM python:{sys.version_info.major}.{sys.version_info.minor}",
+            f"ARG CONDA_ENV_B64",
+            (
+                "RUN wget https://repo.anaconda.com/miniconda/Miniconda3"
+                "-latest-Linux-$(uname -m).sh -O /tmp/Miniconda3.sh"
+            ),
+            f"RUN bash /tmp/Miniconda3.sh -b -p {miniconda3}",
+            f"RUN echo $CONDA_ENV_B64 | base64 -d > /tmp/environment.yml",
+            f"RUN {conda} env create -n pircli -f /tmp/environment.yml",
+            f'ENTRYPOINT ["{conda}", "run", "-n", "pircli"]',
+            f"ENV PYTHONPATH={pythonpath}",
+            f"COPY . {workdir}",
+            f"WORKDIR {workdir}",
+        ]
+    )
 
 
 def _infer_pythonpath(context_path, workdir) -> str:
@@ -93,13 +111,17 @@ def _infer_pythonpath(context_path, workdir) -> str:
         if not path:
             continue
         abspath = pathlib.Path(path).resolve()
-        if len(hostpath.parts) <= len(abspath.parts) and \
-                hostpath.parts == abspath.parts[:len(hostpath.parts)]:
-            relparts = abspath.parts[len(hostpath.parts):]
+        if (
+            len(hostpath.parts) <= len(abspath.parts)
+            and hostpath.parts == abspath.parts[: len(hostpath.parts)]
+        ):
+            relparts = abspath.parts[len(hostpath.parts) :]
             paths.append(pathlib.Path(workdir).joinpath(*relparts).as_posix())
         else:
-            sys.exit(f"ERROR: path '{path}' in PYTHONPATH is outside"
-                     f" of the docker build context '{context_path}'")
+            sys.exit(
+                f"ERROR: path '{path}' in PYTHONPATH is outside"
+                f" of the docker build context '{context_path}'"
+            )
     return os.pathsep.join(paths)
 
 
@@ -107,23 +129,23 @@ def _infer_conda_env() -> dict:
     # https://github.com/conda/conda/issues/9628
     try:
         command = ["conda", "env", "export", "--no-builds"]
-        result = subprocess.run(command, stdout=subprocess.PIPE,
-                                text=True, check=True)
+        result = subprocess.run(command, stdout=subprocess.PIPE, text=True, check=True)
         full = yaml.safe_load(result.stdout.strip())
         command.append("--from-history")
-        result = subprocess.run(command, stdout=subprocess.PIPE,
-                                text=True, check=True)
+        result = subprocess.run(command, stdout=subprocess.PIPE, text=True, check=True)
         hist = yaml.safe_load(result.stdout.strip())
     except FileNotFoundError:
         sys.exit("ERROR: conda is required for automatic dockerization")
     except subprocess.CalledProcessError:
-        sys.exit("ERROR: could not infer current conda environment for "
-                 "automatic dockerization")
+        sys.exit(
+            "ERROR: could not infer current conda environment for "
+            "automatic dockerization"
+        )
     env = {"channels": full["channels"], "dependencies": hist["dependencies"]}
     for idx, dep in enumerate(env["dependencies"]):
         if not isinstance(dep, str):
             continue
-        prefix = dep[:dep.find("=") + 1] if "=" in dep else dep
+        prefix = dep[: dep.find("=") + 1] if "=" in dep else dep
         for dep2 in full["dependencies"]:
             if not isinstance(dep2, str):
                 continue

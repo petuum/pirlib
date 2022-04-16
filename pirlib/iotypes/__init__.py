@@ -7,8 +7,9 @@ _TYPE_MAP = {}
 
 def register_iotype(pytype: type, iotype: str):
     if pytype in _TYPE_MAP and _TYPE_MAP[pytype] != iotype:
-        raise ValueError(f"{pytype} is already registered "
-                         f"as iotype '{_TYPE_MAP[pytype]}'")
+        raise ValueError(
+            f"{pytype} is already registered " f"as iotype '{_TYPE_MAP[pytype]}'"
+        )
     _TYPE_MAP[pytype] = iotype
 
 
@@ -30,6 +31,7 @@ register_iotype(DirectoryPath, "DIRECTORY")
 register_iotype(FilePath, "FILE")
 try:
     import pandas
+
     register_iotype(pandas.DataFrame, "DATAFRAME")
 except ImportError:
     pass
