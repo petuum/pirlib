@@ -4,6 +4,8 @@ import typeguard
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
+from pirlib.utils import find_by_name
+
 
 class ValidationError(ValueError):
 
@@ -32,12 +34,6 @@ def _validate_names(items: Any, label: str) -> None:
     if twice:
         text = ", ".join(repr(name) for name in twice)
         raise ValidationError(f"duplicate {label} name(s): {text}")
-
-
-def find_by_name(iterable, name):
-    for item in iterable:
-        if item.name == name:
-            return item
 
 
 @dataclass
