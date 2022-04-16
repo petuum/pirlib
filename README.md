@@ -4,19 +4,29 @@ This repository is under construction.
 
 ## Setup
 
+Clone the repository:
+```
+$ git clone https://github.com/petuum/pirlib
+$ cd pirlib
+```
+
+Install dependencies:
 ```
 $ conda create -n pirlib python=3.8
 $ conda activate pirlib
-$ git clone https://github.com/petuum/pirlib
-$ cd pirlib
-$ pip install -r requirements.txt
-$ export PYTHONPATH=$PWD
+$ pip install -e .
 ```
 
 ## Example
 
-A toy example is provided in `example/example.py`,
-it can be run in three different ways:
+A toy example is provided in `example/example.py`, first install its
+dependencies:
+
+```
+$ pip install -r example/requirements.txt
+```
+
+The example can be run in three different ways:
 
 ### Running the script directly:
 

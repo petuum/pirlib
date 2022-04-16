@@ -2,6 +2,13 @@ graphs:
 - name: infer_pipeline
   nodes:
   - name: translate_1
+    entrypoint:
+      version: v1
+      handler: example.example:translate
+      runtime: python:3.8
+      codeuri: null
+      image: null
+    framework: null
     config:
       key: value
     inputs:
@@ -22,14 +29,14 @@ graphs:
     outputs:
     - name: return
       iotype: DIRECTORY
+  - name: sentiment
     entrypoint:
       version: v1
-      handler: example.example:translate
+      handler: example.example:sentiment
       runtime: python:3.8
       codeuri: null
       image: null
     framework: null
-  - name: sentiment
     config: {}
     inputs:
     - name: model
@@ -49,13 +56,6 @@ graphs:
     outputs:
     - name: return
       iotype: DIRECTORY
-    entrypoint:
-      version: v1
-      handler: example.example:sentiment
-      runtime: python:3.8
-      codeuri: null
-      image: null
-    framework: null
   subgraphs: []
   inputs:
   - name: translate_model
@@ -75,6 +75,13 @@ graphs:
 - name: train_pipeline
   nodes:
   - name: clean
+    entrypoint:
+      version: v1
+      handler: example.example:clean
+      runtime: python:3.8
+      codeuri: null
+      image: null
+    framework: null
     config: {}
     inputs:
     - name: dataset
@@ -87,14 +94,18 @@ graphs:
     outputs:
     - name: return
       iotype: DIRECTORY
+  - name: train
     entrypoint:
       version: v1
-      handler: example.example:clean
+      handler: example.example:train
       runtime: python:3.8
       codeuri: null
       image: null
-    framework: null
-  - name: train
+    framework:
+      name: adaptdl
+      config:
+        min_replicas: 1
+        max_replicas: 4
     config: {}
     inputs:
     - name: dataset
@@ -107,18 +118,14 @@ graphs:
     outputs:
     - name: return
       iotype: FILE
+  - name: evaluate
     entrypoint:
       version: v1
-      handler: example.example:train
+      handler: example.example:evaluate
       runtime: python:3.8
       codeuri: null
       image: null
-    framework:
-      name: adaptdl
-      config:
-        min_replicas: 1
-        max_replicas: 4
-  - name: evaluate
+    framework: null
     config: {}
     inputs:
     - name: kwargs.test_dataset
@@ -138,13 +145,6 @@ graphs:
     outputs:
     - name: return
       iotype: DATAFRAME
-    entrypoint:
-      version: v1
-      handler: example.example:evaluate
-      runtime: python:3.8
-      codeuri: null
-      image: null
-    framework: null
   subgraphs:
   - name: infer_pipeline
     graph: infer_pipeline
