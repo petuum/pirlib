@@ -2,34 +2,18 @@ import argparse
 import dacite
 import importlib
 import pathlib
-import re
 import yaml
 
 from pirlib.graph import Package
-
-
-def regex_type(pattern):
-    pat = re.compile(pattern)
-
-    def regex(value):
-        if not pat.match(value):
-            raise argparse.ArgumentTypeError(
-                f"'{value}' does not match expected pattern '{pattern}'")
-        return value
+from pirlib.iotypes import IOSpec
 
 
 def config_execute_parser(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("package", type=pathlib.Path)
     parser.add_argument("graph", type=str)
     parser.add_argument("--target", type=str, required=True)
-    parser.add_argument(
-        "-i", "--input", action="append",
-        type=regex_type(r".*?(:.*?)?=.*"),
-    )
-    parser.add_argument(
-        "-o", "--output", action="append",
-        type=regex_type(r".*?(:.*?)?=.*"),
-    )
+    parser.add_argument("-i", "--input", action="append", type=IOSpec)
+    parser.add_argument("-o", "--output", action="append", type=IOSpec)
     parser.set_defaults(parser=parser, handler=_execute_handler)
 
 

@@ -9,6 +9,7 @@ import pirlib.graph
 import pirlib.iotypes
 from pirlib.backends import Backend
 from pirlib.iotypes import DirectoryPath, FilePath
+from pirlib.utils import find_by_name
 
 
 class InprocBackend(Backend):
@@ -25,19 +26,16 @@ class InprocBackend(Backend):
         graph = package.flatten_graph(graph_name, validate=True)
         inputs = {} if inputs is None else inputs
         if args is not None:
-            for spec in args.input:
-                name, path = spec.split("=")
-                if ":" in name:
-                    name, form = name.split(":")
-                else:
-                    form = None
-                inp = next(inp for inp in graph.inputs if inp.name == name)
+            for iospec in args.input:
+                inp = find_by_name(graph.inputs, iospec.name)
+                path = iospec.url.path
                 if inp.iotype == "DIRECTORY":
                     inputs[name] = DirectoryPath(path)
                 elif inp.iotype == "FILE":
                     inputs[name] = FilePath(path)
                 elif inp.iotype == "DATAFRAME":
-                    inputs.iotype = pandas.read_csv(path)
+                    if iospec.fmt == "csv":
+                        inputs.iotype = pandas.read_csv(path)
         # Validate all required inputs are provided.
         for inp in graph.inputs:
             if inp.name not in inputs:

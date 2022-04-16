@@ -12,7 +12,7 @@ import pirlib.graph
 from pirlib.backends.inproc import InprocBackend
 from pirlib.graph import Framework
 from pirlib.handlers.v1 import HandlerV1
-from pirlib.trace import recurse_hint, operator_call, package_operator
+from pirlib.package import recurse_hint, operator_call, package_operator
 
 _OP_CONTEXT = contextvars.ContextVar("_OP_CONTEXT")
 
