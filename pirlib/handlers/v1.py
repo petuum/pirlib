@@ -2,7 +2,7 @@ from abc import abstractmethod
 from dataclasses import dataclass
 from typing import Any, Dict
 
-import pirlib.graph
+import pirlib.pir
 
 
 class HandlerV1(object):
@@ -17,7 +17,7 @@ class HandlerV1(object):
     @abstractmethod
     def run_handler(
         self,
-        node: pirlib.graph.Node,
+        node: pirlib.pir.Node,
         inputs: Dict[str, Any],
         outputs: Dict[str, Any],
     ) -> None:

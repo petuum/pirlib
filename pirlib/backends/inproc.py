@@ -5,7 +5,7 @@ import pathlib
 import tempfile
 from typing import Any, Dict, Optional
 
-import pirlib.graph
+import pirlib.pir
 import pirlib.iotypes
 from pirlib.backends import Backend
 from pirlib.iotypes import DirectoryPath, FilePath
@@ -15,7 +15,7 @@ from pirlib.utils import find_by_name
 class InprocBackend(Backend):
     def execute(
         self,
-        package: pirlib.graph.Package,
+        package: pirlib.pir.Package,
         graph_name: str,
         config: Optional[dict] = None,
         args: Optional[argparse.Namespace] = None,
@@ -25,16 +25,15 @@ class InprocBackend(Backend):
         graph = package.flatten_graph(graph_name, validate=True)
         inputs = {} if inputs is None else inputs
         if args is not None:
-            for iospec in args.input:
-                inp = find_by_name(graph.inputs, iospec.name)
-                path = iospec.url.path
+            for spec in args.input:
+                inp = find_by_name(graph.inputs, spec.name)
                 if inp.iotype == "DIRECTORY":
-                    inputs[name] = DirectoryPath(path)
+                    inputs[spec.name] = DirectoryPath(spec.url.path)
                 elif inp.iotype == "FILE":
-                    inputs[name] = FilePath(path)
+                    inputs[spec.name] = FilePath(spec.url.path)
                 elif inp.iotype == "DATAFRAME":
-                    if iospec.fmt == "csv":
-                        inputs.iotype = pandas.read_csv(path)
+                    if spec.fmt == "csv":
+                        inputs.iotype = pandas.read_csv(spec.url.path)
         # Validate all required inputs are provided.
         for inp in graph.inputs:
             if inp.name not in inputs:
@@ -75,17 +74,12 @@ class InprocBackend(Backend):
                 outputs[out.name] = inputs[out.source.graph_input]
         if args is not None:
             for spec in args.output:
-                name, path = spec.split("=")
-                if ":" in name:
-                    name, form = name.split(":")
-                else:
-                    form = None
-                out = next(out for out in graph.outputs if out.name == name)
+                out = find_by_name(graph.outputs, spec.name)
                 if out.iotype == "DATAFRAME":
-                    outputs[name].to_csv(path)
+                    outputs[spec.name].to_csv(spec.url.path)
         return outputs
 
-    def _execute_node(self, node: pirlib.graph.Node, inputs: Dict[str, Any]):
+    def _execute_node(self, node: pirlib.pir.Node, inputs: Dict[str, Any]):
         module_name, handler_name = node.entrypoint.handler.split(":")
         handler = getattr(importlib.import_module(module_name), handler_name)
         outputs = {}

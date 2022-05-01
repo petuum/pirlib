@@ -3,8 +3,8 @@ import importlib
 from typing import List, Optional
 
 from pirlib.backends import Backend
-from pirlib.graph import Package
 from pirlib.pipeline import PipelineDefinition
+from pirlib.pir import Package
 
 
 def pipeline_def(arg: str) -> PipelineDefinition:

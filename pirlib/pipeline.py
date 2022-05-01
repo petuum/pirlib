@@ -7,8 +7,8 @@ import typing
 from typing import Any, Callable, Optional
 
 from pirlib.backends.inproc import InprocBackend
-from pirlib.graph import Package
 from pirlib.package import package_pipeline, pipeline_call, recurse_hint
+from pirlib.pir import Package
 
 
 class PipelineInstance(object):

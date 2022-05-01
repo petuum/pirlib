@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from pirlib.iotypes import pytype_to_iotype
-from pirlib.graph import (
+from pirlib.pir import (
     DataSource,
     Entrypoint,
     Graph,

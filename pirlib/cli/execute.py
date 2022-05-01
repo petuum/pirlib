@@ -4,8 +4,8 @@ import importlib
 import pathlib
 import yaml
 
-from pirlib.graph import Package
-from pirlib.iotypes import IOSpec
+from pirlib.pir import Package
+from pirlib.iotypes.iospec import IOSpec
 
 
 def config_execute_parser(parser: argparse.ArgumentParser) -> None:

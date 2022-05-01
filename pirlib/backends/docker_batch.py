@@ -7,7 +7,7 @@ import sys
 import yaml
 from typing import Optional
 
-import pirlib.graph
+import pirlib.pir
 from pirlib.backends import Backend
 
 
@@ -31,7 +31,7 @@ class DockerBatchBackend(Backend):
 
     def generate(
         self,
-        package: pirlib.graph.Package,
+        package: pirlib.pir.Package,
         config: Optional[dict] = None,
         args: Optional[argparse.Namespace] = None,
     ) -> None:

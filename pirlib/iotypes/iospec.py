@@ -1,5 +1,6 @@
 import urllib.parse
 from dataclasses import dataclass
+from typing import Optional
 
 
 @dataclass(init=False)
@@ -16,6 +17,6 @@ class IOSpec:
             raise ValueError(
                 f"could not parse '{spec_str}', expected: " f"'<name>[:<format>]=<url>'"
             ) from None
-        name, *fmt = spec_str.rsplit(":", 1)
+        name, *fmt = name_fmt.rsplit(":", 1)
         self.name = name
         self.fmt = fmt[0] if fmt else None

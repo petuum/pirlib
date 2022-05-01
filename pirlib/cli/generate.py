@@ -4,7 +4,7 @@ import importlib
 import pathlib
 import yaml
 
-from pirlib.graph import Package
+from pirlib.pir import Package
 
 
 def config_generate_parser(parser: argparse.ArgumentParser) -> None:

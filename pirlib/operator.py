@@ -8,9 +8,8 @@ import typing
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Optional
 
-import pirlib.graph
+import pirlib.pir
 from pirlib.backends.inproc import InprocBackend
-from pirlib.graph import Framework
 from pirlib.handlers.v1 import HandlerV1
 from pirlib.package import recurse_hint, operator_call, package_operator
 
@@ -80,7 +79,7 @@ class OperatorDefinition(HandlerV1):
         *,  # Keyword-only arguments below.
         name: Optional[str] = None,
         config: Optional[dict] = None,
-        framework: Optional[Framework] = None,
+        framework: Optional[pirlib.pir.Framework] = None,
     ):
         self._func = func if func is None else typeguard.typechecked(func)
         self._name = name if name else getattr(func, "__name__", None)
@@ -129,7 +128,7 @@ class OperatorDefinition(HandlerV1):
 
     def run_handler(
         self,
-        node: pirlib.graph.Node,
+        node: pirlib.pir.Node,
         inputs: Dict[str, Any],
         outputs: Dict[str, Any],
     ) -> None:
@@ -165,7 +164,7 @@ def operator(
     *,  # Keyword-only arguments below.
     name: Optional[str] = None,
     config: Optional[dict] = None,
-    framework: Optional[Framework] = None,
+    framework: Optional[pirlib.pir.Framework] = None,
 ) -> OperatorDefinition:
     wrapper = OperatorDefinition(
         func=func,

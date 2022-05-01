@@ -1,4 +1,4 @@
-from pirlib.graph import Framework
+from pirlib.pir import Framework
 
 
 class AdaptDL(Framework):
