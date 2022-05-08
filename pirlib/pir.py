@@ -37,6 +37,20 @@ def _validate_names(items: Any, label: str) -> None:
 
 @dataclass
 class DataSource:
+    """
+    This dataclass encodes a reference to the source of an intermediate value in a PIR
+    graph. A source can either be (1) an output of a node in the graph, (2) an output
+    of a subgraph of the graph, or (3) an input of the graph itself.
+
+    :ivar node: Name of the node in the graph if the source is the output of that node,
+            ``None`` otherwise.
+    :ivar subgraph: Name of the subgraph in the graph if the source is the output of
+            that subgraph, ``None`` otherwise.
+    :ivar output: Name of the output of a node or subgraph if the source is the output
+            of that node or subgraph, ``None`` otherwise.
+    :ivar graph_input: Name of the input of the graph if the source is the input of the
+            graph, ``None`` otherwise.
+    """
     node: Optional[str] = None
     subgraph: Optional[str] = None
     output: Optional[str] = None
@@ -53,17 +67,28 @@ class DataSource:
         )
         if count != 1:
             raise ValidationError(
-                "exactly one of 'node', 'subgraph', " "or 'graph_input' is expected"
+                "exactly one of 'node', 'subgraph', or 'graph_input' is expected"
             )
         if self.node is not None or self.subgraph is not None:
             if self.output is None:
                 raise ValidationError(
-                    "'output' is required if either " "'node' or 'subgraph' is provided"
+                    "'output' is required if either 'node' or 'subgraph' is provided"
                 )
 
 
 @dataclass
 class Input:
+    """
+    This dataclass encodes a named input of a node or subgraph with a connected source.
+    If it is the input of a subgraph, then its name must be equal to a name of some
+    graph input of that subgraph.
+
+    :ivar name: Name of the input. Must be unique among all inputs in a valid node or
+            subgraph.
+    :ivar iotype: Expected type of the input. In a valid graph, must be equal to the
+            iotype of the source.
+    :ivar source: Source of the input. Can be a graph input or a node/subgraph output.
+    """
     name: str
     iotype: str
     source: DataSource
@@ -78,6 +103,15 @@ class Input:
 
 @dataclass
 class Output:
+    """
+    This dataclass encodes a named output of a node or a subgraph. An output can be an
+    input source for other downstream nodes or subgraphs within the same graph, or be
+    an output of the graph itself.
+
+    :ivar name: Name of the output. Must be unique among all outputs in a valid node or
+            subgraph.
+    :ivar iotype: Type of the output.
+    """
     name: str
     iotype: str
 
@@ -87,6 +121,12 @@ class Output:
 
 @dataclass
 class Framework:
+    """
+    This dataclass encodes the execution framework and configuration for a node.
+
+    :ivar name: Name of the framework used for executing a node.
+    :ivar config: Framework configuration for executing a node.
+    """
     name: str
     config: Dict[str, Any] = field(default_factory=dict)
 
@@ -96,18 +136,29 @@ class Framework:
 
 @dataclass
 class Entrypoint:
+    """
+    This dataclass encodes the entrypoint for executing a node. An entrypoint is
+    typically a reference to a function or procedure in code (called "handler").
+
+    :ivar version: The API version for the handler.
+    :ivar handler: Reference to the handler, format depends on the runtime. For python
+            runtimes, expects ``<module>.<name>``, where ``<module>`` is the fully
+            qualified name of the module, and ``<name>`` is the name of the handler
+            object in that module.
+    :ivar runtime: Identifier of the handler's runtime, e.g. ``"python:3.8"``.
+    :ivar codeurl: Optional URL of the code used to run the handler. ``None`` means any
+            and all handler code can be found in the local environment or docker image.
+    :ivar image: Optional name of the Docker image used to run the handler. ``None``
+            means the handler can be run in the local environment.
+    """
     version: str
     handler: str
     runtime: str
-    codeuri: Optional[str] = None
+    codeurl: Optional[str] = None
     image: Optional[str] = None
 
     def validate(self):
         _validate_fields(self)
-        # Format: (relative/path/from/codeuri/)(package.module):(name)
-        pattern = re.compile(r"^(.*/)?([^:]*):([^:]*)$")
-        if pattern is None:
-            raise ValidationError(f"malformed handler '{self.handler}'")
 
 
 @dataclass
