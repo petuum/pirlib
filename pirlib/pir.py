@@ -1,3 +1,7 @@
+"""
+.. image:: ../_static/img/pir-diagram.svg
+"""
+
 import copy
 import re
 import typeguard
@@ -5,34 +9,6 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 from pirlib.utils import find_by_name
-
-
-class ValidationError(ValueError):
-    def __init__(self, message):
-        super().__init__(message)
-
-
-def _validate_fields(instance):
-    classname = instance.__class__.__name__
-    for name, hint in instance.__annotations__.items():
-        value = getattr(instance, name)
-        try:
-            typeguard.check_type(f"{classname}.{name}", value, hint)
-        except TypeError as err:
-            raise ValidationError(err.message) from None
-
-
-def _validate_names(items: Any, label: str) -> None:
-    once = set()
-    twice = set()
-    for item in items:
-        if item.name not in once:
-            once.add(item.name)
-        else:
-            twice.add(item.name)
-    if twice:
-        text = ", ".join(repr(name) for name in twice)
-        raise ValidationError(f"duplicate {label} name(s): {text}")
 
 
 @dataclass
@@ -143,8 +119,8 @@ class Entrypoint:
     :ivar version: The API version for the handler.
     :ivar handler: Reference to the handler, format depends on the runtime. For python
             runtimes, expects ``<module>.<name>``, where ``<module>`` is the fully
-            qualified name of the module, and ``<name>`` is the name of the handler
-            object in that module.
+            qualified name of the module containing the handler, and ``<name>`` is the
+            name of the handler object within that module.
     :ivar runtime: Identifier of the handler's runtime, e.g. ``"python:3.8"``.
     :ivar codeurl: Optional URL of the code used to run the handler. ``None`` means any
             and all handler code can be found in the local environment or docker image.
@@ -163,6 +139,19 @@ class Entrypoint:
 
 @dataclass
 class Node:
+    """
+    This dataclass encodes a node in a graph. A node represents a procedure that can be
+    executed on several inputs to produce several outputs. All node inputs must have
+    unique names, and all node outputs also must have unique names.
+
+    :ivar name: Name of the node. Must be unique among all nodes in a valid graph.
+    :ivar entrypoint: Entrypoint to the code executed by this node.
+    :ivar framework: Execution framework for this node.
+    :ivar config: Configuration values which are passed down to the procedure executed
+            by this node. Can be any json or yaml serializable mapping.
+    :ivar inputs: Expected inputs for this node, must all have unique names.
+    :ivar outputs: Expected outputs for this node, must all have unique names.
+    """
     name: str
     entrypoint: Entrypoint
     framework: Optional[Framework] = None
@@ -288,7 +277,7 @@ class Graph:
                     self._validate_source(inp.source, inp.iotype)
                 except ValidationError as err:
                     raise ValidationError(
-                        f"node '{node.name}': input " f"'{inp.name}': {err}"
+                        f"node '{node.name}': input '{inp.name}': {err}"
                     ) from None
 
     def _validate_source(self, source, iotype):
@@ -296,7 +285,7 @@ class Graph:
             graph_input = find_by_name(self.inputs, source.graph_input)
             if graph_input is None:
                 raise ValidationError(
-                    f"reference to missing graph " f"input '{source.graph_input}'"
+                    f"reference to missing graph input '{source.graph_input}'"
                 )
             source_iotype = graph_input.iotype
         elif source.node is not None:
@@ -306,8 +295,7 @@ class Graph:
             output = find_by_name(node.outputs, source.output)
             if output is None:
                 raise ValidationError(
-                    f"reference to missing output "
-                    f"'{source.output}' of node "
+                    f"reference to missing output '{source.output}' of node "
                     f"'{node.name}'"
                 )
             source_iotype = output.iotype
@@ -320,14 +308,13 @@ class Graph:
             output = find_by_name(subgraph.outputs, source.output)
             if output is None:
                 raise ValidationError(
-                    f"reference to missing output "
-                    f"'{source.output}' of subgraph "
+                    f"reference to missing output '{source.output}' of subgraph "
                     f"'{subgraph.name}'"
                 )
             source_iotype = output.iotype
         if source_iotype != iotype:
             raise ValidationError(
-                f"iotype '{iotype}' differs from " f"source iotype '{source_iotype}'"
+                f"iotype '{iotype}' differs from source iotype '{source_iotype}'"
             )
 
     def _validate_acyclicity(self):
@@ -420,7 +407,35 @@ class Package:
         graph = find_by_name(self.graphs, subgraph.graph)
         if graph is None:
             raise ValidationError(
-                f"subgraph '{subgraph.name}': reference "
-                f"to missing graph '{subgraph.graph}'"
+                f"subgraph '{subgraph.name}': reference to missing graph "
+                f"'{subgraph.graph}'"
             )
         # TODO: check subgraph inputs and outputs match graph inputs and outputs
+
+
+class ValidationError(ValueError):
+    def __init__(self, message):
+        super().__init__(message)
+
+
+def _validate_fields(instance):
+    classname = instance.__class__.__name__
+    for name, hint in instance.__annotations__.items():
+        value = getattr(instance, name)
+        try:
+            typeguard.check_type(f"{classname}.{name}", value, hint)
+        except TypeError as err:
+            raise ValidationError(err.message) from None
+
+
+def _validate_names(items: Any, label: str) -> None:
+    once = set()
+    twice = set()
+    for item in items:
+        if item.name not in once:
+            once.add(item.name)
+        else:
+            twice.add(item.name)
+    if twice:
+        text = ", ".join(repr(name) for name in twice)
+        raise ValidationError(f"duplicate {label} name(s): {text}")
