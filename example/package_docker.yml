@@ -2,6 +2,13 @@ graphs:
 - name: train_pipeline
   nodes:
   - name: clean
+    entrypoint:
+      version: v1
+      handler: example.example:clean
+      runtime: python:3.8
+      codeurl: null
+      image: pircli-build:fbb9b1d1-11ed-48a6-a70c-67a1f6c928a5
+    framework: null
     config: {}
     inputs:
     - name: dataset
@@ -14,14 +21,18 @@ graphs:
     outputs:
     - name: return
       iotype: DIRECTORY
+  - name: train
     entrypoint:
       version: v1
-      handler: example.example:clean
+      handler: example.example:train
       runtime: python:3.8
-      codeuri: null
-      image: pircli-build:6063df32-2483-4e2e-beee-944931c72937
-    framework: null
-  - name: train
+      codeurl: null
+      image: pircli-build:fbb9b1d1-11ed-48a6-a70c-67a1f6c928a5
+    framework:
+      name: adaptdl
+      config:
+        min_replicas: 1
+        max_replicas: 4
     config: {}
     inputs:
     - name: dataset
@@ -34,18 +45,14 @@ graphs:
     outputs:
     - name: return
       iotype: FILE
+  - name: evaluate
     entrypoint:
       version: v1
-      handler: example.example:train
+      handler: example.example:evaluate
       runtime: python:3.8
-      codeuri: null
-      image: pircli-build:6063df32-2483-4e2e-beee-944931c72937
-    framework:
-      name: adaptdl
-      config:
-        min_replicas: 1
-        max_replicas: 4
-  - name: evaluate
+      codeurl: null
+      image: pircli-build:fbb9b1d1-11ed-48a6-a70c-67a1f6c928a5
+    framework: null
     config: {}
     inputs:
     - name: kwargs.test_dataset
@@ -65,14 +72,14 @@ graphs:
     outputs:
     - name: return
       iotype: DATAFRAME
+  - name: infer_pipeline.translate_1
     entrypoint:
       version: v1
-      handler: example.example:evaluate
+      handler: example.example:translate
       runtime: python:3.8
-      codeuri: null
-      image: pircli-build:6063df32-2483-4e2e-beee-944931c72937
+      codeurl: null
+      image: pircli-build:fbb9b1d1-11ed-48a6-a70c-67a1f6c928a5
     framework: null
-  - name: infer_pipeline.translate_1
     config:
       key: value
     inputs:
@@ -93,14 +100,14 @@ graphs:
     outputs:
     - name: return
       iotype: DIRECTORY
+  - name: infer_pipeline.sentiment
     entrypoint:
       version: v1
-      handler: example.example:translate
+      handler: example.example:sentiment
       runtime: python:3.8
-      codeuri: null
-      image: pircli-build:6063df32-2483-4e2e-beee-944931c72937
+      codeurl: null
+      image: pircli-build:fbb9b1d1-11ed-48a6-a70c-67a1f6c928a5
     framework: null
-  - name: infer_pipeline.sentiment
     config: {}
     inputs:
     - name: model
@@ -120,13 +127,6 @@ graphs:
     outputs:
     - name: return
       iotype: DIRECTORY
-    entrypoint:
-      version: v1
-      handler: example.example:sentiment
-      runtime: python:3.8
-      codeuri: null
-      image: pircli-build:6063df32-2483-4e2e-beee-944931c72937
-    framework: null
   subgraphs: []
   inputs:
   - name: train_dataset
