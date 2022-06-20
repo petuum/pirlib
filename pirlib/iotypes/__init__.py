@@ -2,7 +2,11 @@ import pathlib
 
 from dataclasses import dataclass
 
-_TYPE_MAP = {}
+_TYPE_MAP = {
+    int: "INT",
+    float: "FLOAT",
+    str: "STRING",
+}
 
 
 def register_iotype(pytype: type, iotype: str):

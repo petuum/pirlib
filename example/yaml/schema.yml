@@ -1,0 +1,45 @@
+graphs: list(include('graph'))
+---
+graph:
+  name: str()
+  nodes: list(include('node'))
+  subgraphs: list(include("subgraph"))
+  inputs: list(include("graph_io"))
+  outputs: list(include("graph_io"))
+---
+node:
+  name: str()
+  entrypoint:
+    version: str()
+    handler: str()
+    runtime: str()
+    codeuri: any(str(), null())
+    image: any(str(), null())
+  framework: any(map(), null())
+  config: map()
+  inputs: list(include("input"))
+  outputs: list(include("output"))
+---
+subgraph:
+  name: str()
+  graph: str()
+  config: map()
+  inputs: list(include("input"))
+  outputs: list(include("output"))
+---
+graph_io:
+  name: str()
+  iotype: str()
+---
+input:
+  name: str()
+  iotype: str()
+  source:
+    node: any(str(), null())
+    subgraph: any(str(), null())
+    output: any(str(), null())
+    graph_input: any(str(), null())
+---
+output:
+  name: str()
+  iotype: str()
