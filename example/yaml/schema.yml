@@ -30,12 +30,6 @@ graph_output:
   iotype: str()
   source: include("datasource")
 ---
-datasource:
-  node: any(str(), null())
-  subgraph: any(str(), null())
-  output: any(str(), null())
-  graph_input: any(str(), null())
----
 input:
   name: str()
   iotype: str()
@@ -44,6 +38,12 @@ input:
 output:
   name: str()
   iotype: str()
+---
+datasource:
+  node: any(str(), null())
+  subgraph: any(str(), null())
+  output: any(str(), null())
+  graph_input: any(str(), null())
 ---
 framework:
   name: str()

@@ -6,6 +6,7 @@ _TYPE_MAP = {
     int: "INT",
     float: "FLOAT",
     str: "STRING",
+    dict: "DICTIONARY"
 }
 
 
