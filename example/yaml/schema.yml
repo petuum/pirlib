@@ -1,21 +1,16 @@
-graphs: list(include('graph'))
+graphs: list(include("graph"))
 ---
 graph:
   name: str()
-  nodes: list(include('node'))
+  nodes: list(include("node"))
   subgraphs: list(include("subgraph"))
-  inputs: list(include("graph_io"))
-  outputs: list(include("graph_io"))
+  inputs: list(include("graph_input"))
+  outputs: list(include("graph_output"))
 ---
 node:
   name: str()
-  entrypoint:
-    version: str()
-    handler: str()
-    runtime: str()
-    codeuri: any(str(), null())
-    image: any(str(), null())
-  framework: any(map(), null())
+  entrypoint: include("entrypoint")
+  framework: any(include("framework"), null())
   config: map()
   inputs: list(include("input"))
   outputs: list(include("output"))
@@ -23,23 +18,40 @@ node:
 subgraph:
   name: str()
   graph: str()
-  config: map()
   inputs: list(include("input"))
   outputs: list(include("output"))
 ---
-graph_io:
+graph_input:
   name: str()
   iotype: str()
+---
+graph_output:
+  name: str()
+  iotype: str()
+  source: include("datasource")
+---
+datasource:
+  node: any(str(), null())
+  subgraph: any(str(), null())
+  output: any(str(), null())
+  graph_input: any(str(), null())
 ---
 input:
   name: str()
   iotype: str()
-  source:
-    node: any(str(), null())
-    subgraph: any(str(), null())
-    output: any(str(), null())
-    graph_input: any(str(), null())
+  source: include("datasource")
 ---
 output:
   name: str()
   iotype: str()
+---
+framework:
+  name: str()
+  config: map()
+---
+entrypoint:
+  version: str()
+  handler: str()
+  runtime: str()
+  codeuri: any(str(), null())
+  image: any(str(), null())
