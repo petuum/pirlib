@@ -1,3 +1,5 @@
+# Copyright 2022 Petuum, Inc. All Rights Reserved.
+
 graphs: list(include("graph"))
 ---
 graph:
