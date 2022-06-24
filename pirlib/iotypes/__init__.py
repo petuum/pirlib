@@ -2,12 +2,7 @@ import pathlib
 
 from dataclasses import dataclass
 
-_TYPE_MAP = {
-    int: "INT",
-    float: "FLOAT",
-    str: "STRING",
-    dict: "DICTIONARY"
-}
+_TYPE_MAP = {}
 
 
 def register_iotype(pytype: type, iotype: str):
@@ -34,6 +29,13 @@ class FilePath(type(pathlib.Path())):
 
 register_iotype(DirectoryPath, "DIRECTORY")
 register_iotype(FilePath, "FILE")
+register_iotype(int, "INT")
+register_iotype(float, "FLOAT")
+register_iotype(str, "STRING")
+register_iotype(list, "LIST")
+register_iotype(dict, "MAP")
+register_iotype(None, "VOID")
+
 try:
     import pandas
 
