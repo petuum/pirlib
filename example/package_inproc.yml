@@ -6,7 +6,7 @@ graphs:
       version: v1
       handler: example.example:translate
       runtime: python:3.8
-      codeuri: null
+      codeurl: null
       image: null
     framework: null
     config:
@@ -34,7 +34,7 @@ graphs:
       version: v1
       handler: example.example:sentiment
       runtime: python:3.8
-      codeuri: null
+      codeurl: null
       image: null
     framework: null
     config: {}
@@ -79,7 +79,7 @@ graphs:
       version: v1
       handler: example.example:clean
       runtime: python:3.8
-      codeuri: null
+      codeurl: null
       image: null
     framework: null
     config: {}
@@ -99,7 +99,7 @@ graphs:
       version: v1
       handler: example.example:train
       runtime: python:3.8
-      codeuri: null
+      codeurl: null
       image: null
     framework:
       name: adaptdl
@@ -123,7 +123,7 @@ graphs:
       version: v1
       handler: example.example:evaluate
       runtime: python:3.8
-      codeuri: null
+      codeurl: null
       image: null
     framework: null
     config: {}
