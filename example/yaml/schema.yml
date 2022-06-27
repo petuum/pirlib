@@ -20,6 +20,7 @@ node:
 subgraph:
   name: str()
   graph: str()
+  config: map()
   inputs: list(include("input"))
   outputs: list(include("output"))
 ---
