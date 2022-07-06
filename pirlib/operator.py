@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Dict, Optional
 
 import pirlib.pir
+from pirlib.pir import NodeConfig
 from pirlib.backends.inproc import InprocBackend
 from pirlib.handlers.v1 import HandlerV1
 from pirlib.package import recurse_hint, operator_call, package_operator
@@ -83,8 +84,9 @@ class OperatorDefinition(HandlerV1):
     ):
         self._func = func if func is None else typeguard.typechecked(func)
         self._name = name if name else getattr(func, "__name__", None)
-        self._config = copy.deepcopy(config) if config else None
-        self._framework = framework
+        self._config = NodeConfig(framework=framework)
+        if config:
+            self._config.update(config)
 
     @property
     def func(self):
@@ -100,7 +102,7 @@ class OperatorDefinition(HandlerV1):
 
     @property
     def framework(self):
-        return self._framework
+        return self._config["framework"]
 
     def __call__(self, *args, **kwargs):
         if len(args) == 1 and callable(args[0]) and not kwargs:

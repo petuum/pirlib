@@ -17,6 +17,7 @@ from pirlib.pir import (
     Graph,
     GraphInput,
     GraphOutput,
+    MetaData,
     Node,
     Input,
     Output,
@@ -75,8 +76,9 @@ def _inspect_graph_inputs(func: callable):
 
     def add_input(name, hint):
         iotype = pytype_to_iotype(hint)
+        meta_data = MetaData(type=iotype)
         source = DataSource(graph_input=name)
-        inputs.append(GraphInput(name=name, iotype=iotype))
+        inputs.append(GraphInput(name=name, meta=meta_data))
         return _create_ivalue(pytype=hint, source=source)
 
     sig = inspect.signature(func)
@@ -97,7 +99,8 @@ def _inspect_graph_outputs(func: callable, return_value: typing.Any):
 
     def add_output(name, hint, value):
         iotype = pytype_to_iotype(value.pytype)
-        output = GraphOutput(name=name, iotype=iotype, source=value.source)
+        meta_data = MetaData(type=iotype)
+        output = GraphOutput(name=name, meta=meta_data, source=value.source)
         outputs.append(output)
 
     sig = inspect.signature(func)
@@ -184,7 +187,8 @@ def _inspect_inputs(func: callable, args, kwargs):
 
     def add_input(name, hint, value):
         iotype = pytype_to_iotype(hint)
-        inputs.append(Input(name=name, iotype=iotype, source=value.source))
+        meta_data = MetaData(type=iotype)
+        inputs.append(Input(name=name, meta=meta_data, source=value.source))
 
     sig = inspect.signature(func)
     for idx, (name, param) in enumerate(sig.parameters.items()):
@@ -202,7 +206,8 @@ def _inspect_outputs(func: callable, node=None, subgraph=None):
     def add_output(name, hint):
         source = DataSource(node=node, subgraph=subgraph, output=name)
         iotype = pytype_to_iotype(hint)
-        outputs.append(Output(name=name, iotype=iotype))
+        meta_data = MetaData(type=iotype)
+        outputs.append(Output(name=name, meta=meta_data))
         return _create_ivalue(pytype=hint, source=source)
 
     sig = inspect.signature(func)
@@ -229,7 +234,6 @@ def operator_call(func):
         node = Node(
             name=instance.name,
             entrypoint=_create_entrypoint(instance.func),
-            framework=instance.framework,
             config=instance.config,
             inputs=_inspect_inputs(instance.func, args, kwargs),
         )

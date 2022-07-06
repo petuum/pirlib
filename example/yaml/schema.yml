@@ -56,5 +56,5 @@ entrypoint:
   version: str()
   handler: str()
   runtime: str()
-  codeuri: any(str(), null())
+  codeurl: any(str(), null())
   image: any(str(), null())

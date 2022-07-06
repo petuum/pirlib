@@ -12,10 +12,11 @@ graphs in the same package. A visual example of a package is shown below.
 from __future__ import annotations
 
 import copy
+from lib2to3.pgen2.token import OP
 import re
 import typeguard
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TypedDict
 
 from pirlib.utils import find_by_name
 
@@ -114,11 +115,11 @@ class Package:
                     f"subgraph '{subgraph.name}' input '{inp.name}' "
                     f"could not be found in graph '{subgraph.graph}'"
                 )
-            if g_inp.iotype != inp.iotype:
+            if g_inp.meta.type != inp.meta.type:
                 raise ValidationError(
                     f"subgraph '{subgraph.name}' input '{inp.name}' iotype "
                     f"'{inp.iotype}' does not match graph '{subgraph.graph}' "
-                    f"input iotype '{g_inp.iotype}'"
+                    f"input iotype '{g_inp.meta.type}'"
                 )
         for out in subgraph.outputs:
             g_out = find_by_name(graph.outputs, out.name)
@@ -127,11 +128,11 @@ class Package:
                     f"subgraph '{subgraph.name}' output '{out.name}' "
                     f"could not be found in graph '{subgraph.graph}'"
                 )
-            if g_out.iotype != out.iotype:
+            if g_out.meta.type != out.meta.type:
                 raise ValidationError(
                     f"subgraph '{subgraph.name}' output '{out.name}' iotype "
-                    f"'{out.iotype}' does not match graph '{subgraph.graph}' "
-                    f"output iotype '{g_out.iotype}'"
+                    f"'{out.meta.type}' does not match graph '{subgraph.graph}' "
+                    f"output iotype '{g_out.meta.type}'"
                 )
 
     def _is_recursive(self, graph: Graph, visited: List[str]):
@@ -142,6 +143,13 @@ class Package:
             if self._is_recursive(find_by_name(self.graphs, subgraph.graph), visited):
                 return True
         return False
+
+
+@dataclass
+class GraphAnnotations:
+    author: Optional[str] = None
+    timestamp: Optional[str] = None
+    execution_mode: Optional[str] = None
 
 
 @dataclass
@@ -162,6 +170,7 @@ class Graph:
             output must have the same iotype as its source.
     """
     name: str
+    annotations: GraphAnnotations = GraphAnnotations()
     nodes: List[Node] = field(default_factory=list)
     subgraphs: List[Subgraph] = field(default_factory=list)
     inputs: List[GraphInput] = field(default_factory=list)
@@ -205,13 +214,13 @@ class Graph:
     def _validate_connectivity(self):
         for out in self.outputs:
             try:
-                self._validate_source(out.source, out.iotype)
+                self._validate_source(out.source, out.meta.type)
             except ValidationError as err:
                 raise ValidationError(f"graph output '{out.name}': {err}") from None
         for node in self.nodes:
             for inp in node.inputs:
                 try:
-                    self._validate_source(inp.source, inp.iotype)
+                    self._validate_source(inp.source, inp.meta.type)
                 except ValidationError as err:
                     raise ValidationError(
                         f"node '{node.name}': input '{inp.name}': {err}"
@@ -219,7 +228,7 @@ class Graph:
         for subgraph in self.subgraphs:
             for inp in subgraph.inputs:
                 try:
-                    self._validate_source(inp.source, inp.iotype)
+                    self._validate_source(inp.source, inp.meta.type)
                 except ValidationError as err:
                     raise ValidationError(
                         f"subgraph '{subgraph.name}': input '{inp.name}': {err}"
@@ -232,7 +241,7 @@ class Graph:
                 raise ValidationError(
                     f"reference to missing graph input '{source.graph_input}'"
                 )
-            source_iotype = graph_input.iotype
+            source_iotype = graph_input.meta.type
         elif source.node is not None:
             node = find_by_name(self.nodes, source.node)
             if node is None:
@@ -243,7 +252,7 @@ class Graph:
                     f"reference to missing output '{source.output}' of node "
                     f"'{node.name}'"
                 )
-            source_iotype = output.iotype
+            source_iotype = output.meta.type
         elif source.subgraph is not None:
             subgraph = find_by_name(self.subgraphs, source.subgraph)
             if subgraph is None:
@@ -256,7 +265,7 @@ class Graph:
                     f"reference to missing output '{source.output}' of subgraph "
                     f"'{subgraph.name}'"
                 )
-            source_iotype = output.iotype
+            source_iotype = output.meta.type
         if source_iotype != iotype:
             raise ValidationError(
                 f"iotype '{iotype}' differs from source iotype '{source_iotype}'"
@@ -297,6 +306,19 @@ class Graph:
 
 
 @dataclass
+class MetaDataSchema:
+    type: Optional[str] = None
+    name: Optional[str] = None
+    fields: List = field(default_factory=list)
+
+
+@dataclass
+class MetaData:
+    type: str
+    schema: MetaDataSchema = MetaDataSchema() 
+
+
+@dataclass
 class GraphInput:
     """
     This dataclass encodes an input of a graph. A graph input represents a
@@ -307,7 +329,7 @@ class GraphInput:
     :ivar iotype: Expected type of the input.
     """
     name: str
-    iotype: str
+    meta: MetaData
 
     def validate(self):
         _validate_fields(self)
@@ -325,7 +347,7 @@ class GraphOutput:
     :ivar source: The source of the graph output.
     """
     name: str
-    iotype: str
+    meta: MetaData
     source: DataSource
 
     def validate(self):
@@ -376,6 +398,31 @@ class Subgraph:
 
 
 @dataclass
+class Framework:
+    """
+    This dataclass encodes the execution framework and configuration for a node.
+
+    :ivar name: Name of the framework used for executing a node.
+    :ivar config: Framework configuration for executing a node.
+    """
+    name: str
+    config: Dict[str, Any] = field(default_factory=dict)
+
+    def validate(self):
+        _validate_fields(self)
+
+
+class NodeConfig(TypedDict):
+    framework: Optional[Framework] = None
+
+
+@dataclass
+class NodeAnnotations:
+    type: Optional[str] = None
+    version: Optional[str] = None
+
+
+@dataclass
 class Node:
     """
     This dataclass encodes a node in a graph. A node represents a procedure that can be
@@ -393,10 +440,10 @@ class Node:
     """
     name: str
     entrypoint: Entrypoint
-    framework: Optional[Framework] = None
-    config: Dict[str, Any] = field(default_factory=dict)
+    config: NodeConfig
     inputs: List[Input] = field(default_factory=list)
     outputs: List[Output] = field(default_factory=list)
+    annotations: NodeAnnotations = NodeAnnotations()
 
     def validate(self):
         _validate_fields(self)
@@ -416,9 +463,9 @@ class Node:
             self.entrypoint.validate()
         except ValidationError as err:
             raise ValidationError(f"entrypoint: {err}") from None
-        if self.framework is not None:
+        if self.config["framework"] is not None:
             try:
-                self.framework.validate()
+                self.config["framework"].validate()
             except ValidationError as err:
                 raise ValidationError(f"framework: {err}") from None
 
@@ -437,7 +484,7 @@ class Input:
     :ivar source: Source of the input. Can be a graph input or a node/subgraph output.
     """
     name: str
-    iotype: str
+    meta: MetaData
     source: DataSource
 
     def validate(self):
@@ -460,25 +507,16 @@ class Output:
     :ivar iotype: Type of the output.
     """
     name: str
-    iotype: str
+    meta: MetaData
 
     def validate(self):
         _validate_fields(self)
 
 
 @dataclass
-class Framework:
-    """
-    This dataclass encodes the execution framework and configuration for a node.
-
-    :ivar name: Name of the framework used for executing a node.
-    :ivar config: Framework configuration for executing a node.
-    """
-    name: str
-    config: Dict[str, Any] = field(default_factory=dict)
-
-    def validate(self):
-        _validate_fields(self)
+class EntrypointEnvironment:
+    image: Optional[str] = None
+    dependencies: Optional[str] = None
 
 
 @dataclass
@@ -501,8 +539,8 @@ class Entrypoint:
     version: str
     handler: str
     runtime: str
+    env: EntrypointEnvironment = EntrypointEnvironment()
     codeurl: Optional[str] = None
-    image: Optional[str] = None
 
     def validate(self):
         _validate_fields(self)
