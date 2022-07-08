@@ -1,5 +1,8 @@
-Writing PIR Pipelines with Python
-=================================
+Pirlib: Writing PIR Pipelines with Python
+=========================================
+
+Pirlib is a library for writing PIR (pipeline intermediate representation) pipelines
+with Python.
 
 .. include-start-after
 
