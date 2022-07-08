@@ -49,9 +49,9 @@ class OperatorInstance(object):
     def config(self):
         return self._config
 
-    @property
-    def framework(self):
-        return self.defn.framework
+    #@property
+    #def framework(self):
+    #    return self.defn.framework
 
     @operator_call
     def __call__(self, *args, **kwargs):
@@ -78,15 +78,12 @@ class OperatorDefinition(HandlerV1):
         self,
         func: Optional[Callable] = None,
         *,  # Keyword-only arguments below.
+        config: NodeConfig,
         name: Optional[str] = None,
-        config: Optional[dict] = None,
-        framework: Optional[pirlib.pir.Framework] = None,
     ):
         self._func = func if func is None else typeguard.typechecked(func)
         self._name = name if name else getattr(func, "__name__", None)
-        self._config = NodeConfig(framework=framework)
-        if config:
-            self._config.update(config)
+        self._config = config
 
     @property
     def func(self):
@@ -102,7 +99,7 @@ class OperatorDefinition(HandlerV1):
 
     @property
     def framework(self):
-        return self._config["framework"]
+        return self._config.framework
 
     def __call__(self, *args, **kwargs):
         if len(args) == 1 and callable(args[0]) and not kwargs:
@@ -110,7 +107,6 @@ class OperatorDefinition(HandlerV1):
                 func=args[0],
                 name=self.name,
                 config=self.config,
-                framework=self.framework,
             )
             functools.update_wrapper(wrapper, args[0])
             return wrapper
@@ -134,7 +130,7 @@ class OperatorDefinition(HandlerV1):
         inputs: Dict[str, Any],
         outputs: Dict[str, Any],
     ) -> None:
-        context = OperatorContext(node.config, None)
+        context = OperatorContext(node.configs, None)
         sig = inspect.signature(self.func)
         context.output = recurse_hint(
             lambda name, hint: outputs[name], "return", sig.return_annotation
@@ -165,14 +161,14 @@ def operator(
     func: Optional[Callable] = None,
     *,  # Keyword-only arguments below.
     name: Optional[str] = None,
-    config: Optional[dict] = None,
+    config: Optional[dict] = {},
     framework: Optional[pirlib.pir.Framework] = None,
 ) -> OperatorDefinition:
+    node_config = NodeConfig(framework=framework, config=config)
     wrapper = OperatorDefinition(
         func=func,
         name=name,
-        config=config,
-        framework=framework,
+        config=node_config,
     )
     functools.update_wrapper(wrapper, func)
     return wrapper

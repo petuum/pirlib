@@ -30,9 +30,13 @@ class Package:
 
     :ivar graphs: List of graphs in this package, must all have unique names.
     """
-    graphs: List[Graph] = field(default_factory=list)
+    graphs: Dict[str, Graph] = field(default_factory=dict)
 
-    def flatten_graph(self, graph_name: str, validate: bool = True) -> Graph:
+    def add_graph(self, graph: Graph):
+        _validate_ids(self.graphs, graph.id, "graph")
+        self.graphs[graph.id] = graph
+
+    def flatten_graph(self, graph_id: str, validate: bool = True) -> Graph:
         """
         Return a graph from this package after flattening all its subgraphs. The
         resulting graph should only contain nodes and no subgraphs. Each node in a
@@ -44,40 +48,48 @@ class Package:
                 for example, if the resulting graph has nodes with conflicting names.
         :return: The resulting flattened graph.
         """
-        graph = copy.deepcopy(find_by_name(self.graphs, graph_name))
+        graph = copy.deepcopy(self.graphs.get(graph_id, None))
         if graph is None:
-            raise ValueError(f"graph with name '{graph_name}' not found in package")
-        for subgraph in graph.subgraphs:
-            g = self.flatten_graph(subgraph.graph, validate=False)
-            # Add prefix to subgraph nodes names.
-            for n in g.nodes:
-                n.name = f"{subgraph.name}.{n.name}"
-                for i in n.inputs:
-                    if i.source.node is not None:
-                        i.source.node = f"{subgraph.name}.{i.source.node}"
-            for o in g.outputs:
-                if o.source.node is not None:
-                    o.source.node = f"{subgraph.name}.{o.source.node}"
+            raise ValueError(f"graph with name '{graph_id}' not found in package")
+        for subgraph_id, subgraph in graph.subgraphs.items():
+            g = self.flatten_graph(subgraph_id, validate=False)
+            # Add prefix to subgraph nodes ids.
+            updated_nodes = {}
+            to_delete = []
+            for n in g.nodes.values():
+                to_delete.append(n.id)
+                n.id = f"{subgraph_id}.{n.id}"
+                updated_nodes[n.id] = n
+                for i in n.inputs.values():
+                    if i.source.node_id is not None:
+                        i.source.node_id = f"{subgraph_id}.{i.source.node_id}"
+            g.nodes.update(updated_nodes)
+            for node_id in to_delete:
+                del g.nodes[node_id]
+            for o in g.outputs.values():
+                if o.source.node_id is not None:
+                    o.source.node_id = f"{subgraph_id}.{o.source.node_id}"
+
             # Merge subgraph into main graph.
-            for node in graph.nodes:
-                for inp in node.inputs:
-                    if inp.source.subgraph == subgraph.name:
-                        for o in g.outputs:
-                            if o.name == inp.source.output:
+            for node in graph.nodes.values():
+                for inp in node.inputs.values():
+                    if inp.source.subgraph_id == subgraph_id:
+                        for o in g.outputs.values():
+                            if o.id == inp.source.output_id:
                                 inp.source = o.source
-            for out in graph.outputs:
-                if out.source.subgraph == subgraph.name:
-                    for o in g.outputs:
-                        if o.name == out.source.output:
+            for out in graph.outputs.values():
+                if out.source.subgraph_id == subgraph_id:
+                    for o in g.outputs.values():
+                        if o.id == out.source.output_id:
                             out.source = o.source
-            for n in g.nodes:
-                for i in n.inputs:
-                    if i.source.graph_input is not None:
-                        for si in subgraph.inputs:
-                            if i.source.graph_input == si.name:
+            for n in g.nodes.values():
+                for i in n.inputs.values():
+                    if i.source.graph_input_id is not None:
+                        for si in subgraph.inputs.values():
+                            if i.source.graph_input_id == si.id:
                                 i.source = si.source
-            graph.nodes.extend(g.nodes)
-        graph.subgraphs = []
+            graph.nodes.update(g.nodes)
+        graph.subgraphs = {}
         if validate:
             graph.validate()
         return graph
@@ -91,47 +103,46 @@ class Package:
 
         :raises ValidationError: If the package is invalid.
         """
-        _validate_names(self.graphs, "graph")
-        for graph in self.graphs:
+        for graph in self.graphs.values():
             try:
                 graph.validate()
             except ValidationError as err:
                 raise ValidationError(f"graph '{graph.name}': {err}") from None
-            for subgraph in graph.subgraphs:
+            for subgraph in graph.subgraphs.values():
                 self._validate_subgraph(subgraph)
             if self._is_recursive(graph, []):
                 raise ValidationError(f"package contains recursive subgraphs")
 
     def _validate_subgraph(self, subgraph):
-        graph = find_by_name(self.graphs, subgraph.graph)
+        graph = self.graphs.get(subgraph.graph_id, None)
         if graph is None:
             raise ValidationError(
                 f"subgraph '{subgraph.name}' refers to missing graph '{subgraph.graph}'"
             )
-        for inp in subgraph.inputs:
-            g_inp = find_by_name(graph.inputs, inp.name)
+        for inp in subgraph.inputs.values():
+            g_inp = graph.inputs.get(inp.id, None)
             if g_inp is None:
                 raise ValidationError(
-                    f"subgraph '{subgraph.name}' input '{inp.name}' "
-                    f"could not be found in graph '{subgraph.graph}'"
+                    f"subgraph '{subgraph.id}' input '{inp.id}' "
+                    f"could not be found in graph '{subgraph.graph_id}'"
                 )
             if g_inp.meta.type != inp.meta.type:
                 raise ValidationError(
-                    f"subgraph '{subgraph.name}' input '{inp.name}' iotype "
-                    f"'{inp.iotype}' does not match graph '{subgraph.graph}' "
+                    f"subgraph '{subgraph.id}' input '{inp.id}' iotype "
+                    f"'{inp.meta.type}' does not match graph '{subgraph.graph_id}' "
                     f"input iotype '{g_inp.meta.type}'"
                 )
-        for out in subgraph.outputs:
-            g_out = find_by_name(graph.outputs, out.name)
+        for out in subgraph.outputs.values():
+            g_out = graph.outputs.get(out.id, None)
             if g_out is None:
                 raise ValidationError(
-                    f"subgraph '{subgraph.name}' output '{out.name}' "
-                    f"could not be found in graph '{subgraph.graph}'"
+                    f"subgraph '{subgraph.id}' output '{out.id}' "
+                    f"could not be found in graph '{subgraph.graph_id}'"
                 )
             if g_out.meta.type != out.meta.type:
                 raise ValidationError(
-                    f"subgraph '{subgraph.name}' output '{out.name}' iotype "
-                    f"'{out.meta.type}' does not match graph '{subgraph.graph}' "
+                    f"subgraph '{subgraph.id}' output '{out.id}' iotype "
+                    f"'{out.meta.type}' does not match graph '{subgraph.graph_id}' "
                     f"output iotype '{g_out.meta.type}'"
                 )
 
@@ -139,8 +150,8 @@ class Package:
         if graph.name in visited:
             return True
         visited = visited + [graph.name]
-        for subgraph in graph.subgraphs:
-            if self._is_recursive(find_by_name(self.graphs, subgraph.graph), visited):
+        for subgraph in graph.subgraphs.values():
+            if self._is_recursive(self.graphs.get(subgraph.graph_id), visited):
                 return True
         return False
 
@@ -170,11 +181,32 @@ class Graph:
             output must have the same iotype as its source.
     """
     name: str
+    id: str
     annotations: GraphAnnotations = GraphAnnotations()
-    nodes: List[Node] = field(default_factory=list)
-    subgraphs: List[Subgraph] = field(default_factory=list)
-    inputs: List[GraphInput] = field(default_factory=list)
-    outputs: List[GraphOutput] = field(default_factory=list)
+    nodes: Dict[str, Node] = field(default_factory=dict)
+    subgraphs: Dict[str, Subgraph] = field(default_factory=dict)
+    inputs: Dict[str, GraphInput] = field(default_factory=dict)
+    outputs: Dict[str, GraphOutput] = field(default_factory=dict)
+
+    def add_node(self, node: Node):
+        _validate_ids(self.nodes, node.id, "node")
+        self.nodes[node.id] = node
+
+    def get_node(self, node_id):
+        node = self.nodes.get(node_id, None)
+        if node is None:
+            raise ValueError(f"node with id '{node_id}' not found in graph")
+        return node
+    
+    def add_subgraph(self, subgraph: Subgraph):
+        _validate_ids(self.subgraphs, subgraph.id, "subgraph")
+        self.subgraphs[subgraph.id] = subgraph
+
+    def update_node_id(self, old_node_id, new_node_id):
+        node = self.get_node(old_node_id)
+        node.id = new_node_id
+        self.nodes[new_node_id] = node
+        del self.nodes[old_node_id]
 
     def validate(self):
         """
@@ -185,85 +217,82 @@ class Graph:
         :raises ValidationError: If the graph is invalid.
         """
         _validate_fields(self)
-        for node in self.nodes:
+        for node in self.nodes.values():
             try:
                 node.validate()
             except ValidationError as err:
-                raise ValidationError(f"node '{node.name}': {err}") from None
-        for subgraph in self.subgraphs:
+                raise ValidationError(f"node '{node.id}': {err}") from None
+        for subgraph in self.subgraphs.values():
             try:
                 subgraph.validate()
             except ValidationError as err:
-                raise ValidationError(f"subgraph '{subgraph.name}': {err}") from None
-        _validate_names(self.nodes + self.subgraphs, "node or subgraph")
-        for inp in self.inputs:
+                raise ValidationError(f"subgraph '{subgraph.id}': {err}") from None
+        for inp in self.inputs.values():
             try:
                 inp.validate()
             except ValidationError as err:
-                raise ValidationError(f"graph input '{inp.name}': {err}") from None
-        _validate_names(self.inputs, "graph input")
-        for out in self.outputs:
+                raise ValidationError(f"graph input '{inp.id}': {err}") from None
+        for out in self.outputs.values():
             try:
                 out.validate()
             except ValidationError as err:
-                raise ValidationError(f"graph output '{out.name}': {err}") from None
-        _validate_names(self.outputs, "graph output")
+                raise ValidationError(f"graph output '{out.id}': {err}") from None
         self._validate_connectivity()
         self._validate_acyclicity()
 
     def _validate_connectivity(self):
-        for out in self.outputs:
+        for out in self.outputs.values():
             try:
                 self._validate_source(out.source, out.meta.type)
             except ValidationError as err:
                 raise ValidationError(f"graph output '{out.name}': {err}") from None
-        for node in self.nodes:
-            for inp in node.inputs:
+        for node in self.nodes.values():
+            for inp in node.inputs.values():
                 try:
                     self._validate_source(inp.source, inp.meta.type)
                 except ValidationError as err:
                     raise ValidationError(
                         f"node '{node.name}': input '{inp.name}': {err}"
                     ) from None
-        for subgraph in self.subgraphs:
-            for inp in subgraph.inputs:
+        for subgraph in self.subgraphs.values():
+            for inp in subgraph.inputs.values():
                 try:
                     self._validate_source(inp.source, inp.meta.type)
                 except ValidationError as err:
                     raise ValidationError(
-                        f"subgraph '{subgraph.name}': input '{inp.name}': {err}"
+                        f"subgraph '{subgraph.id}': input '{inp.id}': {err}"
                     ) from None
 
     def _validate_source(self, source, iotype):
-        if source.graph_input is not None:
-            graph_input = find_by_name(self.inputs, source.graph_input)
+        if source.graph_input_id is not None:
+            graph_input = self.inputs.get(source.graph_input_id)
             if graph_input is None:
                 raise ValidationError(
-                    f"reference to missing graph input '{source.graph_input}'"
+                    f"reference to missing graph input '{source.graph_input_id}'"
                 )
             source_iotype = graph_input.meta.type
-        elif source.node is not None:
-            node = find_by_name(self.nodes, source.node)
+        elif source.node_id is not None:
+            node = self.nodes.get(source.node_id, None)
             if node is None:
-                raise ValidationError(f"reference to missing node '{source.node}'")
-            output = find_by_name(node.outputs, source.output)
+                raise ValidationError(f"reference to missing node '{source.node_id}'")
+            output = node.outputs.get(source.output_id, None)
             if output is None:
                 raise ValidationError(
-                    f"reference to missing output '{source.output}' of node "
-                    f"'{node.name}'"
+                    f"reference to missing output '{source.output_id}' of node "
+                    f"'{node.id}'"
                 )
             source_iotype = output.meta.type
-        elif source.subgraph is not None:
-            subgraph = find_by_name(self.subgraphs, source.subgraph)
+        elif source.subgraph_id is not None:
+            subgraph = self.subgraphs.get(source.subgraph_id, None)
             if subgraph is None:
                 raise ValidationError(
-                    f"reference to missing subgraph '{source.subgraph}'"
+                    f"reference to missing subgraph '{source.subgraph_id}'"
                 )
-            output = find_by_name(subgraph.outputs, source.output)
+            output = subgraph.outputs.get(source.output_id, None)
             if output is None:
                 raise ValidationError(
-                    f"reference to missing output '{source.output}' of subgraph "
-                    f"'{subgraph.name}'"
+                    f"reference to missing output '{source.output_id}' of subgraph "
+                    f"'{subgraph.id}'"
                 )
             source_iotype = output.meta.type
         if source_iotype != iotype:
@@ -272,32 +301,32 @@ class Graph:
             )
 
     def _validate_acyclicity(self):
-        visited_node_names = set()
-        visited_subgraph_names = set()
-        for root in self.nodes + self.subgraphs:
+        visited_node_id = set()
+        visited_subgraph_id = set()
+        for root in list(self.nodes.values()) + list(self.subgraphs.values()):
             stack = [root]
             while stack:
                 item = stack.pop()
                 if isinstance(item, Node):
-                    if item.name in visited_node_names:
+                    if item.id in visited_node_id:
                         continue
-                    visited_node_names.add(item.name)
+                    visited_node_id.add(item.id)
                 elif isinstance(item, Subgraph):
-                    if item.name in visited_subgraph_names:
+                    if item.id in visited_subgraph_id:
                         continue
-                    visited_subgraph_names.add(item.name)
-                for inp in item.inputs:
-                    if inp.source.node is not None:
-                        name = inp.source.node
-                        node = find_by_name(self.nodes, name)
+                    visited_subgraph_id.add(item.id)
+                for inp in item.inputs.values():
+                    if inp.source.node_id is not None:
+                        name = inp.source.node_id
+                        node = self.nodes.get(name)
                         if node == root:
                             raise ValidationError(
                                 f"cycle detected containing node '{name}'"
                             )
                         stack.append(node)
-                    elif inp.source.subgraph is not None:
-                        name = inp.source.subgraph
-                        subgraph = find_by_name(self.subgraphs, name)
+                    elif inp.source.subgraph_id is not None:
+                        name = inp.source.subgraph_id
+                        subgraph = self.subgraphs.get(name)
                         if subgraph == root:
                             raise ValidationError(
                                 f"cycle detected containing subgraph '{name}'"
@@ -306,10 +335,27 @@ class Graph:
 
 
 @dataclass
+class MetaDataSchemaField:
+    name: Optional[str] = None
+    type: Optional[str] = None
+
+
+@dataclass
 class MetaDataSchema:
     type: Optional[str] = None
     name: Optional[str] = None
-    fields: List = field(default_factory=list)
+    fields: List[MetaDataSchemaField] = field(default=list)
+
+    def __init__(
+        self,
+        type: Optional[str] = None,
+        name: Optional[str] = None,
+        fields: List[MetaDataSchemaField] = []
+    ):
+        self.type = type
+        self.name = name
+        self.fields = fields
+        self.fields.append(MetaDataSchemaField())
 
 
 @dataclass
@@ -329,6 +375,7 @@ class GraphInput:
     :ivar iotype: Expected type of the input.
     """
     name: str
+    id: str
     meta: MetaData
 
     def validate(self):
@@ -347,6 +394,7 @@ class GraphOutput:
     :ivar source: The source of the graph output.
     """
     name: str
+    id: str
     meta: MetaData
     source: DataSource
 
@@ -376,25 +424,24 @@ class Subgraph:
             graph.
     """
     name: str
-    graph: str
+    id: str
+    graph_id: str
     config: Dict[str, Dict[str, Any]] = field(default_factory=dict)
-    inputs: List[Input] = field(default_factory=list)
-    outputs: List[Output] = field(default_factory=list)
+    inputs: Dict[str, Input] = field(default_factory=dict)
+    outputs: Dict[str, Output] = field(default_factory=dict)
 
     def validate(self):
         _validate_fields(self)
-        for inp in self.inputs:
+        for inp in self.inputs.values():
             try:
                 inp.validate()
             except ValidationError as err:
                 raise ValidationError(f"input '{inp.name}': {err}") from None
-        _validate_names(self.inputs, "input")
-        for out in self.outputs:
+        for out in self.outputs.values():
             try:
                 out.validate()
             except ValidationError as err:
                 raise ValidationError(f"output '{out.name}': {err}") from None
-        _validate_names(self.outputs, "output")
 
 
 @dataclass
@@ -406,14 +453,26 @@ class Framework:
     :ivar config: Framework configuration for executing a node.
     """
     name: str
+    version: Optional[str] = None
     config: Dict[str, Any] = field(default_factory=dict)
 
     def validate(self):
         _validate_fields(self)
 
 
-class NodeConfig(TypedDict):
+@dataclass
+class NodeConfig:
     framework: Optional[Framework] = None
+    config: Dict[str, Any] = field(default_factory=dict)
+
+    def set(self, config_name: str, config_value: Any):
+        self.config[config_name] = config_value
+    
+    def reset(self, config_name: str, config_value: Any = None):
+        if config_value is None:
+            del self.config[config_name]
+        else:
+            self.config[config_name] = config_value
 
 
 @dataclass
@@ -439,33 +498,32 @@ class Node:
     :ivar outputs: Expected outputs for this node, must all have unique names.
     """
     name: str
+    id: str
     entrypoint: Entrypoint
-    config: NodeConfig
-    inputs: List[Input] = field(default_factory=list)
-    outputs: List[Output] = field(default_factory=list)
+    configs: NodeConfig
+    inputs: Dict[str, Input] = field(default_factory=dict)
+    outputs: Dict[str, Output] = field(default_factory=dict)
     annotations: NodeAnnotations = NodeAnnotations()
 
     def validate(self):
         _validate_fields(self)
-        for inp in self.inputs:
+        for inp in self.inputs.values():
             try:
                 inp.validate()
             except ValidationError as err:
                 raise ValidationError(f"input '{inp.name}': {err}") from None
-        _validate_names(self.inputs, "input")
-        for out in self.outputs:
+        for out in self.outputs.values():
             try:
                 out.validate()
             except ValidationError as err:
                 raise ValidationError(f"output '{out.name}': {err}") from None
-        _validate_names(self.outputs, "output")
         try:
             self.entrypoint.validate()
         except ValidationError as err:
             raise ValidationError(f"entrypoint: {err}") from None
-        if self.config["framework"] is not None:
+        if self.configs.framework is not None:
             try:
-                self.config["framework"].validate()
+                self.configs.framework.validate()
             except ValidationError as err:
                 raise ValidationError(f"framework: {err}") from None
 
@@ -484,6 +542,7 @@ class Input:
     :ivar source: Source of the input. Can be a graph input or a node/subgraph output.
     """
     name: str
+    id: str
     meta: MetaData
     source: DataSource
 
@@ -507,6 +566,7 @@ class Output:
     :ivar iotype: Type of the output.
     """
     name: str
+    id: str
     meta: MetaData
 
     def validate(self):
@@ -560,26 +620,26 @@ class DataSource:
             of that node or subgraph.
     :ivar graph_input: Name of the graph input if the source is an input of the graph.
     """
-    node: Optional[str] = None
-    subgraph: Optional[str] = None
-    output: Optional[str] = None
-    graph_input: Optional[str] = None
+    node_id: Optional[str] = None
+    subgraph_id: Optional[str] = None
+    output_id: Optional[str] = None
+    graph_input_id: Optional[str] = None
 
     def validate(self):
         _validate_fields(self)
         count = sum(
             [
-                self.node is not None,
-                self.subgraph is not None,
-                self.graph_input is not None,
+                self.node_id is not None,
+                self.subgraph_id is not None,
+                self.graph_input_id is not None,
             ]
         )
         if count != 1:
             raise ValidationError(
                 "exactly one of 'node', 'subgraph', or 'graph_input' is expected"
             )
-        if self.node is not None or self.subgraph is not None:
-            if self.output is None:
+        if self.node_id is not None or self.subgraph_id is not None:
+            if self.output_id is None:
                 raise ValidationError(
                     "'output' is required if either 'node' or 'subgraph' is provided"
                 )
@@ -615,3 +675,8 @@ def _validate_names(items: Any, label: str) -> None:
     if twice:
         text = ", ".join(repr(name) for name in twice)
         raise ValidationError(f"duplicate {label} name(s): {text}")
+
+
+def _validate_ids(items: Any, id: str, label: str) -> None:
+    if id in items:
+        raise ValidationError(f"duplicate {label} id(s): {id}")

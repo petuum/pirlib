@@ -72,13 +72,19 @@ def recurse_hint(func, prefix, hint, *values):
 
 
 def _inspect_graph_inputs(func: callable):
-    inputs = []
+    inputs = {}
 
     def add_input(name, hint):
         iotype = pytype_to_iotype(hint)
         meta_data = MetaData(type=iotype)
-        source = DataSource(graph_input=name)
-        inputs.append(GraphInput(name=name, meta=meta_data))
+        graph_input_id = name
+        source = DataSource(graph_input_id=graph_input_id)
+        graph_input = GraphInput(
+            name=name,
+            id=graph_input_id,
+            meta=meta_data
+        )
+        inputs[graph_input_id] = graph_input
         return _create_ivalue(pytype=hint, source=source)
 
     sig = inspect.signature(func)
@@ -95,13 +101,19 @@ def _inspect_graph_inputs(func: callable):
 
 
 def _inspect_graph_outputs(func: callable, return_value: typing.Any):
-    outputs = []
+    outputs = {}
 
     def add_output(name, hint, value):
         iotype = pytype_to_iotype(value.pytype)
         meta_data = MetaData(type=iotype)
-        output = GraphOutput(name=name, meta=meta_data, source=value.source)
-        outputs.append(output)
+        graph_output_id = name
+        graph_output = GraphOutput(
+            name=name,
+            id=graph_output_id,
+            meta=meta_data,
+            source=value.source
+        )
+        outputs[graph_output_id] = graph_output
 
     sig = inspect.signature(func)
     recurse_hint(add_output, "return", sig.return_annotation, return_value)
@@ -111,17 +123,23 @@ def _inspect_graph_outputs(func: callable, return_value: typing.Any):
 def package_operator(definition) -> Package:
     graph = Graph(name=definition.name)
     graph.inputs, args, kwargs = _inspect_graph_inputs(definition.func)
+    node_id = definition.name
     node = Node(
         name=definition.name,
+        id=node_id,
         entrypoint=_create_entrypoint(definition.func),
         framework=definition.framework,
-        config=definition.config,
+        configs=definition.config,
         inputs=_inspect_inputs(definition.func, args, kwargs),
     )
-    node.outputs, value = _inspect_outputs(definition.func, node=node.name)
+    node.outputs, value = _inspect_outputs(definition.func, node=node_id)
     graph.outputs = _inspect_graph_outputs(definition.func, value)
-    graph.nodes.append(node)
-    package = Package(graphs=[graph])
+    graph.add_node(node)
+    package = Package(
+        graphs = {
+            f"{definition.name}.0": graph
+        }
+    )
     package.validate()
     return package
 
@@ -129,7 +147,7 @@ def package_operator(definition) -> Package:
 def package_pipeline(definition) -> Package:
     if is_packaging():
         raise RuntimeError("packaging already in process")
-    package = Package(graphs=[])
+    package = Package(graphs={})
     token = _PACKAGE.set(package)
     try:
         _pipeline_to_graph(definition.func, definition.name, definition.config)
@@ -142,7 +160,9 @@ def package_pipeline(definition) -> Package:
 def _pipeline_to_graph(
     pipeline_func: callable, pipeline_name: str, pipeline_config: dict
 ) -> Graph:
-    graph = Graph(name=pipeline_name)
+    package = _PACKAGE.get()
+    graph_id = pipeline_name
+    graph = Graph(name=pipeline_name, id=graph_id)
     graph.inputs, args, kwargs = _inspect_graph_inputs(pipeline_func)
     token = _GRAPH.set(graph)
     try:
@@ -150,9 +170,7 @@ def _pipeline_to_graph(
     finally:
         _GRAPH.reset(token)
     graph.outputs = _inspect_graph_outputs(pipeline_func, return_value)
-    package = _PACKAGE.get()
-    assert find_by_name(package.graphs, graph.name) is None
-    package.graphs.append(graph)
+    package.add_graph(graph)
     return graph
 
 
@@ -167,28 +185,37 @@ def pipeline_call(method):
             pipeline_name=instance.defn.name,
             pipeline_config=instance.defn.config,
         )
+        subgraph_id = instance.name
         subgraph = Subgraph(
             name=instance.name,
-            graph=g.name,
+            id=subgraph_id,
+            graph_id=g.id,
             config=instance.config,
             inputs=_inspect_inputs(instance.func, args, kwargs),
         )
         subgraph.outputs, value = _inspect_outputs(
-            instance.func, subgraph=subgraph.name
+            instance.func, subgraph=subgraph_id
         )
-        graph.subgraphs.append(subgraph)
+        graph.add_subgraph(subgraph)
         return value
 
     return wrapper
 
 
 def _inspect_inputs(func: callable, args, kwargs):
-    inputs = []
+    inputs = {}
 
     def add_input(name, hint, value):
         iotype = pytype_to_iotype(hint)
         meta_data = MetaData(type=iotype)
-        inputs.append(Input(name=name, meta=meta_data, source=value.source))
+        input_id = name
+        inp = Input(
+            name=name,
+            id=input_id,
+            meta=meta_data,
+            source=value.source
+        )
+        inputs[input_id] = inp
 
     sig = inspect.signature(func)
     for idx, (name, param) in enumerate(sig.parameters.items()):
@@ -201,13 +228,19 @@ def _inspect_inputs(func: callable, args, kwargs):
 
 def _inspect_outputs(func: callable, node=None, subgraph=None):
     assert (node is None) ^ (subgraph is None)
-    outputs = []
+    outputs = {}
 
     def add_output(name, hint):
-        source = DataSource(node=node, subgraph=subgraph, output=name)
+        source = DataSource(node_id=node, subgraph_id=subgraph, output_id=name)
         iotype = pytype_to_iotype(hint)
         meta_data = MetaData(type=iotype)
-        outputs.append(Output(name=name, meta=meta_data))
+        output_id = name
+        output = Output(
+            name=name,
+            id=output_id,
+            meta=meta_data
+        )
+        outputs[output_id] = output
         return _create_ivalue(pytype=hint, source=source)
 
     sig = inspect.signature(func)
@@ -229,16 +262,18 @@ def operator_call(func):
         if not is_packaging():
             return func(instance, *args, **kwargs)
         graph = _GRAPH.get()
-        if find_by_name(graph.nodes, instance.name) is not None:
-            raise ValueError(f"pipeline already contains node {nodename}")
+        if graph.nodes.get(instance.name, None) is not None:
+            raise ValueError(f"pipeline already contains node {instance.name}")
+        node_id = instance.name
         node = Node(
             name=instance.name,
+            id=node_id,
             entrypoint=_create_entrypoint(instance.func),
-            config=instance.config,
+            configs=instance.config,
             inputs=_inspect_inputs(instance.func, args, kwargs),
         )
-        node.outputs, value = _inspect_outputs(instance.func, node=node.name)
-        graph.nodes.append(node)
+        node.outputs, value = _inspect_outputs(instance.func, node=node_id)
+        graph.add_node(node)
         return value
 
     return wrapper

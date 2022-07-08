@@ -26,56 +26,60 @@ class InprocBackend(Backend):
         inputs = {} if inputs is None else inputs
         if args is not None:
             for spec in args.input:
-                inp = find_by_name(graph.inputs, spec.name)
-                if inp.iotype == "DIRECTORY":
+                inp = graph.inputs.get(spec.name)
+                if inp.meta.type == "DIRECTORY":
                     inputs[spec.name] = DirectoryPath(spec.url.path)
-                elif inp.iotype == "FILE":
+                elif inp.meta.type == "FILE":
                     inputs[spec.name] = FilePath(spec.url.path)
-                elif inp.iotype == "DATAFRAME":
+                elif inp.meta.type == "DATAFRAME":
                     if spec.fmt == "csv":
-                        inputs.iotype = pandas.read_csv(spec.url.path)
+                        inputs[spec.name] = pandas.read_csv(spec.url.path)
         # Validate all required inputs are provided.
-        for inp in graph.inputs:
-            if inp.name not in inputs:
-                raise ValueError(f"missing input '{inp.name}'")
+        for inp in graph.inputs.values():
+            if inp.id not in inputs:
+                raise ValueError(f"missing input '{inp.id}'")
         # Execute nodes one at a time.
         node_outputs = {}
         while True:
             remaining_nodes = [
-                node for node in graph.nodes if node.name not in node_outputs
+                node for node in graph.nodes.values() if node.id not in node_outputs
             ]
             if not remaining_nodes:
                 break
             # Find a node that has all inputs ready.
             for node in remaining_nodes:
                 node_inputs = {}
-                for inp in node.inputs:
-                    if inp.source.graph_input is not None:
-                        node_inputs[inp.name] = inputs[inp.source.graph_input]
-                    if inp.source.node is not None:
-                        if inp.source.node not in node_outputs:
+                for inp in node.inputs.values():
+                    if inp.source.graph_input_id is not None:
+                        # Node input provided by graph input
+                        node_inputs[inp.id] = inputs[inp.source.graph_input_id]
+                    if inp.source.node_id is not None:
+                        # Node input provided by other node's (provider) output
+                        if inp.source.node_id not in node_outputs:
+                            # Provider hasn't been executed yet
                             break
-                        if inp.source.output not in node_outputs[inp.source.node]:
+                        if inp.source.output_id not in node_outputs[inp.source.node_id]:
+                            # Provider's output is not ready
                             break
-                        node_inputs[inp.name] = node_outputs[inp.source.node][
-                            inp.source.output
+                        node_inputs[inp.id] = node_outputs[inp.source.node_id][
+                            inp.source.output_id
                         ]
                 else:
                     break
             else:
                 raise RuntimeError("could not finish execution")
             # Execute node and collect its outputs.
-            node_outputs[node.name] = self._execute_node(node, node_inputs)
+            node_outputs[node.id] = self._execute_node(node, node_inputs)
         outputs = {}
-        for out in graph.outputs:
-            if out.source.node is not None:
-                outputs[out.name] = node_outputs[out.source.node][out.source.output]
-            if out.source.graph_input is not None:
-                outputs[out.name] = inputs[out.source.graph_input]
+        for out in graph.outputs.values():
+            if out.source.node_id is not None:
+                outputs[out.name] = node_outputs[out.source.node_id][out.source.output_id]
+            if out.source.graph_input_id is not None:
+                outputs[out.name] = inputs[out.source.graph_input_id]
         if args is not None:
             for spec in args.output:
-                out = find_by_name(graph.outputs, spec.name)
-                if out.iotype == "DATAFRAME":
+                out = graph.outputs.get(spec.name)
+                if out.meta.type == "DATAFRAME":
                     outputs[spec.name].to_csv(spec.url.path)
         return outputs
 
@@ -83,12 +87,12 @@ class InprocBackend(Backend):
         module_name, handler_name = node.entrypoint.handler.split(":")
         handler = getattr(importlib.import_module(module_name), handler_name)
         outputs = {}
-        for out in node.outputs:
-            if out.iotype == "DIRECTORY":
-                outputs[out.name] = DirectoryPath(tempfile.mkdtemp())
-            elif out.iotype == "FILE":
-                outputs[out.name] = FilePath(tempfile.mkstemp()[1])
+        for out in node.outputs.values():
+            if out.meta.type == "DIRECTORY":
+                outputs[out.id] = DirectoryPath(tempfile.mkdtemp())
+            elif out.meta.type == "FILE":
+                outputs[out.id] = FilePath(tempfile.mkstemp()[1])
             else:
-                outputs[out.name] = None
+                outputs[out.id] = None
         handler.run_handler(node, inputs, outputs)
         return outputs
