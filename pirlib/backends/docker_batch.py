@@ -41,10 +41,10 @@ class DockerBatchBackend(Backend):
             "volumes": {"node_outputs": {}},
         }
         assert len(package.graphs) == 1
-        graph = package.graphs[0]  # FIXME: need to handle multiple graphs
-        for node in graph.nodes:
-            service = compose["services"][f"{graph.name}.{node.name}"] = {
-                "image": node.entrypoint.image,
+        graph_id, graph = list(package.graphs.items())[0]  # FIXME: need to handle multiple graphs
+        for node_id, node in graph.nodes.items():
+            service = compose["services"][f"{graph_id}.{node_id}"] = {
+                "image": node.entrypoints["run"].env.image,
                 "command": [
                     "python",
                     "-m",
@@ -55,29 +55,29 @@ class DockerBatchBackend(Backend):
                 ],
                 "volumes": ["node_outputs:/mnt/node_outputs"],
             }
-            for inp in node.inputs:
-                if inp.source.node is not None:
-                    name = f"{graph.name}.{inp.source.node}"
+            for inp in node.inputs.values():
+                if inp.source.node_id is not None:
+                    name = f"{graph_id}.{inp.source.node_id}"
                     service.setdefault("depends_on", {})[name] = {
                         "condition": "service_completed_successfully",
                     }
-                if inp.source.graph_input is not None:
-                    name = inp.source.graph_input
+                if inp.source.graph_input_id is not None:
+                    name = inp.source.graph_input_id
                     path = f"${{INPUT_{name}:?err}}"
                     service["volumes"].append(f"{path}:/mnt/graph_inputs/{name}")
-        service = compose["services"][f"{graph.name}"] = {
-            "image": node.entrypoint.image,  # FIXME: a bit of a hack.
+        service = compose["services"][f"{graph_id}"] = {
+            "image": node.entrypoints["run"].env.image,  # FIXME: a bit of a hack.
             "command": ["python", "-m", __name__, "graph", encode(graph.outputs)],
             "volumes": ["node_outputs:/mnt/node_outputs"],
         }
-        for g_inp in graph.inputs:
-            path = f"${{INPUT_{g_inp.name}:?err}}"
-            service["volumes"].append(f"{path}:/mnt/graph_inputs/{g_inp.name}")
+        for g_inp_id, g_inp in graph.inputs.items():
+            path = f"${{INPUT_{g_inp_id}:?err}}"
+            service["volumes"].append(f"{path}:/mnt/graph_inputs/{g_inp_id}")
         if graph.outputs:
             service["volumes"].append(f"${{OUTPUT:?err}}:/mnt/graph_outputs")
         service["depends_on"] = {}
-        for node in graph.nodes:
-            service["depends_on"][f"{graph.name}.{node.name}"] = {
+        for node_id, node in graph.nodes.items():
+            service["depends_on"][f"{graph_id}.{node_id}"] = {
                 "condition": "service_completed_successfully",
             }
         if args is not None and args.output is not None:

@@ -70,11 +70,11 @@ def _dockerize_handler(
         sys.exit("ERROR: docker is required but was not found")
     except subprocess.CalledProcessError:
         sys.exit("ERROR: failed to build docker image")
-    for graph in package.graphs:
-        for node in graph.nodes:
-            entrypoint = node.entrypoint
-            if entrypoint.image is None:
-                entrypoint.image = image
+    for graph in package.graphs.values():
+        for node in graph.nodes.values():
+            entrypoint = node.entrypoints["run"]
+            if entrypoint.env.image is None:
+                entrypoint.env.image = image
     if args.output is not None:
         yaml.dump(dataclasses.asdict(package), args.output, sort_keys=False)
 
