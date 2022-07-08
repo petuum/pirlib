@@ -49,9 +49,9 @@ class OperatorInstance(object):
     def config(self):
         return self._config
 
-    #@property
-    #def framework(self):
-    #    return self.defn.framework
+    @property
+    def framework(self):
+        return self.defn.framework
 
     @operator_call
     def __call__(self, *args, **kwargs):

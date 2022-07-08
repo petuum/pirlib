@@ -84,7 +84,7 @@ class InprocBackend(Backend):
         return outputs
 
     def _execute_node(self, node: pirlib.pir.Node, inputs: Dict[str, Any]):
-        module_name, handler_name = node.entrypoint.handler.split(":")
+        module_name, handler_name = node.entrypoints["run"].handler.split(":")
         handler = getattr(importlib.import_module(module_name), handler_name)
         outputs = {}
         for out in node.outputs.values():

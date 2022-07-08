@@ -121,14 +121,14 @@ def _inspect_graph_outputs(func: callable, return_value: typing.Any):
 
 
 def package_operator(definition) -> Package:
-    graph = Graph(name=definition.name)
+    graph_id = definition.name
+    graph = Graph(name=definition.name, id=graph_id)
     graph.inputs, args, kwargs = _inspect_graph_inputs(definition.func)
     node_id = definition.name
     node = Node(
         name=definition.name,
         id=node_id,
-        entrypoint=_create_entrypoint(definition.func),
-        framework=definition.framework,
+        entrypoints=_create_entrypoint(definition.func),
         configs=definition.config,
         inputs=_inspect_inputs(definition.func, args, kwargs),
     )
@@ -137,7 +137,7 @@ def package_operator(definition) -> Package:
     graph.add_node(node)
     package = Package(
         graphs = {
-            f"{definition.name}.0": graph
+            graph_id: graph
         }
     )
     package.validate()
@@ -249,11 +249,12 @@ def _inspect_outputs(func: callable, node=None, subgraph=None):
 
 
 def _create_entrypoint(func):
-    return Entrypoint(
+    entrypoint =  Entrypoint(
         version="v1",
         handler=f"{func.__module__}:{func.__name__}",
         runtime=f"python:{sys.version_info[0]}.{sys.version_info[1]}",
     )
+    return {"run": entrypoint}
 
 
 def operator_call(func):
@@ -268,7 +269,7 @@ def operator_call(func):
         node = Node(
             name=instance.name,
             id=node_id,
-            entrypoint=_create_entrypoint(instance.func),
+            entrypoints=_create_entrypoint(instance.func),
             configs=instance.config,
             inputs=_inspect_inputs(instance.func, args, kwargs),
         )

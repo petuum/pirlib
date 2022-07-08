@@ -50,7 +50,7 @@ class Package:
         """
         graph = copy.deepcopy(self.graphs.get(graph_id, None))
         if graph is None:
-            raise ValueError(f"graph with name '{graph_id}' not found in package")
+            raise ValueError(f"graph with id '{graph_id}' not found in package")
         for subgraph_id, subgraph in graph.subgraphs.items():
             g = self.flatten_graph(subgraph_id, validate=False)
             # Add prefix to subgraph nodes ids.
@@ -499,7 +499,7 @@ class Node:
     """
     name: str
     id: str
-    entrypoint: Entrypoint
+    entrypoints: Dict[str, Entrypoint]
     configs: NodeConfig
     inputs: Dict[str, Input] = field(default_factory=dict)
     outputs: Dict[str, Output] = field(default_factory=dict)
@@ -517,10 +517,11 @@ class Node:
                 out.validate()
             except ValidationError as err:
                 raise ValidationError(f"output '{out.name}': {err}") from None
-        try:
-            self.entrypoint.validate()
-        except ValidationError as err:
-            raise ValidationError(f"entrypoint: {err}") from None
+        for entrypoint_name, entrypoint in self.entrypoints.items():
+            try:
+                entrypoint.validate()
+            except ValidationError as err:
+                raise ValidationError(f"entrypoint {entrypoint_name}: {err}") from None
         if self.configs.framework is not None:
             try:
                 self.configs.framework.validate()
@@ -599,6 +600,7 @@ class Entrypoint:
     version: str
     handler: str
     runtime: str
+    id: str = "run"
     env: EntrypointEnvironment = EntrypointEnvironment()
     codeurl: Optional[str] = None
 
