@@ -577,7 +577,7 @@ class Output:
 @dataclass
 class EntrypointEnvironment:
     image: Optional[str] = None
-    dependencies: Optional[str] = None
+    dependencies: Optional[dict] = None
 
 
 @dataclass
