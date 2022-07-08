@@ -92,52 +92,52 @@ def run_node(node, graph_inputs):
     import pathlib
     from pirlib.iotypes import DirectoryPath, FilePath
 
-    module_name, handler_name = node.entrypoint.handler.split(":")
+    module_name, handler_name = node.entrypoints["run"].handler.split(":")
     handler = getattr(importlib.import_module(module_name), handler_name)
     inputs = {}
-    for inp in node.inputs:
-        if inp.source.node is not None:
+    for inp in node.inputs.values():
+        if inp.source.node_id is not None:
             path = f"/mnt/node_outputs/{inp.source.node}/{inp.source.output}"
-        if inp.source.graph_input is not None:
+        if inp.source.graph_input_id is not None:
             path = f"/mnt/graph_inputs/{inp.source.graph_input}"
-        if inp.iotype == "DIRECTORY":
-            inputs[inp.name] = DirectoryPath(path)
-        elif inp.iotype == "FILE":
-            inputs[inp.name] = FilePath(path)
-        elif inp.iotype == "DATAFRAME":
-            inputs[inp.name] = pandas.read_csv(path)
+        if inp.meta.type == "DIRECTORY":
+            inputs[inp.id] = DirectoryPath(path)
+        elif inp.meta.type == "FILE":
+            inputs[inp.id] = FilePath(path)
+        elif inp.meta.type == "DATAFRAME":
+            inputs[inp.id] = pandas.read_csv(path)
         else:
-            raise TypeError(f"unsupported iotype {inp.iotype}")
+            raise TypeError(f"unsupported iotype {inp.meta.type}")
     outputs = {}
-    for out in node.outputs:
-        path = f"/mnt/node_outputs/{node.name}/{out.name}"
-        if out.iotype == "DIRECTORY":
-            outputs[out.name] = DirectoryPath(path)
-            outputs[out.name].mkdir(parents=True, exist_ok=True)
-        elif out.iotype == "FILE":
-            outputs[out.name] = FilePath(path)
-            outputs[out.name].parents[0].mkdir(parents=True, exist_ok=True)
+    for out in node.outputs.values():
+        path = f"/mnt/node_outputs/{node.id}/{out.id}"
+        if out.meta.type == "DIRECTORY":
+            outputs[out.id] = DirectoryPath(path)
+            outputs[out.id].mkdir(parents=True, exist_ok=True)
+        elif out.meta.type == "FILE":
+            outputs[out.id] = FilePath(path)
+            outputs[out.id].parents[0].mkdir(parents=True, exist_ok=True)
         else:
-            outputs[out.name] = None
+            outputs[out.id] = None
     handler.run_handler(node, inputs, outputs)
-    for out in node.outputs:
-        path = f"/mnt/node_outputs/{node.name}/{out.name}"
-        if out.iotype == "DATAFRAME":
+    for out in node.outputs.values():
+        path = f"/mnt/node_outputs/{node.id}/{out.id}"
+        if out.meta.type == "DATAFRAME":
             pathlib.Path(path).parents[0].mkdir(parents=True, exist_ok=True)
-            outputs[out.name].to_csv(path)
+            outputs[out.id].to_csv(path)
 
 
 def run_graph(graph_outputs):
     import shutil
 
-    for g_out in graph_outputs:
+    for g_out in graph_outputs.values():
         source = g_out.source
-        if source.node is not None:
-            path_from = f"/mnt/node_outputs/{source.node}/{source.output}"
-        if source.graph_input is not None:
-            path_from = f"/mnt/graph_inputs/{source.graph_input}"
-        path_to = f"/mnt/graph_outputs/{g_out.name}"
-        if g_out.iotype == "DIRECTORY":
+        if source.node_id is not None:
+            path_from = f"/mnt/node_outputs/{source.node_id}/{source.output_id}"
+        if source.graph_input_id is not None:
+            path_from = f"/mnt/graph_inputs/{source.graph_input_id}"
+        path_to = f"/mnt/graph_outputs/{g_out.id}"
+        if g_out.meta.type == "DIRECTORY":
             shutil.coptytree(path_from, path_to)
         else:
             shutil.copy(path_from, path_to)
