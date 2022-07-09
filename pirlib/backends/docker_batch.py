@@ -97,7 +97,7 @@ def run_node(node, graph_inputs):
     inputs = {}
     for inp in node.inputs.values():
         if inp.source.node_id is not None:
-            path = f"/mnt/node_outputs/{inp.source.node}/{inp.source.output}"
+            path = f"/mnt/node_outputs/{inp.source.node_id}/{inp.source.output_id}"
         if inp.source.graph_input_id is not None:
             path = f"/mnt/graph_inputs/{inp.source.graph_input}"
         if inp.meta.type == "DIRECTORY":
