@@ -99,7 +99,7 @@ def run_node(node, graph_inputs):
         if inp.source.node_id is not None:
             path = f"/mnt/node_outputs/{inp.source.node_id}/{inp.source.output_id}"
         if inp.source.graph_input_id is not None:
-            path = f"/mnt/graph_inputs/{inp.source.graph_input}"
+            path = f"/mnt/graph_inputs/{inp.source.graph_input_id}"
         if inp.meta.type == "DIRECTORY":
             inputs[inp.id] = DirectoryPath(path)
         elif inp.meta.type == "FILE":
