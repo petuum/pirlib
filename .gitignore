@@ -1,2 +1,4 @@
 __pycache__
 pirlib.egg-info
+*.sw*
+*.DS_Store
