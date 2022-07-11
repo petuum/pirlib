@@ -12,11 +12,9 @@ graphs in the same package. A visual example of a package is shown below.
 from __future__ import annotations
 
 import copy
-from lib2to3.pgen2.token import OP
-import re
 import typeguard
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, TypedDict
+from typing import Any, Dict, List, Optional
 
 from pirlib.utils import find_by_name
 
@@ -201,12 +199,6 @@ class Graph:
     def add_subgraph(self, subgraph: Subgraph):
         _validate_ids(self.subgraphs, subgraph.id, "subgraph")
         self.subgraphs[subgraph.id] = subgraph
-
-    def update_node_id(self, old_node_id, new_node_id):
-        node = self.get_node(old_node_id)
-        node.id = new_node_id
-        self.nodes[new_node_id] = node
-        del self.nodes[old_node_id]
 
     def validate(self):
         """
