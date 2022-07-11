@@ -1,60 +1,88 @@
 # Copyright 2022 Petuum, Inc. All Rights Reserved.
 
-graphs: list(include("graph"))
+graphs: map(include('graph'))
 ---
 graph:
   name: str()
-  nodes: list(include("node"))
-  subgraphs: list(include("subgraph"))
-  inputs: list(include("graph_input"))
-  outputs: list(include("graph_output"))
+  id: str()
+  nodes: map(include('node'))
+  subgraphs: map(include("subgraph"))
+  inputs: map(include("graph_input"))
+  outputs: map(include("graph_output"))
+  annotations: include('graph_annotation', required=False)
+---
+graph_annotation:
+  author: any(str(), null())
+  timestamp: any(str(), null())
+  execution_mode: any(str(), null())
 ---
 node:
   name: str()
-  entrypoint: include("entrypoint")
-  framework: any(include("framework"), null())
-  config: map()
-  inputs: list(include("input"))
-  outputs: list(include("output"))
+  id: str()
+  entrypoints: map(include('entrypoint'))
+  configs:
+    framework: any(include('framework'), null())
+  inputs: map(include('input'))  # key is <input id>
+  outputs: map(include('output'))  # key is <output id>
+  annotations: include('node_annotation', required=False)
 ---
 subgraph:
   name: str()
-  graph: str()
+  id: str()
+  graph_id: str()
   config: map()
-  inputs: list(include("input"))
-  outputs: list(include("output"))
+  inputs: map(include("input"))  # key is <input id>
+  outputs: map(include("output")) # key is <output id>
 ---
 graph_input:
   name: str()
-  iotype: str()
+  id: str()
+  meta: include('meta_data')
 ---
 graph_output:
   name: str()
-  iotype: str()
+  id: str()
   source: include("datasource")
+  meta: include('meta_data')
 ---
 input:
-  name: str()
-  iotype: str()
-  source: include("datasource")
+  meta: include('meta_data')
+  source: include('datasource')
 ---
 output:
-  name: str()
-  iotype: str()
+  id: str()
+  meta: include('meta_data')
+---
+meta_data:  # for backend data marshalling
+  type: str()
+  schema:
+    type: any(str(), null())
+    name: any(str(), null())
+    fields:
+    - name: any(str(), null())
+      type: any(str(), null())
 ---
 datasource:
-  node: any(str(), null())
-  subgraph: any(str(), null())
-  output: any(str(), null())
-  graph_input: any(str(), null())
+  node_id: any(str(), null())
+  subgraph_id: any(str(), null())
+  output_id: any(str(), null())
+  graph_input_id: any(str(), null())
+---
+node_annotation:
+  type: any(str(), null())
+  version: any(str(), null())
 ---
 framework:
   name: str()
+  version: any(str(), null())
   config: map()
 ---
 entrypoint:
   version: str()
-  handler: str()
-  runtime: str()
   codeurl: any(str(), null())
-  image: any(str(), null())
+  handler: str()
+  id: str()
+  env:
+    image: any(str(), null())
+    dependencies: any(map(), null())
+  runtime: str()
