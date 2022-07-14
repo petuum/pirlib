@@ -1,20 +1,15 @@
 # Copyright 2022 Petuum, Inc. All Rights Reserved.
 
-graphs: map(include('graph'))
+graphs: list(include('graph'))
 ---
 graph:
   name: str()
   id: str()
-  nodes: map(include('node'))
-  subgraphs: map(include("subgraph"))
-  inputs: map(include("graph_input"))
-  outputs: map(include("graph_output"))
-  annotations: include('graph_annotation', required=False)
----
-graph_annotation:
-  author: any(str(), null())
-  timestamp: any(str(), null())
-  execution_mode: any(str(), null())
+  nodes: list(include('node'))
+  subgraphs: list(include("subgraph"))
+  inputs: list(include("graph_input"))
+  outputs: list(include("graph_output"))
+  annotations: map()
 ---
 node:
   name: str()
@@ -22,17 +17,17 @@ node:
   entrypoints: map(include('entrypoint'))
   configs:
     framework: any(include('framework'), null())
-  inputs: map(include('input'))  # key is <input id>
-  outputs: map(include('output'))  # key is <output id>
-  annotations: include('node_annotation', required=False)
+  inputs: list(include('input'))
+  outputs: list(include('output'))
+  annotations: map()
 ---
 subgraph:
   name: str()
   id: str()
   graph_id: str()
   config: map()
-  inputs: map(include("input"))  # key is <input id>
-  outputs: map(include("output")) # key is <output id>
+  inputs: list(include("input")) 
+  outputs: list(include("output"))
 ---
 graph_input:
   name: str()
@@ -55,12 +50,7 @@ output:
 ---
 meta_data:  # for backend data marshalling
   type: str()
-  schema:
-    type: any(str(), null())
-    name: any(str(), null())
-    fields:
-    - name: any(str(), null())
-      type: any(str(), null())
+  schema: map(required=False)
 ---
 datasource:
   node_id: any(str(), null())
@@ -68,21 +58,10 @@ datasource:
   output_id: any(str(), null())
   graph_input_id: any(str(), null())
 ---
-node_annotation:
-  type: any(str(), null())
-  version: any(str(), null())
----
-framework:
-  name: str()
-  version: any(str(), null())
-  config: map()
----
 entrypoint:
   version: str()
   codeurl: any(str(), null())
   handler: str()
-  id: str()
   env:
     image: any(str(), null())
-    dependencies: any(map(), null())
   runtime: str()
