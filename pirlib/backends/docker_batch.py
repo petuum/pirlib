@@ -109,7 +109,7 @@ def run_node(node, graph_inputs):
         else:
             raise TypeError(f"unsupported iotype {inp.meta.type}")
     outputs = {}
-    for out in node.outputs.values():
+    for out in node.outputs:
         path = f"/mnt/node_outputs/{node.id}/{out.id}"
         if out.meta.type == "DIRECTORY":
             outputs[out.id] = DirectoryPath(path)
@@ -120,7 +120,7 @@ def run_node(node, graph_inputs):
         else:
             outputs[out.id] = None
     handler.run_handler(node, inputs, outputs)
-    for out in node.outputs.values():
+    for out in node.outputs:
         path = f"/mnt/node_outputs/{node.id}/{out.id}"
         if out.meta.type == "DATAFRAME":
             pathlib.Path(path).parents[0].mkdir(parents=True, exist_ok=True)
@@ -130,7 +130,7 @@ def run_node(node, graph_inputs):
 def run_graph(graph_outputs):
     import shutil
 
-    for g_out in graph_outputs.values():
+    for g_out in graph_outputs:
         source = g_out.source
         if source.node_id is not None:
             path_from = f"/mnt/node_outputs/{source.node_id}/{source.output_id}"
