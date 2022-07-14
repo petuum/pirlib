@@ -2,14 +2,11 @@ import contextvars
 import copy
 import functools
 import inspect
-import threading
 import typeguard
-import typing
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Optional
 
 import pirlib.pir
-from pirlib.pir import NodeConfig
 from pirlib.backends.inproc import InprocBackend
 from pirlib.handlers.v1 import HandlerV1
 from pirlib.package import recurse_hint, task_call, package_task
@@ -51,11 +48,11 @@ class TaskInstance(object):
 
     @property
     def framework(self):
-        return self.defn.framework
+        return self._config["framework"]
 
     @task_call
     def __call__(self, *args, **kwargs):
-        package = package_task(self)
+        package = package_task(self.defn)
         inputs = {}
         sig = inspect.signature(self.func)
         for idx, param in enumerate(sig.parameters.values()):
@@ -78,7 +75,7 @@ class TaskDefinition(HandlerV1):
         self,
         func: Optional[Callable] = None,
         *,  # Keyword-only arguments below.
-        config: NodeConfig,
+        config: Optional[dict] = None,
         name: Optional[str] = None,
     ):
         self._func = func if func is None else typeguard.typechecked(func)
@@ -99,7 +96,7 @@ class TaskDefinition(HandlerV1):
 
     @property
     def framework(self):
-        return self._config.framework
+        return self._config["framework"]
 
     def __call__(self, *args, **kwargs):
         if len(args) == 1 and callable(args[0]) and not kwargs:
@@ -164,11 +161,18 @@ def task(
     config: Optional[dict] = {},
     framework: Optional[pirlib.pir.Framework] = None,
 ) -> TaskDefinition:
-    node_config = NodeConfig(framework=framework, config=config)
+    config["framework" ] = None
+    if framework:
+        config["framework"] = {
+            "name": framework.name,
+            "version": framework.version,
+            "config": copy.deepcopy(framework.config)
+        }
+        
     wrapper = TaskDefinition(
         func=func,
         name=name,
-        config=node_config,
+        config=config,
     )
     functools.update_wrapper(wrapper, func)
     return wrapper

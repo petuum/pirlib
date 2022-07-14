@@ -73,7 +73,7 @@ def infer_pipeline(translate_model: FilePath,
                    sentiment_model: FilePath,
                    sentences: DirectoryPath) -> DirectoryPath:
     translate_1 = translate.instance("translate_1")
-    translate_1.config.set("key", "value")
+    translate_1.config["key"] = "value"
     return sentiment(sentiment_model, translate_1((translate_model, sentences)))
 
 

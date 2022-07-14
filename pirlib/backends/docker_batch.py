@@ -41,9 +41,9 @@ class DockerBatchBackend(Backend):
             "volumes": {"node_outputs": {}},
         }
         assert len(package.graphs) == 1
-        graph_id, graph = list(package.graphs.items())[0]  # FIXME: need to handle multiple graphs
-        for node_id, node in graph.nodes.items():
-            service = compose["services"][f"{graph_id}.{node_id}"] = {
+        graph = package.graphs[0]  # FIXME: need to handle multiple graphs
+        for node in graph.nodes:
+            service = compose["services"][f"{graph.id}.{node.id}"] = {
                 "image": node.entrypoints["run"].env.image,
                 "command": [
                     "python",
@@ -55,9 +55,9 @@ class DockerBatchBackend(Backend):
                 ],
                 "volumes": ["node_outputs:/mnt/node_outputs"],
             }
-            for inp in node.inputs.values():
+            for inp in node.inputs:
                 if inp.source.node_id is not None:
-                    name = f"{graph_id}.{inp.source.node_id}"
+                    name = f"{graph.id}.{inp.source.node_id}"
                     service.setdefault("depends_on", {})[name] = {
                         "condition": "service_completed_successfully",
                     }
@@ -65,19 +65,19 @@ class DockerBatchBackend(Backend):
                     name = inp.source.graph_input_id
                     path = f"${{INPUT_{name}:?err}}"
                     service["volumes"].append(f"{path}:/mnt/graph_inputs/{name}")
-        service = compose["services"][f"{graph_id}"] = {
+        service = compose["services"][f"{graph.id}"] = {
             "image": node.entrypoints["run"].env.image,  # FIXME: a bit of a hack.
             "command": ["python", "-m", __name__, "graph", encode(graph.outputs)],
             "volumes": ["node_outputs:/mnt/node_outputs"],
         }
-        for g_inp_id, g_inp in graph.inputs.items():
-            path = f"${{INPUT_{g_inp_id}:?err}}"
-            service["volumes"].append(f"{path}:/mnt/graph_inputs/{g_inp_id}")
+        for g_inp in graph.inputs:
+            path = f"${{INPUT_{g_inp.id}:?err}}"
+            service["volumes"].append(f"{path}:/mnt/graph_inputs/{g_inp.id}")
         if graph.outputs:
             service["volumes"].append(f"${{OUTPUT:?err}}:/mnt/graph_outputs")
         service["depends_on"] = {}
-        for node_id, node in graph.nodes.items():
-            service["depends_on"][f"{graph_id}.{node_id}"] = {
+        for node in graph.nodes:
+            service["depends_on"][f"{graph.id}.{node.id}"] = {
                 "condition": "service_completed_successfully",
             }
         if args is not None and args.output is not None:
@@ -95,7 +95,7 @@ def run_node(node, graph_inputs):
     module_name, handler_name = node.entrypoints["run"].handler.split(":")
     handler = getattr(importlib.import_module(module_name), handler_name)
     inputs = {}
-    for inp in node.inputs.values():
+    for inp in node.inputs:
         if inp.source.node_id is not None:
             path = f"/mnt/node_outputs/{inp.source.node_id}/{inp.source.output_id}"
         if inp.source.graph_input_id is not None:
@@ -109,7 +109,7 @@ def run_node(node, graph_inputs):
         else:
             raise TypeError(f"unsupported iotype {inp.meta.type}")
     outputs = {}
-    for out in node.outputs.values():
+    for out in node.outputs:
         path = f"/mnt/node_outputs/{node.id}/{out.id}"
         if out.meta.type == "DIRECTORY":
             outputs[out.id] = DirectoryPath(path)
@@ -120,7 +120,7 @@ def run_node(node, graph_inputs):
         else:
             outputs[out.id] = None
     handler.run_handler(node, inputs, outputs)
-    for out in node.outputs.values():
+    for out in node.outputs:
         path = f"/mnt/node_outputs/{node.id}/{out.id}"
         if out.meta.type == "DATAFRAME":
             pathlib.Path(path).parents[0].mkdir(parents=True, exist_ok=True)
@@ -130,7 +130,7 @@ def run_node(node, graph_inputs):
 def run_graph(graph_outputs):
     import shutil
 
-    for g_out in graph_outputs.values():
+    for g_out in graph_outputs:
         source = g_out.source
         if source.node_id is not None:
             path_from = f"/mnt/node_outputs/{source.node_id}/{source.output_id}"
