@@ -1,2 +1,49 @@
-__pycache__
-pirlib.egg-info
+# IDE and localdev
+.idea/
+patch/
+*.patch
+temp
+local**
+htmlcov
+*.swp
+*.vscode
+*.log*
+
+# virtualenv
+*env/
+
+# MAC OS
+**/.DS_Store
+
+# Python
+*.py[co]
+**/__pycache__/
+
+# Docs
+docs/_build
+docs/api/*
+
+## Packages
+*.egg
+*.egg-info
+dist
+build
+eggs
+parts
+sdist
+deb_dist
+develop-eggs
+.installed.cfg
+
+## Unit test / coverage reports
+.tox
+.coverage*
+.pytest_cache/
+.mypy_cache/
+tests/.*
+
+# Safety first
+*.jar
+*.gz
+*.tar
+outputs/
