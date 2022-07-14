@@ -75,7 +75,7 @@ def infer_pipeline(translate_model: FilePath,
                    sentiment_model: FilePath,
                    sentences: DirectoryPath) -> DirectoryPath:
     translate_1 = translate.instance("translate_1")
-    translate_1.config.set("key", "value")
+    translate_1.config["key"] = "value"
     return sentiment(sentiment_model, translate_1((translate_model, sentences)))
 
 
@@ -108,8 +108,9 @@ def test_pipeline_run():
                                          FilePath(file_2.name),
                                          DirectoryPath(dir_3.name))
     with open(model_path) as f:
-        print("pipeline model: {}".format(f.read().strip()))
-    print("pipeline metrics: {}".format(metrics.to_records()))
+        assert f.read().strip() == "train_result"
+    record = metrics.to_records()[0]
+    assert record[0] == 0, record[1] == "result"
 
 
 def test_task_run():
@@ -120,4 +121,4 @@ def test_task_run():
     ## Test calling single operator.
     cleaned_path = clean(DirectoryPath(dir_1.name))
     with open(cleaned_path / "file.txt") as f:
-        print("cleaned dataset: {}".format(f.read().strip()))
+        assert  f.read().strip() == "clean_result"

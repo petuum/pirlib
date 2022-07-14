@@ -1,9 +1,8 @@
-from socket import AF_ATMPVC
 from pirlib.pipeline import pipeline
 from pirlib.task import task
 from pirlib.iotypes import DirectoryPath, FilePath
 from pirlib.pir import Graph
-from pirlib.utils import find_by_id_prefix
+from pirlib.utils import find_by_name
 
 def test_pipeline_defn():
 
@@ -33,7 +32,7 @@ def test_pipeline_pkg1():
     assert p1.name == "p1"
     assert p1.config is None
     assert len(pkg.graphs) == 1
-    graph: Graph = list(pkg.graphs.values())[0]
+    graph: Graph = pkg.graphs[0]
     assert len(graph.nodes) == 2
 
 def test_pipeline_pkg2():
@@ -58,6 +57,6 @@ def test_pipeline_pkg2():
     assert p2.name == "p2"
     assert p2.config is None
     assert len(pkg.graphs) == 2
-    p2_graph = find_by_id_prefix(pkg.graphs, "p2")[0]
+    p2_graph = find_by_name(pkg.graphs, "p2")[0]
     assert len(p2_graph.nodes) == 1
     assert len(p2_graph.subgraphs) == 1
