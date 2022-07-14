@@ -422,7 +422,7 @@ class Node:
     configs: Dict[str, Any] = field(default_factory=dict)
     inputs: List[Input] = field(default_factory=list)
     outputs: List[Output] = field(default_factory=list)
-    annotations: Dict[str, Any] = field(default_factory=list)
+    annotations: Dict[str, Any] = field(default_factory=dict)
 
     def validate(self):
         _validate_fields(self)

@@ -31,19 +31,17 @@ def package_pipelines(
     pipelines: List[PipelineDefinition],
     flatten: Optional[bool] = False,
 ) -> Package:
-    package = Package(graphs={})
+    package = Package(graphs=[])
     for pipeline in pipelines:
         pkg = pipeline.package()
         if flatten:
-            graph_id = pipeline.name
-            pkg.graphs = {
-                pipeline.name: pkg.flatten_graph(graph_id, validate=True)
-            }
-        for g_id, g in pkg.graphs.items():
-            if g_id in package.graphs:
-                if g != package.graphs.get(g_id):
-                    parser.error(f"conflicting graphs id '{g_id}'")
-                continue
+            pkg.graphs = [pkg.flatten_graph(pipeline.name, validate=True)]
+        for g in pkg.graphs:
+            for graph in package.graphs:
+                if g.id == graph.id:
+                    if g != graph:
+                        parser.error(f"conflicting graphs id '{g.id}'")
+                    break
             else:
-                package.add_graph(g)
+                package.graphs.append(g)
     return package

@@ -9,7 +9,7 @@ import pirlib.pir
 import pirlib.iotypes
 from pirlib.backends import Backend
 from pirlib.iotypes import DirectoryPath, FilePath
-from pirlib.utils import find_by_name
+from pirlib.utils import find_by_id
 
 
 class InprocBackend(Backend):
@@ -26,7 +26,7 @@ class InprocBackend(Backend):
         inputs = {} if inputs is None else inputs
         if args is not None:
             for spec in args.input:
-                inp = graph.inputs.get(spec.name)
+                inp = find_by_id(graph.inputs, spec.name)
                 if inp.meta.type == "DIRECTORY":
                     inputs[spec.name] = DirectoryPath(spec.url.path)
                 elif inp.meta.type == "FILE":
@@ -78,7 +78,7 @@ class InprocBackend(Backend):
                 outputs[out.name] = inputs[out.source.graph_input_id]
         if args is not None:
             for spec in args.output:
-                out = graph.outputs.get(spec.name)
+                out = find_by_id(graph.outputs, spec.name)
                 if out.meta.type == "DATAFRAME":
                     outputs[spec.name].to_csv(spec.url.path)
         return outputs
