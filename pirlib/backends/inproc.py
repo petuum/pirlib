@@ -35,21 +35,21 @@ class InprocBackend(Backend):
                     if spec.fmt == "csv":
                         inputs[spec.name] = pandas.read_csv(spec.url.path)
         # Validate all required inputs are provided.
-        for inp in graph.inputs.values():
+        for inp in graph.inputs:
             if inp.id not in inputs:
                 raise ValueError(f"missing input '{inp.id}'")
         # Execute nodes one at a time.
         node_outputs = {}
         while True:
             remaining_nodes = [
-                node for node in graph.nodes.values() if node.id not in node_outputs
+                node for node in graph.nodes if node.id not in node_outputs
             ]
             if not remaining_nodes:
                 break
             # Find a node that has all inputs ready.
             for node in remaining_nodes:
                 node_inputs = {}
-                for inp in node.inputs.values():
+                for inp in node.inputs:
                     if inp.source.graph_input_id is not None:
                         # Node input provided by graph input
                         node_inputs[inp.id] = inputs[inp.source.graph_input_id]
@@ -71,7 +71,7 @@ class InprocBackend(Backend):
             # Execute node and collect its outputs.
             node_outputs[node.id] = self._execute_node(node, node_inputs)
         outputs = {}
-        for out in graph.outputs.values():
+        for out in graph.outputs:
             if out.source.node_id is not None:
                 outputs[out.name] = node_outputs[out.source.node_id][out.source.output_id]
             if out.source.graph_input_id is not None:
@@ -87,7 +87,7 @@ class InprocBackend(Backend):
         module_name, handler_name = node.entrypoints["run"].handler.split(":")
         handler = getattr(importlib.import_module(module_name), handler_name)
         outputs = {}
-        for out in node.outputs.values():
+        for out in node.outputs:
             if out.meta.type == "DIRECTORY":
                 outputs[out.id] = DirectoryPath(tempfile.mkdtemp())
             elif out.meta.type == "FILE":

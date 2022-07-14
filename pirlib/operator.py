@@ -2,14 +2,11 @@ import contextvars
 import copy
 import functools
 import inspect
-import threading
 import typeguard
-import typing
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Optional
 
 import pirlib.pir
-from pirlib.pir import NodeConfig
 from pirlib.backends.inproc import InprocBackend
 from pirlib.handlers.v1 import HandlerV1
 from pirlib.package import recurse_hint, operator_call, package_operator
@@ -51,11 +48,11 @@ class OperatorInstance(object):
 
     @property
     def framework(self):
-        return self.defn.framework
+        return self._config["framework"]
 
     @operator_call
     def __call__(self, *args, **kwargs):
-        package = package_operator(self)
+        package = package_operator(self.defn)
         inputs = {}
         sig = inspect.signature(self.func)
         for idx, param in enumerate(sig.parameters.values()):
@@ -78,7 +75,7 @@ class OperatorDefinition(HandlerV1):
         self,
         func: Optional[Callable] = None,
         *,  # Keyword-only arguments below.
-        config: NodeConfig,
+        config: Optional[dict] = None,
         name: Optional[str] = None,
     ):
         self._func = func if func is None else typeguard.typechecked(func)
@@ -164,11 +161,18 @@ def operator(
     config: Optional[dict] = {},
     framework: Optional[pirlib.pir.Framework] = None,
 ) -> OperatorDefinition:
-    node_config = NodeConfig(framework=framework, config=config)
+    config["framework" ] = None
+    if framework:
+        config["framework"] = {
+            "name": framework.name,
+            "version": framework.version,
+            "config": copy.deepcopy(framework.config)
+        }
+        
     wrapper = OperatorDefinition(
         func=func,
         name=name,
-        config=node_config,
+        config=config,
     )
     functools.update_wrapper(wrapper, func)
     return wrapper

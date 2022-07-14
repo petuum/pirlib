@@ -23,7 +23,7 @@ from pirlib.pir import (
     Output,
     Package,
     Subgraph,
-    find_by_name,
+    find_by_id,
 )
 
 _PACKAGE = contextvars.ContextVar("_PACKAGE")
@@ -72,7 +72,7 @@ def recurse_hint(func, prefix, hint, *values):
 
 
 def _inspect_graph_inputs(func: callable):
-    inputs = {}
+    inputs = []
 
     def add_input(name, hint):
         iotype = pytype_to_iotype(hint)
@@ -84,7 +84,7 @@ def _inspect_graph_inputs(func: callable):
             id=graph_input_id,
             meta=meta_data
         )
-        inputs[graph_input_id] = graph_input
+        inputs.append(graph_input)
         return _create_ivalue(pytype=hint, source=source)
 
     sig = inspect.signature(func)
@@ -101,7 +101,7 @@ def _inspect_graph_inputs(func: callable):
 
 
 def _inspect_graph_outputs(func: callable, return_value: typing.Any):
-    outputs = {}
+    outputs = []
 
     def add_output(name, hint, value):
         iotype = pytype_to_iotype(value.pytype)
@@ -113,7 +113,7 @@ def _inspect_graph_outputs(func: callable, return_value: typing.Any):
             meta=meta_data,
             source=value.source
         )
-        outputs[graph_output_id] = graph_output
+        outputs.append(graph_output)
 
     sig = inspect.signature(func)
     recurse_hint(add_output, "return", sig.return_annotation, return_value)
@@ -124,7 +124,7 @@ def package_operator(definition) -> Package:
     graph_id = definition.name
     graph = Graph(name=definition.name, id=graph_id)
     graph.inputs, args, kwargs = _inspect_graph_inputs(definition.func)
-    node_id = definition.name
+    node_id = definition.name  # TODO: Find a better way to generate node ID.
     node = Node(
         name=definition.name,
         id=node_id,
@@ -134,12 +134,8 @@ def package_operator(definition) -> Package:
     )
     node.outputs, value = _inspect_outputs(definition.func, node=node_id)
     graph.outputs = _inspect_graph_outputs(definition.func, value)
-    graph.add_node(node)
-    package = Package(
-        graphs = {
-            graph_id: graph
-        }
-    )
+    graph.nodes.append(node)
+    package = Package(graphs=[graph])
     package.validate()
     return package
 
@@ -147,7 +143,7 @@ def package_operator(definition) -> Package:
 def package_pipeline(definition) -> Package:
     if is_packaging():
         raise RuntimeError("packaging already in process")
-    package = Package(graphs={})
+    package = Package(graphs=[])
     token = _PACKAGE.set(package)
     try:
         _pipeline_to_graph(definition.func, definition.name, definition.config)
@@ -161,7 +157,7 @@ def _pipeline_to_graph(
     pipeline_func: callable, pipeline_name: str, pipeline_config: dict
 ) -> Graph:
     package = _PACKAGE.get()
-    graph_id = pipeline_name
+    graph_id = pipeline_name  # TODO: Find a better way to generate graph ID.
     graph = Graph(name=pipeline_name, id=graph_id)
     graph.inputs, args, kwargs = _inspect_graph_inputs(pipeline_func)
     token = _GRAPH.set(graph)
@@ -170,7 +166,7 @@ def _pipeline_to_graph(
     finally:
         _GRAPH.reset(token)
     graph.outputs = _inspect_graph_outputs(pipeline_func, return_value)
-    package.add_graph(graph)
+    package.graphs.append(graph)
     return graph
 
 
@@ -196,14 +192,14 @@ def pipeline_call(method):
         subgraph.outputs, value = _inspect_outputs(
             instance.func, subgraph=subgraph_id
         )
-        graph.add_subgraph(subgraph)
+        graph.subgraphs.append(subgraph)
         return value
 
     return wrapper
 
 
 def _inspect_inputs(func: callable, args, kwargs):
-    inputs = {}
+    inputs = []
 
     def add_input(name, hint, value):
         iotype = pytype_to_iotype(hint)
@@ -215,7 +211,7 @@ def _inspect_inputs(func: callable, args, kwargs):
             meta=meta_data,
             source=value.source
         )
-        inputs[input_id] = inp
+        inputs.append(inp)
 
     sig = inspect.signature(func)
     for idx, (name, param) in enumerate(sig.parameters.items()):
@@ -228,7 +224,7 @@ def _inspect_inputs(func: callable, args, kwargs):
 
 def _inspect_outputs(func: callable, node=None, subgraph=None):
     assert (node is None) ^ (subgraph is None)
-    outputs = {}
+    outputs = []
 
     def add_output(name, hint):
         source = DataSource(node_id=node, subgraph_id=subgraph, output_id=name)
@@ -240,7 +236,7 @@ def _inspect_outputs(func: callable, node=None, subgraph=None):
             id=output_id,
             meta=meta_data
         )
-        outputs[output_id] = output
+        outputs.append(output)
         return _create_ivalue(pytype=hint, source=source)
 
     sig = inspect.signature(func)
@@ -263,7 +259,7 @@ def operator_call(func):
         if not is_packaging():
             return func(instance, *args, **kwargs)
         graph = _GRAPH.get()
-        if graph.nodes.get(instance.name, None) is not None:
+        if find_by_id(graph.nodes, instance.name) is not None:
             raise ValueError(f"pipeline already contains node {instance.name}")
         node_id = instance.name
         node = Node(
@@ -274,7 +270,7 @@ def operator_call(func):
             inputs=_inspect_inputs(instance.func, args, kwargs),
         )
         node.outputs, value = _inspect_outputs(instance.func, node=node_id)
-        graph.add_node(node)
+        graph.nodes.append(node)
         return value
 
     return wrapper
