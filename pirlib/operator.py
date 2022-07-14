@@ -96,7 +96,7 @@ class OperatorDefinition(HandlerV1):
 
     @property
     def framework(self):
-        return self._config.framework
+        return self._config["framework"]
 
     def __call__(self, *args, **kwargs):
         if len(args) == 1 and callable(args[0]) and not kwargs:
