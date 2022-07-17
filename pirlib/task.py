@@ -166,7 +166,6 @@ def task(
         config["framework"] = {
             "name": framework.name,
             "version": framework.version,
-            "config": copy.deepcopy(framework.config)
         }
         
     wrapper = TaskDefinition(

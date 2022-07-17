@@ -16,7 +16,7 @@ import typeguard
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
-from pirlib.utils import find_by_name, find_by_id
+from pirlib.utils import find_by_id
 
 
 @dataclass
@@ -28,7 +28,7 @@ class Package:
 
     :ivar graphs: List of graphs in this package, must all have unique IDs.
     """
-    graphs: List[Graph] = field(default_factory=dict)
+    graphs: List[Graph] = field(default_factory=list)
 
     def flatten_graph(self, graph_id: str, validate: bool = True) -> Graph:
         """
@@ -46,7 +46,7 @@ class Package:
         if graph is None:
             raise ValueError(f"graph with id '{graph_id}' not found in package")
         for subgraph in graph.subgraphs:
-            g = self.flatten_graph(subgraph.name, validate=False)
+            g = self.flatten_graph(subgraph.graph_id, validate=False)
             # Add prefix to subgraph nodes ids.
             for n in g.nodes:
                 n.id = f"{subgraph.id}.{n.id}"
@@ -90,6 +90,7 @@ class Package:
 
         :raises ValidationError: If the package is invalid.
         """
+        _validate_ids(self.graphs, "graph")
         for graph in self.graphs:
             try:
                 graph.validate()
@@ -391,11 +392,13 @@ class Subgraph:
                 inp.validate()
             except ValidationError as err:
                 raise ValidationError(f"input '{inp.id}': {err}") from None
+        _validate_ids(self.inputs, "input")
         for out in self.outputs:
             try:
                 out.validate()
             except ValidationError as err:
                 raise ValidationError(f"output '{out.id}': {err}") from None
+        _validate_ids(self.outputs, "output")
 
 
 @dataclass
@@ -431,6 +434,7 @@ class Node:
                 inp.validate()
             except ValidationError as err:
                 raise ValidationError(f"input '{inp.id}': {err}") from None
+        _validate_ids(self.inputs, "input")
         for out in self.outputs:
             try:
                 out.validate()
@@ -441,6 +445,7 @@ class Node:
                 entrypoint.validate()
             except ValidationError as err:
                 raise ValidationError(f"entrypoint {entrypoint_name}: {err}") from None
+        _validate_ids(self.outputs, "output")
 
 
 @dataclass
@@ -494,24 +499,9 @@ class Framework:
     This dataclass encodes the execution framework and configuration for a node.
     :ivar name: Name of the framework used for executing a node.
     :version: Version of the framework. ``None`` means the latest version.
-    :ivar config: Framework configuration for executing a node.
     """
     name: str
     version: Optional[str] = None
-    config: Dict[str, Any] = field(default_factory=dict)
-
-    def validate(self):
-        _validate_fields(self)
-
-@dataclass
-class EntrypointEnvironment:
-    """
-    This dataclass encodes the runtime environment of an entrypoint.
-
-    :ivar image: Optional name of the Docker image used to run the handler.
-               ``None`` means the handler can be run in the local environment.
-    """
-    image: Optional[str] = None
 
     def validate(self):
         _validate_fields(self)
@@ -531,21 +521,17 @@ class Entrypoint:
     :ivar runtime: Identifier of the handler's runtime, e.g. ``"python:3.8"``.
     :ivar codeurl: Optional URL of the code used to run the handler. ``None`` means any
             and all handler code can be found in the local environment or docker image.
-    :ivar env: Runtime environment of the handler (e.g. Docker image or dependencies of
-            a virtual environment).
+    :ivar image: Optional name of the Docker image used to run the handler. ``None``
+          means the handler can be run in the local environment.
     """
     version: str
     handler: str
     runtime: str
-    env: EntrypointEnvironment = EntrypointEnvironment()
+    image: Optional[str] = None
     codeurl: Optional[str] = None
 
     def validate(self):
         _validate_fields(self)
-        try:
-            self.env.validate()
-        except ValidationError as err:
-            raise ValidationError(f"entrypoint env: {err}") from None
 
 
 @dataclass

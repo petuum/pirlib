@@ -9,9 +9,8 @@ graphs:
       run:
         version: v1
         handler: example.example:translate
-        runtime: python:3.9
-        env:
-          image: null
+        runtime: python:3.8
+        image: null
         codeurl: null
     configs:
       framework: null
@@ -50,9 +49,8 @@ graphs:
       run:
         version: v1
         handler: example.example:sentiment
-        runtime: python:3.9
-        env:
-          image: null
+        runtime: python:3.8
+        image: null
         codeurl: null
     configs:
       framework: null
@@ -122,9 +120,8 @@ graphs:
       run:
         version: v1
         handler: example.example:clean
-        runtime: python:3.9
-        env:
-          image: null
+        runtime: python:3.8
+        image: null
         codeurl: null
     configs:
       framework: null
@@ -152,12 +149,15 @@ graphs:
       run:
         version: v1
         handler: example.example:train
-        runtime: python:3.9
-        env:
-          image: null
+        runtime: python:3.8
+        image: null
         codeurl: null
     configs:
-      framework: null
+      adaptdl/min_replicas: 1
+      adaptdl/max_replicas: 4
+      framework:
+        name: adaptdl
+        version: null
     inputs:
     - name: dataset
       id: dataset
@@ -182,9 +182,8 @@ graphs:
       run:
         version: v1
         handler: example.example:evaluate
-        runtime: python:3.9
-        env:
-          image: null
+        runtime: python:3.8
+        image: null
         codeurl: null
     configs:
       framework: null
