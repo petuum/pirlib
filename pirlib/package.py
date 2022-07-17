@@ -166,6 +166,7 @@ def _pipeline_to_graph(
     finally:
         _GRAPH.reset(token)
     graph.outputs = _inspect_graph_outputs(pipeline_func, return_value)
+    assert find_by_id(package.graphs, graph.id) is None
     package.graphs.append(graph)
     return graph
 
