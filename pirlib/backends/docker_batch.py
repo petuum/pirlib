@@ -44,7 +44,7 @@ class DockerBatchBackend(Backend):
         graph = package.graphs[0]  # FIXME: need to handle multiple graphs
         for node in graph.nodes:
             service = compose["services"][f"{graph.id}.{node.id}"] = {
-                "image": node.entrypoints["run"].env.image,
+                "image": node.entrypoints["run"].image,
                 "command": [
                     "python",
                     "-m",
@@ -66,7 +66,7 @@ class DockerBatchBackend(Backend):
                     path = f"${{INPUT_{name}:?err}}"
                     service["volumes"].append(f"{path}:/mnt/graph_inputs/{name}")
         service = compose["services"][f"{graph.id}"] = {
-            "image": node.entrypoints["run"].env.image,  # FIXME: a bit of a hack.
+            "image": node.entrypoints["run"].image,  # FIXME: a bit of a hack.
             "command": ["python", "-m", __name__, "graph", encode(graph.outputs)],
             "volumes": ["node_outputs:/mnt/node_outputs"],
         }

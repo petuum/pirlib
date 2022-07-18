@@ -73,8 +73,8 @@ def _dockerize_handler(
     for graph in package.graphs:
         for node in graph.nodes:
             entrypoint = node.entrypoints["run"]
-            if entrypoint.env.image is None:
-                entrypoint.env.image = image
+            if entrypoint.image is None:
+                entrypoint.image = image
     if args.output is not None:
         yaml.dump(dataclasses.asdict(package), args.output, sort_keys=False)
 

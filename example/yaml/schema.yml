@@ -3,54 +3,54 @@
 graphs: list(include('graph'))
 ---
 graph:
-  name: str()
   id: str()
   nodes: list(include('node'))
   subgraphs: list(include("subgraph"))
   inputs: list(include("graph_input"))
   outputs: list(include("graph_output"))
-  annotations: map()
+  meta: include("metadata", required=False)
 ---
 node:
-  name: str()
   id: str()
   entrypoints: map(include('entrypoint'))
-  configs:
-    framework: any(include('framework'), null())
+  configs: map()
   inputs: list(include('input'))
   outputs: list(include('output'))
-  annotations: map()
+  meta: include("metadata", required=False)
 ---
 subgraph:
-  name: str()
   id: str()
   graph_id: str()
   config: map()
   inputs: list(include("input")) 
   outputs: list(include("output"))
+  meta: include("metadata", required=False)
 ---
 graph_input:
-  name: str()
   id: str()
-  meta: include('meta_data')
+  iotype: str()
+  meta: include("metadata", required=False)
 ---
 graph_output:
-  name: str()
   id: str()
+  iotype: str()
   source: include("datasource")
-  meta: include('meta_data')
+  meta: include("metadata", required=False)
 ---
 input:
-  meta: include('meta_data')
+  id: str()
+  iotype: str()
   source: include('datasource')
+  meta: include("metadata", required=False)
 ---
 output:
   id: str()
-  meta: include('meta_data')
+  iotype: str()
+  meta: include("metadata", required=False)
 ---
-meta_data:  # for backend data marshalling
-  type: str()
-  schema: map(required=False)
+metadata:
+  name: str(required=False)
+  annotations: map(required=False)
 ---
 datasource:
   node_id: any(str(), null())
@@ -62,6 +62,5 @@ entrypoint:
   version: str()
   codeurl: any(str(), null())
   handler: str()
-  env:
-    image: any(str(), null())
+  image: any(str(), null())
   runtime: str()
