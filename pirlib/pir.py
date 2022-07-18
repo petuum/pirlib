@@ -369,7 +369,6 @@ class Subgraph:
     output of the embedded graph. The configs of the subgraph override the configs of
     the embedded graph.
 
-    :ivar name: Name of the subgraph.
     :ivar id: ID of the subgraph. Must be unique among all nodes and subgraphs in a
             valid graph.
     :ivar graph_id: ID of the graph to be embedded as a subgraph. Must be in the same
@@ -380,6 +379,7 @@ class Subgraph:
     :ivar outputs: Expected outputs for this subgraph, must all have unique names. Each
             output must have the same name and iotype as an output of the embedded
             graph.
+    :ivar meta: Metadata of the subgraph.
     """
     id: str
     graph_id: str
@@ -423,7 +423,7 @@ class Node:
     """
     id: str
     entrypoints: Dict[str, Entrypoint]
-    configs: Dict[str, Any] = field(default_factory=dict)
+    config: Dict[str, Any] = field(default_factory=dict)
     inputs: List[Input] = field(default_factory=list)
     outputs: List[Output] = field(default_factory=list)
     meta: Metadata = field(default_factory=Metadata)
@@ -485,10 +485,10 @@ class Output:
     input source for other downstream nodes or subgraphs within the same graph, or be
     an output of the graph itself.
 
-    :ivar name: Name of the output.
     :ivar id: ID of the output. Must be unique among all outputs in a valid node or
             subgraph.
     :ivar iotype: Type of the output.
+    :ivar meta: Metadata of the output.
     """
     id: str
     iotype: str
@@ -504,9 +504,11 @@ class Framework:
     This dataclass encodes the execution framework and configuration for a node.
     :ivar name: Name of the framework used for executing a node.
     :version: Version of the framework. ``None`` means the latest version.
+    :ivar config: Framework configuration for executing a node.
     """
     name: str
     version: Optional[str] = None
+    config: Dict[str, Any] = field(default_factory=dict)
 
     def validate(self):
         _validate_fields(self)
@@ -532,8 +534,8 @@ class Entrypoint:
     version: str
     handler: str
     runtime: str
-    image: Optional[str] = None
     codeurl: Optional[str] = None
+    image: Optional[str] = None
 
     def validate(self):
         _validate_fields(self)

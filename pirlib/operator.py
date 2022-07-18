@@ -127,7 +127,7 @@ class OperatorDefinition(HandlerV1):
         inputs: Dict[str, Any],
         outputs: Dict[str, Any],
     ) -> None:
-        context = OperatorContext(node.configs, None)
+        context = OperatorContext(node.config, None)
         sig = inspect.signature(self.func)
         context.output = recurse_hint(
             lambda name, hint: outputs[name], "return", sig.return_annotation
@@ -158,16 +158,20 @@ def operator(
     func: Optional[Callable] = None,
     *,  # Keyword-only arguments below.
     name: Optional[str] = None,
-    config: Optional[dict] = {},
+    config: Optional[dict] = None,
     framework: Optional[pirlib.pir.Framework] = None,
 ) -> OperatorDefinition:
-    config["framework" ] = None
+    if config is None:
+        config = {}
     if framework:
         config["framework"] = {
             "name": framework.name,
             "version": framework.version,
         }
-        
+        f_name = framework.name
+        for k, v in framework.config.items():
+            config[f"{f_name}/{k}"] = v
+
     wrapper = OperatorDefinition(
         func=func,
         name=name,

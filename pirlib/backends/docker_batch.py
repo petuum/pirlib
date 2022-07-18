@@ -44,7 +44,7 @@ class DockerBatchBackend(Backend):
         graph = package.graphs[0]  # FIXME: need to handle multiple graphs
         for node in graph.nodes:
             service = compose["services"][f"{graph.id}.{node.id}"] = {
-                "image": node.entrypoints["run"].image,
+                "image": node.entrypoints["main"].image,
                 "command": [
                     "python",
                     "-m",
@@ -66,7 +66,7 @@ class DockerBatchBackend(Backend):
                     path = f"${{INPUT_{name}:?err}}"
                     service["volumes"].append(f"{path}:/mnt/graph_inputs/{name}")
         service = compose["services"][f"{graph.id}"] = {
-            "image": node.entrypoints["run"].image,  # FIXME: a bit of a hack.
+            "image": node.entrypoints["main"].image,  # FIXME: a bit of a hack.
             "command": ["python", "-m", __name__, "graph", encode(graph.outputs)],
             "volumes": ["node_outputs:/mnt/node_outputs"],
         }
@@ -92,7 +92,7 @@ def run_node(node, graph_inputs):
     import pathlib
     from pirlib.iotypes import DirectoryPath, FilePath
 
-    module_name, handler_name = node.entrypoints["run"].handler.split(":")
+    module_name, handler_name = node.entrypoints["main"].handler.split(":")
     handler = getattr(importlib.import_module(module_name), handler_name)
     inputs = {}
     for inp in node.inputs:

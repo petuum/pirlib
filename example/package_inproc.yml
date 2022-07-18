@@ -3,14 +3,13 @@ graphs:
   nodes:
   - id: translate_1
     entrypoints:
-      run:
+      main:
         version: v1
         handler: example.example:translate
         runtime: python:3.9
         image: null
         codeurl: null
-    configs:
-      framework: null
+    config:
       key: value
     inputs:
     - id: args.0
@@ -44,14 +43,13 @@ graphs:
       annotations: null
   - id: sentiment
     entrypoints:
-      run:
+      main:
         version: v1
         handler: example.example:sentiment
         runtime: python:3.9
         image: null
         codeurl: null
-    configs:
-      framework: null
+    config: {}
     inputs:
     - id: model
       iotype: FILE
@@ -117,14 +115,13 @@ graphs:
   nodes:
   - id: clean
     entrypoints:
-      run:
+      main:
         version: v1
         handler: example.example:clean
         runtime: python:3.9
         image: null
         codeurl: null
-    configs:
-      framework: null
+    config: {}
     inputs:
     - id: dataset
       iotype: DIRECTORY
@@ -147,18 +144,18 @@ graphs:
       annotations: null
   - id: train
     entrypoints:
-      run:
+      main:
         version: v1
         handler: example.example:train
         runtime: python:3.9
         image: null
         codeurl: null
-    configs:
-      adaptdl/min_replicas: 1
-      adaptdl/max_replicas: 4
+    config:
       framework:
         name: adaptdl
         version: null
+      adaptdl/min_replicas: 1
+      adaptdl/max_replicas: 4
     inputs:
     - id: dataset
       iotype: DIRECTORY
@@ -181,14 +178,13 @@ graphs:
       annotations: null
   - id: evaluate
     entrypoints:
-      run:
+      main:
         version: v1
         handler: example.example:evaluate
         runtime: python:3.9
         image: null
         codeurl: null
-    configs:
-      framework: null
+    config: {}
     inputs:
     - id: kwargs.test_dataset
       iotype: DIRECTORY

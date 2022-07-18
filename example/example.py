@@ -20,16 +20,11 @@ def clean(dataset: DirectoryPath) -> DirectoryPath:
     return outdir
 
 
-@operator(
-    framework=AdaptDL(),
-    config={
-        "adaptdl/min_replicas": 1,
-        "adaptdl/max_replicas": 4
-    }
-)
+@operator(framework=AdaptDL(min_replicas=1, max_replicas=4))
 def train(dataset: DirectoryPath) -> FilePath:
+    opctx = operator.context()
     with open(dataset / "file.txt") as f:
-        print("train({})".format(f.read().strip()))
+        print("train({}, config={})".format(f.read().strip(), opctx.config))
     outfile = operator.context().output
     with open(outfile, "w") as f:
         f.write("train_result")

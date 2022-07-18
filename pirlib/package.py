@@ -124,8 +124,8 @@ def package_operator(definition) -> Package:
     graph.inputs, args, kwargs = _inspect_graph_inputs(definition.func)
     node = Node(
         id=node_id,
-        entrypoints=_create_entrypoint(definition.func),
-        configs=definition.config,
+        entrypoints=_create_entrypoints(definition.func),
+        config=definition.config,
         inputs=_inspect_inputs(definition.func, args, kwargs),
     )
     node.meta.name = definition.name
@@ -241,13 +241,13 @@ def _inspect_outputs(func: callable, node=None, subgraph=None):
     return outputs, value
 
 
-def _create_entrypoint(func):
+def _create_entrypoints(func):
     entrypoint =  Entrypoint(
         version="v1",
         handler=f"{func.__module__}:{func.__name__}",
         runtime=f"python:{sys.version_info[0]}.{sys.version_info[1]}",
     )
-    return {"run": entrypoint}
+    return {"main": entrypoint}
 
 
 def operator_call(func):
@@ -261,8 +261,8 @@ def operator_call(func):
         node_id = instance.name
         node = Node(
             id=node_id,
-            entrypoints=_create_entrypoint(instance.func),
-            configs=instance.config,
+            entrypoints=_create_entrypoints(instance.func),
+            config=instance.config,
             inputs=_inspect_inputs(instance.func, args, kwargs),
         )
         node.meta.name = instance.name
