@@ -17,7 +17,6 @@ from pirlib.pir import (
     Graph,
     GraphInput,
     GraphOutput,
-    MetaData,
     Node,
     Input,
     Output,
@@ -76,14 +75,13 @@ def _inspect_graph_inputs(func: callable):
 
     def add_input(name, hint):
         iotype = pytype_to_iotype(hint)
-        meta_data = MetaData(type=iotype)
         graph_input_id = name
         source = DataSource(graph_input_id=graph_input_id)
         graph_input = GraphInput(
-            name=name,
             id=graph_input_id,
-            meta=meta_data
+            iotype=iotype
         )
+        graph_input.meta.name = name
         inputs.append(graph_input)
         return _create_ivalue(pytype=hint, source=source)
 
@@ -105,14 +103,13 @@ def _inspect_graph_outputs(func: callable, return_value: typing.Any):
 
     def add_output(name, hint, value):
         iotype = pytype_to_iotype(value.pytype)
-        meta_data = MetaData(type=iotype)
         graph_output_id = name
         graph_output = GraphOutput(
-            name=name,
             id=graph_output_id,
-            meta=meta_data,
+            iotype = iotype,
             source=value.source
         )
+        graph_output.meta.name = name
         outputs.append(graph_output)
 
     sig = inspect.signature(func)
@@ -121,17 +118,17 @@ def _inspect_graph_outputs(func: callable, return_value: typing.Any):
 
 
 def package_operator(definition) -> Package:
-    graph_id = definition.name
-    graph = Graph(name=definition.name, id=graph_id)
+    graph_id = node_id = definition.name
+    graph = Graph(id=graph_id)
+    graph.meta.name = definition.name
     graph.inputs, args, kwargs = _inspect_graph_inputs(definition.func)
-    node_id = definition.name  # TODO: Find a better way to generate node ID.
     node = Node(
-        name=definition.name,
         id=node_id,
         entrypoints=_create_entrypoint(definition.func),
         configs=definition.config,
         inputs=_inspect_inputs(definition.func, args, kwargs),
     )
+    node.meta.name = definition.name
     node.outputs, value = _inspect_outputs(definition.func, node=node_id)
     graph.outputs = _inspect_graph_outputs(definition.func, value)
     graph.nodes.append(node)
@@ -157,8 +154,9 @@ def _pipeline_to_graph(
     pipeline_func: callable, pipeline_name: str, pipeline_config: dict
 ) -> Graph:
     package = _PACKAGE.get()
-    graph_id = pipeline_name  # TODO: Find a better way to generate graph ID.
-    graph = Graph(name=pipeline_name, id=graph_id)
+    graph_id = pipeline_name
+    graph = Graph(id=graph_id)
+    graph.meta.name = pipeline_name
     graph.inputs, args, kwargs = _inspect_graph_inputs(pipeline_func)
     token = _GRAPH.set(graph)
     try:
@@ -184,12 +182,12 @@ def pipeline_call(method):
         )
         subgraph_id = instance.name
         subgraph = Subgraph(
-            name=instance.name,
             id=subgraph_id,
             graph_id=g.id,
             config=instance.config,
             inputs=_inspect_inputs(instance.func, args, kwargs),
         )
+        subgraph.meta.name = instance.name
         subgraph.outputs, value = _inspect_outputs(
             instance.func, subgraph=subgraph_id
         )
@@ -204,14 +202,13 @@ def _inspect_inputs(func: callable, args, kwargs):
 
     def add_input(name, hint, value):
         iotype = pytype_to_iotype(hint)
-        meta_data = MetaData(type=iotype)
         input_id = name
         inp = Input(
-            name=name,
             id=input_id,
-            meta=meta_data,
+            iotype=iotype,
             source=value.source
         )
+        inp.meta.name = name
         inputs.append(inp)
 
     sig = inspect.signature(func)
@@ -230,13 +227,12 @@ def _inspect_outputs(func: callable, node=None, subgraph=None):
     def add_output(name, hint):
         source = DataSource(node_id=node, subgraph_id=subgraph, output_id=name)
         iotype = pytype_to_iotype(hint)
-        meta_data = MetaData(type=iotype)
         output_id = name
         output = Output(
-            name=name,
             id=output_id,
-            meta=meta_data
+            iotype=iotype
         )
+        output.meta.name = name
         outputs.append(output)
         return _create_ivalue(pytype=hint, source=source)
 
@@ -264,12 +260,12 @@ def operator_call(func):
             raise ValueError(f"pipeline already contains node {instance.name}")
         node_id = instance.name
         node = Node(
-            name=instance.name,
             id=node_id,
             entrypoints=_create_entrypoint(instance.func),
             configs=instance.config,
             inputs=_inspect_inputs(instance.func, args, kwargs),
         )
+        node.meta.name = instance.name
         node.outputs, value = _inspect_outputs(instance.func, node=node_id)
         graph.nodes.append(node)
         return value

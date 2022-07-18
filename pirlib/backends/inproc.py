@@ -27,11 +27,11 @@ class InprocBackend(Backend):
         if args is not None:
             for spec in args.input:
                 inp = find_by_id(graph.inputs, spec.name)
-                if inp.meta.type == "DIRECTORY":
+                if inp.iotype == "DIRECTORY":
                     inputs[spec.name] = DirectoryPath(spec.url.path)
-                elif inp.meta.type == "FILE":
+                elif inp.iotype == "FILE":
                     inputs[spec.name] = FilePath(spec.url.path)
-                elif inp.meta.type == "DATAFRAME":
+                elif inp.iotype == "DATAFRAME":
                     if spec.fmt == "csv":
                         inputs[spec.name] = pandas.read_csv(spec.url.path)
         # Validate all required inputs are provided.
@@ -73,13 +73,13 @@ class InprocBackend(Backend):
         outputs = {}
         for out in graph.outputs:
             if out.source.node_id is not None:
-                outputs[out.name] = node_outputs[out.source.node_id][out.source.output_id]
+                outputs[out.id] = node_outputs[out.source.node_id][out.source.output_id]
             if out.source.graph_input_id is not None:
-                outputs[out.name] = inputs[out.source.graph_input_id]
+                outputs[out.id] = inputs[out.source.graph_input_id]
         if args is not None:
             for spec in args.output:
                 out = find_by_id(graph.outputs, spec.name)
-                if out.meta.type == "DATAFRAME":
+                if out.iotype == "DATAFRAME":
                     outputs[spec.name].to_csv(spec.url.path)
         return outputs
 
@@ -88,9 +88,9 @@ class InprocBackend(Backend):
         handler = getattr(importlib.import_module(module_name), handler_name)
         outputs = {}
         for out in node.outputs:
-            if out.meta.type == "DIRECTORY":
+            if out.iotype == "DIRECTORY":
                 outputs[out.id] = DirectoryPath(tempfile.mkdtemp())
-            elif out.meta.type == "FILE":
+            elif out.iotype == "FILE":
                 outputs[out.id] = FilePath(tempfile.mkstemp()[1])
             else:
                 outputs[out.id] = None
