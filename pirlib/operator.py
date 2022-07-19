@@ -81,7 +81,7 @@ class OperatorDefinition(HandlerV1):
     ):
         self._func = func if func is None else typeguard.typechecked(func)
         self._name = name if name else getattr(func, "__name__", None)
-        self._config = config
+        self._config = copy.deepcopy(config) if config else None
         self._framework = framework
 
     @property
@@ -106,7 +106,7 @@ class OperatorDefinition(HandlerV1):
                 func=args[0],
                 name=self.name,
                 config=self.config,
-                framework=self.framework
+                framework=self.framework,
             )
             functools.update_wrapper(wrapper, args[0])
             return wrapper
@@ -164,9 +164,9 @@ def operator(
     config: Optional[dict] = None,
     framework: Optional[pirlib.pir.Framework] = None,
 ) -> OperatorDefinition:
-    if config is None:
-        config = {}
     if framework:
+        if config is None:
+            config = {}
         f_name = framework.name
         for k, v in framework.config.items():
             config[f"{f_name}/{k}"] = v
