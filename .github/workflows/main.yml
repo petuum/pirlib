@@ -20,7 +20,9 @@ jobs:
           python-version: 3.8
 
       - name: Install dependencies
-        run: pip install --progress-bar off pytest==5.1.3
+        run: |
+          pip install --progress-bar off pytest==5.1.3
+          pip install --progress-bar off coverage codecov
 
       - name: Install PirLib
         run: pip install --progress-bar off .
@@ -29,4 +31,7 @@ jobs:
         run: pip install -r example/requirements.txt
 
       - name: Test with pytest
-        run: pytest tests/
+        run: coverage run -m pytest tests
+
+      - name: Upload coverage
+        run: codecov
