@@ -7,8 +7,9 @@ graphs:
         version: v1
         handler: example.example:clean
         runtime: python:3.9
-        image: pircli-build:06e8ce86-3591-4fd0-88d8-7d24611f7309
         codeurl: null
+        image: pircli-build:33f4fc78-bca7-46c9-b542-fe9f9882a561
+    framework: null
     config: {}
     inputs:
     - id: dataset
@@ -36,12 +37,12 @@ graphs:
         version: v1
         handler: example.example:train
         runtime: python:3.9
-        image: pircli-build:06e8ce86-3591-4fd0-88d8-7d24611f7309
         codeurl: null
+        image: pircli-build:33f4fc78-bca7-46c9-b542-fe9f9882a561
+    framework:
+      name: adaptdl
+      version: null
     config:
-      framework:
-        name: adaptdl
-        version: null
       adaptdl/min_replicas: 1
       adaptdl/max_replicas: 4
     inputs:
@@ -70,8 +71,9 @@ graphs:
         version: v1
         handler: example.example:evaluate
         runtime: python:3.9
-        image: pircli-build:06e8ce86-3591-4fd0-88d8-7d24611f7309
         codeurl: null
+        image: pircli-build:33f4fc78-bca7-46c9-b542-fe9f9882a561
+    framework: null
     config: {}
     inputs:
     - id: kwargs.test_dataset
@@ -109,8 +111,9 @@ graphs:
         version: v1
         handler: example.example:translate
         runtime: python:3.9
-        image: pircli-build:06e8ce86-3591-4fd0-88d8-7d24611f7309
         codeurl: null
+        image: pircli-build:33f4fc78-bca7-46c9-b542-fe9f9882a561
+    framework: null
     config:
       key: value
     inputs:
@@ -149,8 +152,9 @@ graphs:
         version: v1
         handler: example.example:sentiment
         runtime: python:3.9
-        image: pircli-build:06e8ce86-3591-4fd0-88d8-7d24611f7309
         codeurl: null
+        image: pircli-build:33f4fc78-bca7-46c9-b542-fe9f9882a561
+    framework: null
     config: {}
     inputs:
     - id: model

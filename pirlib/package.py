@@ -125,6 +125,7 @@ def package_operator(definition) -> Package:
     node = Node(
         id=node_id,
         entrypoints=_create_entrypoints(definition.func),
+        framework=definition.framework,
         config=definition.config,
         inputs=_inspect_inputs(definition.func, args, kwargs),
     )
@@ -262,6 +263,7 @@ def operator_call(func):
         node = Node(
             id=node_id,
             entrypoints=_create_entrypoints(instance.func),
+            framework=instance.framework,
             config=instance.config,
             inputs=_inspect_inputs(instance.func, args, kwargs),
         )

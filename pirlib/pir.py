@@ -218,7 +218,10 @@ class Graph:
             except ValidationError as err:
                 raise ValidationError(f"graph output '{out.id}': {err}") from None
         _validate_ids(self.outputs, "graph output")
-        self.meta.validate()
+        try:
+            self.meta.validate()
+        except ValidationError as err:
+            raise ValidationError(f"metadata: {err}") from None
         self._validate_connectivity()
         self._validate_acyclicity()
 
@@ -334,7 +337,10 @@ class GraphInput:
 
     def validate(self):
         _validate_fields(self)
-        self.meta.validate()
+        try:
+            self.meta.validate()
+        except ValidationError as err:
+            raise ValidationError(f"metadata: {err}") from None
 
 
 @dataclass
@@ -356,8 +362,14 @@ class GraphOutput:
 
     def validate(self):
         _validate_fields(self)
-        self.source.validate()
-        self.meta.validate()
+        try:
+            self.source.validate()
+        except ValidationError as err:
+            raise ValidationError(f"source: {err}") from None
+        try:
+            self.meta.validate()
+        except ValidationError as err:
+            raise ValidationError(f"metadata: {err}") from None
 
 
 @dataclass
@@ -402,7 +414,10 @@ class Subgraph:
             except ValidationError as err:
                 raise ValidationError(f"output '{out.id}': {err}") from None
         _validate_ids(self.outputs, "output")
-        self.meta.validate()
+        try:
+            self.meta.validate()
+        except ValidationError as err:
+            raise ValidationError(f"metadata: {err}") from None
 
 
 @dataclass
@@ -415,6 +430,7 @@ class Node:
     :ivar id: ID of the node. Must be unique among all nodes and subgraphs in a
             valid graph.
     :ivar entrypoints: A dictionary whose key is entrypoint name and value is entrypoint
+    :ivar framework: Execution framework for this node.
     :ivar config: Configuration values which are passed down to the procedure executed
             by this node. Can be any json or yaml serializable mapping.
     :ivar inputs: Expected inputs for this node, must all have unique ids.
@@ -423,6 +439,7 @@ class Node:
     """
     id: str
     entrypoints: Dict[str, Entrypoint]
+    framework: Optional[Framework] = None
     config: Dict[str, Any] = field(default_factory=dict)
     inputs: List[Input] = field(default_factory=list)
     outputs: List[Output] = field(default_factory=list)
@@ -441,14 +458,21 @@ class Node:
                 out.validate()
             except ValidationError as err:
                 raise ValidationError(f"output '{out.id}': {err}") from None
+        _validate_ids(self.outputs, "output")
         for entrypoint_name, entrypoint in self.entrypoints.items():
             try:
                 entrypoint.validate()
             except ValidationError as err:
                 raise ValidationError(f"entrypoint {entrypoint_name}: {err}") from None
-        _validate_ids(self.outputs, "output")
-        self.meta.validate()
-
+        if self.framework is not None:
+            try:
+                self.framework.validate()
+            except ValidationError as err:
+                raise ValidationError(f"framework: {err}") from None
+        try:
+            self.meta.validate()
+        except ValidationError as err:
+            raise ValidationError(f"metadata: {err}") from None
 
 @dataclass
 class Input:
@@ -475,7 +499,10 @@ class Input:
             self.source.validate()
         except ValidationError as err:
             raise ValidationError(f"source: {err}") from None
-        self.meta.validate()
+        try:
+            self.meta.validate()
+        except ValidationError as err:
+            raise ValidationError(f"metadata: {err}") from None
 
 
 @dataclass
@@ -496,19 +523,29 @@ class Output:
 
     def validate(self):
         _validate_fields(self)
-        self.meta.validate()
+        try:
+            self.meta.validate()
+        except ValidationError as err:
+            raise ValidationError(f"metadata: {err}") from None
 
-@dataclass
+@dataclass(init=False)
 class Framework:
     """
     This dataclass encodes the execution framework and configuration for a node.
     :ivar name: Name of the framework used for executing a node.
     :version: Version of the framework. ``None`` means the latest version.
-    :ivar config: Framework configuration for executing a node.
     """
     name: str
     version: Optional[str] = None
-    config: Dict[str, Any] = field(default_factory=dict)
+
+    def __init__(
+        self, name: str,
+        version: Optional[str] = None,
+        config: Optional[Dict[str, Any]] = None,
+        ):
+        self.name = name
+        self.version = version
+        self.config=config
 
     def validate(self):
         _validate_fields(self)

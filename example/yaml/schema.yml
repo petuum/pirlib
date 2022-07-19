@@ -1,10 +1,10 @@
 # Copyright 2022 Petuum, Inc. All Rights Reserved.
 
-graphs: list(include('graph'))
+graphs: list(include("graph"))
 ---
 graph:
   id: str()
-  nodes: list(include('node'))
+  nodes: list(include("node"))
   subgraphs: list(include("subgraph"))
   inputs: list(include("graph_input"))
   outputs: list(include("graph_output"))
@@ -12,10 +12,11 @@ graph:
 ---
 node:
   id: str()
-  entrypoints: map(include('entrypoint'))
-  configs: map()
-  inputs: list(include('input'))
-  outputs: list(include('output'))
+  entrypoints: map(include("entrypoint"))
+  framework: any(include("framework"), null())
+  config: map()
+  inputs: list(include("input"))
+  outputs: list(include("output"))
   meta: include("metadata", required=False)
 ---
 subgraph:
@@ -40,7 +41,7 @@ graph_output:
 input:
   id: str()
   iotype: str()
-  source: include('datasource')
+  source: include("datasource")
   meta: include("metadata", required=False)
 ---
 output:
@@ -57,6 +58,10 @@ datasource:
   subgraph_id: any(str(), null())
   output_id: any(str(), null())
   graph_input_id: any(str(), null())
+---
+framework:
+  name: str()
+  version: any(str(), null())
 ---
 entrypoint:
   version: str()

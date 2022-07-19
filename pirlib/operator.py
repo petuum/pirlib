@@ -48,7 +48,7 @@ class OperatorInstance(object):
 
     @property
     def framework(self):
-        return self._config.get("framework", None)
+        return self.defn.framework
 
     @operator_call
     def __call__(self, *args, **kwargs):
@@ -75,12 +75,14 @@ class OperatorDefinition(HandlerV1):
         self,
         func: Optional[Callable] = None,
         *,  # Keyword-only arguments below.
-        config: Optional[dict] = None,
         name: Optional[str] = None,
+        config: Optional[dict] = None,
+        framework: Optional[pirlib.pir.Framework] = None,
     ):
         self._func = func if func is None else typeguard.typechecked(func)
         self._name = name if name else getattr(func, "__name__", None)
         self._config = config
+        self._framework = framework
 
     @property
     def func(self):
@@ -96,7 +98,7 @@ class OperatorDefinition(HandlerV1):
 
     @property
     def framework(self):
-        return self._config["framework"]
+        return self._framework
 
     def __call__(self, *args, **kwargs):
         if len(args) == 1 and callable(args[0]) and not kwargs:
@@ -104,6 +106,7 @@ class OperatorDefinition(HandlerV1):
                 func=args[0],
                 name=self.name,
                 config=self.config,
+                framework=self.framework
             )
             functools.update_wrapper(wrapper, args[0])
             return wrapper
@@ -164,18 +167,14 @@ def operator(
     if config is None:
         config = {}
     if framework:
-        config["framework"] = {
-            "name": framework.name,
-            "version": framework.version,
-        }
         f_name = framework.name
         for k, v in framework.config.items():
             config[f"{f_name}/{k}"] = v
-
     wrapper = OperatorDefinition(
         func=func,
         name=name,
         config=config,
+        framework=framework,
     )
     functools.update_wrapper(wrapper, func)
     return wrapper

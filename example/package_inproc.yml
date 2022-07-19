@@ -7,8 +7,9 @@ graphs:
         version: v1
         handler: example.example:translate
         runtime: python:3.9
-        image: null
         codeurl: null
+        image: null
+    framework: null
     config:
       key: value
     inputs:
@@ -47,8 +48,9 @@ graphs:
         version: v1
         handler: example.example:sentiment
         runtime: python:3.9
-        image: null
         codeurl: null
+        image: null
+    framework: null
     config: {}
     inputs:
     - id: model
@@ -119,8 +121,9 @@ graphs:
         version: v1
         handler: example.example:clean
         runtime: python:3.9
-        image: null
         codeurl: null
+        image: null
+    framework: null
     config: {}
     inputs:
     - id: dataset
@@ -148,12 +151,12 @@ graphs:
         version: v1
         handler: example.example:train
         runtime: python:3.9
-        image: null
         codeurl: null
+        image: null
+    framework:
+      name: adaptdl
+      version: null
     config:
-      framework:
-        name: adaptdl
-        version: null
       adaptdl/min_replicas: 1
       adaptdl/max_replicas: 4
     inputs:
@@ -182,8 +185,9 @@ graphs:
         version: v1
         handler: example.example:evaluate
         runtime: python:3.9
-        image: null
         codeurl: null
+        image: null
+    framework: null
     config: {}
     inputs:
     - id: kwargs.test_dataset
