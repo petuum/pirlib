@@ -22,8 +22,9 @@ def clean(dataset: DirectoryPath) -> DirectoryPath:
 
 @task(framework=AdaptDL(min_replicas=1, max_replicas=4))
 def train(dataset: DirectoryPath) -> FilePath:
+    opctx = task.context()
     with open(dataset / "file.txt") as f:
-        print("train({})".format(f.read().strip()))
+        print("train({}, config={})".format(f.read().strip(), opctx.config))
     outfile = task.context().output
     with open(outfile, "w") as f:
         f.write("train_result")

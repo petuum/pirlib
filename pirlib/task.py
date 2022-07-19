@@ -48,7 +48,7 @@ class TaskInstance(object):
 
     @property
     def framework(self):
-        return self._config["framework"]
+        return self.defn.framework
 
     @task_call
     def __call__(self, *args, **kwargs):
@@ -75,12 +75,14 @@ class TaskDefinition(HandlerV1):
         self,
         func: Optional[Callable] = None,
         *,  # Keyword-only arguments below.
-        config: Optional[dict] = None,
         name: Optional[str] = None,
+        config: Optional[dict] = None,
+        framework: Optional[pirlib.pir.Framework] = None,
     ):
         self._func = func if func is None else typeguard.typechecked(func)
         self._name = name if name else getattr(func, "__name__", None)
-        self._config = config
+        self._config = copy.deepcopy(config) if config else None
+        self._framework = framework
 
     @property
     def func(self):
@@ -96,7 +98,7 @@ class TaskDefinition(HandlerV1):
 
     @property
     def framework(self):
-        return self._config["framework"]
+        return self._framework
 
     def __call__(self, *args, **kwargs):
         if len(args) == 1 and callable(args[0]) and not kwargs:
@@ -104,6 +106,7 @@ class TaskDefinition(HandlerV1):
                 func=args[0],
                 name=self.name,
                 config=self.config,
+                framework=self.framework,
             )
             functools.update_wrapper(wrapper, args[0])
             return wrapper
@@ -127,7 +130,7 @@ class TaskDefinition(HandlerV1):
         inputs: Dict[str, Any],
         outputs: Dict[str, Any],
     ) -> None:
-        context = TaskContext(node.configs, None)
+        context = TaskContext(node.config, None)
         sig = inspect.signature(self.func)
         context.output = recurse_hint(
             lambda name, hint: outputs[name], "return", sig.return_annotation
@@ -158,21 +161,20 @@ def task(
     func: Optional[Callable] = None,
     *,  # Keyword-only arguments below.
     name: Optional[str] = None,
-    config: Optional[dict] = {},
+    config: Optional[dict] = None,
     framework: Optional[pirlib.pir.Framework] = None,
 ) -> TaskDefinition:
-    config["framework" ] = None
     if framework:
-        config["framework"] = {
-            "name": framework.name,
-            "version": framework.version,
-            "config": copy.deepcopy(framework.config)
-        }
-        
+        if config is None:
+            config = {}
+        f_name = framework.name
+        for k, v in framework.config.items():
+            config[f"{f_name}/{k}"] = v
     wrapper = TaskDefinition(
         func=func,
         name=name,
         config=config,
+        framework=framework,
     )
     functools.update_wrapper(wrapper, func)
     return wrapper

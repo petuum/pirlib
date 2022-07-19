@@ -16,7 +16,7 @@ import typeguard
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
-from pirlib.utils import find_by_name, find_by_id
+from pirlib.utils import find_by_id
 
 
 @dataclass
@@ -28,7 +28,7 @@ class Package:
 
     :ivar graphs: List of graphs in this package, must all have unique IDs.
     """
-    graphs: List[Graph] = field(default_factory=dict)
+    graphs: List[Graph] = field(default_factory=list)
 
     def flatten_graph(self, graph_id: str, validate: bool = True) -> Graph:
         """
@@ -46,7 +46,7 @@ class Package:
         if graph is None:
             raise ValueError(f"graph with id '{graph_id}' not found in package")
         for subgraph in graph.subgraphs:
-            g = self.flatten_graph(subgraph.name, validate=False)
+            g = self.flatten_graph(subgraph.graph_id, validate=False)
             # Add prefix to subgraph nodes ids.
             for n in g.nodes:
                 n.id = f"{subgraph.id}.{n.id}"
@@ -90,6 +90,7 @@ class Package:
 
         :raises ValidationError: If the package is invalid.
         """
+        _validate_ids(self.graphs, "graph")
         for graph in self.graphs:
             try:
                 graph.validate()
@@ -113,11 +114,11 @@ class Package:
                     f"subgraph '{subgraph.id}' input '{inp.id}' "
                     f"could not be found in graph '{subgraph.graph_id}'"
                 )
-            if g_inp.meta.type != inp.meta.type:
+            if g_inp.iotype != inp.iotype:
                 raise ValidationError(
                     f"subgraph '{subgraph.id}' input '{inp.id}' iotype "
-                    f"'{inp.meta.type}' does not match graph '{subgraph.graph_id}' "
-                    f"input iotype '{g_inp.meta.type}'"
+                    f"'{inp.iotype}' does not match graph '{subgraph.graph_id}' "
+                    f"input iotype '{g_inp.iotype}'"
                 )
         for out in subgraph.outputs:
             g_out = find_by_id(graph.outputs, out.id)
@@ -126,11 +127,11 @@ class Package:
                     f"subgraph '{subgraph.id}' output '{out.id}' "
                     f"could not be found in graph '{subgraph.graph_id}'"
                 )
-            if g_out.meta.type != out.meta.type:
+            if g_out.iotype != out.iotype:
                 raise ValidationError(
                     f"subgraph '{subgraph.id}' output '{out.id}' iotype "
-                    f"'{out.meta.type}' does not match graph '{subgraph.graph_id}' "
-                    f"output iotype '{g_out.meta.type}'"
+                    f"'{out.iotype}' does not match graph '{subgraph.graph_id}' "
+                    f"output iotype '{g_out.iotype}'"
                 )
 
     def _is_recursive(self, graph: Graph, visited: List[str]):
@@ -144,6 +145,22 @@ class Package:
 
 
 @dataclass
+class Metadata:
+    """
+    This dataclass encodes the metadata of an PIR component. It contains its
+    annotations and an optional human-readable name of the component.
+
+    :ivar name: Name of the component.
+    :ivar annotations: Annotations relevant to the component.
+    """
+    name: Optional[str] = None
+    annotations: Optional[Dict] = None
+
+    def validate(self):
+        _validate_fields(self)
+
+
+@dataclass
 class Graph:
     """
     This dataclass encodes a directed acyclic graph (DAG) of nodes each with well
@@ -151,9 +168,7 @@ class Graph:
     inputs are placeholders for values to be provided when the graph is executed. Each
     graph can also embed as subgraphs any other graph in the same package.
 
-    :ivar name: Name of the graph.
     :ivar id: ID of the graph, must be unique among all graphs in a package.
-    :ivar annotations: Annotations of the graph added by frontend and backend.
     :ivar nodes: The nodes contained in the graph. Node names must be unique among all
             nodes and subgraphs in the graph.
     :ivar subgraphs: The subgraphs contained in the graph. Subgraph names must be unique
@@ -161,14 +176,14 @@ class Graph:
     :ivar inputs: The expected inputs for the graph, must all have unique names.
     :ivar outputs: The outputs for the graph, must all have unique names. Each graph
             output must have the same iotype as its source.
+    :ivar meta: Metadata of the graph.
     """
-    name: str
     id: str
-    annotations: Dict[str, Any] = field(default_factory=dict)
     nodes: List[Node] = field(default_factory=list)
     subgraphs: List[Subgraph] = field(default_factory=list)
     inputs: List[GraphInput] = field(default_factory=list)
     outputs: List[GraphOutput] = field(default_factory=list)
+    meta: Metadata = field(default_factory=Metadata)
 
 
     def validate(self):
@@ -203,19 +218,23 @@ class Graph:
             except ValidationError as err:
                 raise ValidationError(f"graph output '{out.id}': {err}") from None
         _validate_ids(self.outputs, "graph output")
+        try:
+            self.meta.validate()
+        except ValidationError as err:
+            raise ValidationError(f"metadata: {err}") from None
         self._validate_connectivity()
         self._validate_acyclicity()
 
     def _validate_connectivity(self):
         for out in self.outputs:
             try:
-                self._validate_source(out.source, out.meta.type)
+                self._validate_source(out.source, out.iotype)
             except ValidationError as err:
                 raise ValidationError(f"graph output '{out.id}': {err}") from None
         for node in self.nodes:
             for inp in node.inputs:
                 try:
-                    self._validate_source(inp.source, inp.meta.type)
+                    self._validate_source(inp.source, inp.iotype)
                 except ValidationError as err:
                     raise ValidationError(
                         f"node '{node.id}': input '{inp.id}': {err}"
@@ -223,7 +242,7 @@ class Graph:
         for subgraph in self.subgraphs:
             for inp in subgraph.inputs:
                 try:
-                    self._validate_source(inp.source, inp.meta.type)
+                    self._validate_source(inp.source, inp.iotype)
                 except ValidationError as err:
                     raise ValidationError(
                         f"subgraph '{subgraph.id}': input '{inp.id}': {err}"
@@ -236,7 +255,7 @@ class Graph:
                 raise ValidationError(
                     f"reference to missing graph input '{source.graph_input_id}'"
                 )
-            source_iotype = graph_input.meta.type
+            source_iotype = graph_input.iotype
         elif source.node_id is not None:
             node = find_by_id(self.nodes, source.node_id)
             if node is None:
@@ -247,7 +266,7 @@ class Graph:
                     f"reference to missing output '{source.output_id}' of node "
                     f"'{node.id}'"
                 )
-            source_iotype = output.meta.type
+            source_iotype = output.iotype
         elif source.subgraph_id is not None:
             subgraph = find_by_id(self.subgraphs, source.subgraph_id)
             if subgraph is None:
@@ -260,7 +279,7 @@ class Graph:
                     f"reference to missing output '{source.output_id}' of subgraph "
                     f"'{subgraph.id}'"
                 )
-            source_iotype = output.meta.type
+            source_iotype = output.iotype
         if source_iotype != iotype:
             raise ValidationError(
                 f"iotype '{iotype}' differs from source iotype '{source_iotype}'"
@@ -300,20 +319,6 @@ class Graph:
                         stack.append(subgraph)
 
 
-@dataclass
-class MetaData:
-    """
-    This dataclass encodes the metadata of an input/output data. It contains the
-    IO type and other information to facilitate data marshalling.
-
-    :ivar type: Expected type of the data. If the data is an input of node or
-              subgraph, or an output of a graph, this type must be the same as
-              its source.
-    :ivar schema: Schema for data marshalling.
-    """
-    type: str
-    schema: Optional[Dict[str, Any]] = None
-
 
 @dataclass
 class GraphInput:
@@ -322,16 +327,20 @@ class GraphInput:
     "placeholder" for a user-provided input value, and so does not have a connected
     source.
 
-    :ivar name: Name of the input.
     :ivar id: ID of the input, must be unique among all inputs of the graph.
-    :ivar meta: Metadata the input.
+    :ivar iotype: Expected type of the input.
+    :ivar meta: Metadata of the input.
     """
-    name: str
     id: str
-    meta: MetaData
+    iotype: str
+    meta: Metadata = field(default_factory=Metadata)
 
     def validate(self):
         _validate_fields(self)
+        try:
+            self.meta.validate()
+        except ValidationError as err:
+            raise ValidationError(f"metadata: {err}") from None
 
 
 @dataclass
@@ -341,19 +350,26 @@ class GraphOutput:
     any computation, a graph output simply refers to an output of a node or subgraph, or
     an input of the same graph.
 
-    :ivar name: Name of the graph output.
     :ivar id: ID of the graph output, must be unique among all outputs of the graph.
-    :ivar meta: Metadata of the graph output.
+    :ivar iotype: Type of the graph output, must be equal to the type of the source.
     :ivar source: The source of the graph output.
+    :ivar meta: Metadata of the graph output.
     """
-    name: str
     id: str
-    meta: MetaData
+    iotype: str
     source: DataSource
+    meta: Metadata = field(default_factory=Metadata)
 
     def validate(self):
         _validate_fields(self)
-        self.source.validate()
+        try:
+            self.source.validate()
+        except ValidationError as err:
+            raise ValidationError(f"source: {err}") from None
+        try:
+            self.meta.validate()
+        except ValidationError as err:
+            raise ValidationError(f"metadata: {err}") from None
 
 
 @dataclass
@@ -365,7 +381,6 @@ class Subgraph:
     output of the embedded graph. The configs of the subgraph override the configs of
     the embedded graph.
 
-    :ivar name: Name of the subgraph.
     :ivar id: ID of the subgraph. Must be unique among all nodes and subgraphs in a
             valid graph.
     :ivar graph_id: ID of the graph to be embedded as a subgraph. Must be in the same
@@ -376,13 +391,14 @@ class Subgraph:
     :ivar outputs: Expected outputs for this subgraph, must all have unique names. Each
             output must have the same name and iotype as an output of the embedded
             graph.
+    :ivar meta: Metadata of the subgraph.
     """
-    name: str
     id: str
     graph_id: str
     config: Dict[str, Dict[str, Any]] = field(default_factory=dict)
     inputs: List[Input] = field(default_factory=list)
     outputs: List[Output] = field(default_factory=list)
+    meta: Metadata = field(default_factory=Metadata)
 
     def validate(self):
         _validate_fields(self)
@@ -391,11 +407,17 @@ class Subgraph:
                 inp.validate()
             except ValidationError as err:
                 raise ValidationError(f"input '{inp.id}': {err}") from None
+        _validate_ids(self.inputs, "input")
         for out in self.outputs:
             try:
                 out.validate()
             except ValidationError as err:
                 raise ValidationError(f"output '{out.id}': {err}") from None
+        _validate_ids(self.outputs, "output")
+        try:
+            self.meta.validate()
+        except ValidationError as err:
+            raise ValidationError(f"metadata: {err}") from None
 
 
 @dataclass
@@ -405,24 +427,23 @@ class Node:
     executed on several inputs to produce several outputs. All node inputs must have
     unique ids, and all node outputs also must have unique ids.
 
-    :ivar name: Name of the node. Must be unique among all nodes and subgraphs in a
-            valid graph.
     :ivar id: ID of the node. Must be unique among all nodes and subgraphs in a
             valid graph.
     :ivar entrypoints: A dictionary whose key is entrypoint name and value is entrypoint
+    :ivar framework: Execution framework for this node.
     :ivar config: Configuration values which are passed down to the procedure executed
             by this node. Can be any json or yaml serializable mapping.
     :ivar inputs: Expected inputs for this node, must all have unique ids.
     :ivar outputs: Expected outputs for this node, must all have unique ids.
-    :ivar annotations: Annotations added by frontend and backend.
+    :ivar meta: Metadata of the node.
     """
-    name: str
     id: str
     entrypoints: Dict[str, Entrypoint]
-    configs: Dict[str, Any] = field(default_factory=dict)
+    framework: Optional[Framework] = None
+    config: Dict[str, Any] = field(default_factory=dict)
     inputs: List[Input] = field(default_factory=list)
     outputs: List[Output] = field(default_factory=list)
-    annotations: Dict[str, Any] = field(default_factory=dict)
+    meta: Metadata = field(default_factory=Metadata)
 
     def validate(self):
         _validate_fields(self)
@@ -431,17 +452,27 @@ class Node:
                 inp.validate()
             except ValidationError as err:
                 raise ValidationError(f"input '{inp.id}': {err}") from None
+        _validate_ids(self.inputs, "input")
         for out in self.outputs:
             try:
                 out.validate()
             except ValidationError as err:
                 raise ValidationError(f"output '{out.id}': {err}") from None
+        _validate_ids(self.outputs, "output")
         for entrypoint_name, entrypoint in self.entrypoints.items():
             try:
                 entrypoint.validate()
             except ValidationError as err:
                 raise ValidationError(f"entrypoint {entrypoint_name}: {err}") from None
-
+        if self.framework is not None:
+            try:
+                self.framework.validate()
+            except ValidationError as err:
+                raise ValidationError(f"framework: {err}") from None
+        try:
+            self.meta.validate()
+        except ValidationError as err:
+            raise ValidationError(f"metadata: {err}") from None
 
 @dataclass
 class Input:
@@ -450,16 +481,17 @@ class Input:
     If it is the input of a subgraph, then its name must be equal to a name of some
     graph input of that subgraph.
 
-    :ivar name: Name of the input.
     :ivar id: Name of the input. Must be unique among all inputs in a valid node or
             subgraph.
-    :ivar meta: Metadata of the input.
+    :ivar iotype: Expected type of the input. In a valid graph, must be equal to the
+                iotype of the source.
     :ivar source: Source of the input. Can be a graph input or a node/subgraph output.
+    :ivar meta: Metadata of the input.
     """
-    name: str
     id: str
-    meta: MetaData
+    iotype: str
     source: DataSource
+    meta: Metadata = field(default_factory=Metadata)
 
     def validate(self):
         _validate_fields(self)
@@ -467,6 +499,10 @@ class Input:
             self.source.validate()
         except ValidationError as err:
             raise ValidationError(f"source: {err}") from None
+        try:
+            self.meta.validate()
+        except ValidationError as err:
+            raise ValidationError(f"metadata: {err}") from None
 
 
 @dataclass
@@ -476,42 +512,40 @@ class Output:
     input source for other downstream nodes or subgraphs within the same graph, or be
     an output of the graph itself.
 
-    :ivar name: Name of the output.
     :ivar id: ID of the output. Must be unique among all outputs in a valid node or
             subgraph.
     :ivar iotype: Type of the output.
+    :ivar meta: Metadata of the output.
     """
-    name: str
     id: str
-    meta: MetaData
+    iotype: str
+    meta: Metadata = field(default_factory=Metadata)
 
     def validate(self):
         _validate_fields(self)
+        try:
+            self.meta.validate()
+        except ValidationError as err:
+            raise ValidationError(f"metadata: {err}") from None
 
-@dataclass
+@dataclass(init=False)
 class Framework:
     """
     This dataclass encodes the execution framework and configuration for a node.
     :ivar name: Name of the framework used for executing a node.
     :version: Version of the framework. ``None`` means the latest version.
-    :ivar config: Framework configuration for executing a node.
     """
     name: str
     version: Optional[str] = None
-    config: Dict[str, Any] = field(default_factory=dict)
 
-    def validate(self):
-        _validate_fields(self)
-
-@dataclass
-class EntrypointEnvironment:
-    """
-    This dataclass encodes the runtime environment of an entrypoint.
-
-    :ivar image: Optional name of the Docker image used to run the handler.
-               ``None`` means the handler can be run in the local environment.
-    """
-    image: Optional[str] = None
+    def __init__(
+        self, name: str,
+        version: Optional[str] = None,
+        config: Optional[Dict[str, Any]] = None,
+        ):
+        self.name = name
+        self.version = version
+        self.config=config
 
     def validate(self):
         _validate_fields(self)
@@ -531,21 +565,17 @@ class Entrypoint:
     :ivar runtime: Identifier of the handler's runtime, e.g. ``"python:3.8"``.
     :ivar codeurl: Optional URL of the code used to run the handler. ``None`` means any
             and all handler code can be found in the local environment or docker image.
-    :ivar env: Runtime environment of the handler (e.g. Docker image or dependencies of
-            a virtual environment).
+    :ivar image: Optional name of the Docker image used to run the handler. ``None``
+          means the handler can be run in the local environment.
     """
     version: str
     handler: str
     runtime: str
-    env: EntrypointEnvironment = EntrypointEnvironment()
     codeurl: Optional[str] = None
+    image: Optional[str] = None
 
     def validate(self):
         _validate_fields(self)
-        try:
-            self.env.validate()
-        except ValidationError as err:
-            raise ValidationError(f"entrypoint env: {err}") from None
 
 
 @dataclass
