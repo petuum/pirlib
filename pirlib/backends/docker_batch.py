@@ -44,7 +44,7 @@ class DockerBatchBackend(Backend):
         graph = package.graphs[0]  # FIXME: need to handle multiple graphs
         for node in graph.nodes:
             service = compose["services"][f"{graph.id}.{node.id}"] = {
-                "image": node.entrypoints["run"].env.image,
+                "image": node.entrypoints["main"].image,
                 "command": [
                     "python",
                     "-m",
@@ -66,7 +66,7 @@ class DockerBatchBackend(Backend):
                     path = f"${{INPUT_{name}:?err}}"
                     service["volumes"].append(f"{path}:/mnt/graph_inputs/{name}")
         service = compose["services"][f"{graph.id}"] = {
-            "image": node.entrypoints["run"].env.image,  # FIXME: a bit of a hack.
+            "image": node.entrypoints["main"].image,  # FIXME: a bit of a hack.
             "command": ["python", "-m", __name__, "graph", encode(graph.outputs)],
             "volumes": ["node_outputs:/mnt/node_outputs"],
         }
@@ -92,7 +92,7 @@ def run_node(node, graph_inputs):
     import pathlib
     from pirlib.iotypes import DirectoryPath, FilePath
 
-    module_name, handler_name = node.entrypoints["run"].handler.split(":")
+    module_name, handler_name = node.entrypoints["main"].handler.split(":")
     handler = getattr(importlib.import_module(module_name), handler_name)
     inputs = {}
     for inp in node.inputs:
@@ -100,21 +100,21 @@ def run_node(node, graph_inputs):
             path = f"/mnt/node_outputs/{inp.source.node_id}/{inp.source.output_id}"
         if inp.source.graph_input_id is not None:
             path = f"/mnt/graph_inputs/{inp.source.graph_input_id}"
-        if inp.meta.type == "DIRECTORY":
+        if inp.iotype == "DIRECTORY":
             inputs[inp.id] = DirectoryPath(path)
-        elif inp.meta.type == "FILE":
+        elif inp.iotype == "FILE":
             inputs[inp.id] = FilePath(path)
-        elif inp.meta.type == "DATAFRAME":
+        elif inp.iotype == "DATAFRAME":
             inputs[inp.id] = pandas.read_csv(path)
         else:
-            raise TypeError(f"unsupported iotype {inp.meta.type}")
+            raise TypeError(f"unsupported iotype {inp.iotype}")
     outputs = {}
     for out in node.outputs:
         path = f"/mnt/node_outputs/{node.id}/{out.id}"
-        if out.meta.type == "DIRECTORY":
+        if out.iotype == "DIRECTORY":
             outputs[out.id] = DirectoryPath(path)
             outputs[out.id].mkdir(parents=True, exist_ok=True)
-        elif out.meta.type == "FILE":
+        elif out.iotype == "FILE":
             outputs[out.id] = FilePath(path)
             outputs[out.id].parents[0].mkdir(parents=True, exist_ok=True)
         else:
@@ -122,7 +122,7 @@ def run_node(node, graph_inputs):
     handler.run_handler(node, inputs, outputs)
     for out in node.outputs:
         path = f"/mnt/node_outputs/{node.id}/{out.id}"
-        if out.meta.type == "DATAFRAME":
+        if out.iotype == "DATAFRAME":
             pathlib.Path(path).parents[0].mkdir(parents=True, exist_ok=True)
             outputs[out.id].to_csv(path)
 
@@ -137,7 +137,7 @@ def run_graph(graph_outputs):
         if source.graph_input_id is not None:
             path_from = f"/mnt/graph_inputs/{source.graph_input_id}"
         path_to = f"/mnt/graph_outputs/{g_out.id}"
-        if g_out.meta.type == "DIRECTORY":
+        if g_out.iotype == "DIRECTORY":
             shutil.coptytree(path_from, path_to)
         else:
             shutil.copy(path_from, path_to)

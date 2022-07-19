@@ -72,9 +72,9 @@ def _dockerize_handler(
         sys.exit("ERROR: failed to build docker image")
     for graph in package.graphs:
         for node in graph.nodes:
-            entrypoint = node.entrypoints["run"]
-            if entrypoint.env.image is None:
-                entrypoint.env.image = image
+            entrypoint = node.entrypoints["main"]
+            if entrypoint.image is None:
+                entrypoint.image = image
     if args.output is not None:
         yaml.dump(dataclasses.asdict(package), args.output, sort_keys=False)
 

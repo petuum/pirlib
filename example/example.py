@@ -20,16 +20,11 @@ def clean(dataset: DirectoryPath) -> DirectoryPath:
     return outdir
 
 
-@operator(
-    framework=AdaptDL(),
-    config={
-        "adaptdl/min_replicas": 1,
-        "adaptdl/max_replicas": 4
-    }
-)
+@task(framework=AdaptDL(min_replicas=1, max_replicas=4))
 def train(dataset: DirectoryPath) -> FilePath:
+    task_ctx = task.context()
     with open(dataset / "file.txt") as f:
-        print("train({})".format(f.read().strip()))
+        print("train({}, config={})".format(f.read().strip(), task_ctx.config))
     outfile = task.context().output
     with open(outfile, "w") as f:
         f.write("train_result")
@@ -55,10 +50,10 @@ def evaluate(kwargs: EvaluateInput) -> pandas.DataFrame:
 @task
 def translate(args: Tuple[FilePath, DirectoryPath]) -> DirectoryPath:
     model, sentences = args
-    opctx = task.context()
+    task_ctx = task.context()
     with open(model) as f, open(sentences / "file.txt") as g:
-        print("translate({}, {}, config={})".format(f.read().strip(), g.read().strip(), opctx.config))
-    outdir = opctx.output
+        print("translate({}, {}, config={})".format(f.read().strip(), g.read().strip(), task_ctx.config))
+    outdir = task_ctx.output
     with open(outdir / "file.txt", "w") as f:
         f.write("translate_result")
     return outdir
