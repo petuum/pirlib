@@ -9,22 +9,22 @@ from typing import Any, Callable, Dict, Optional
 import pirlib.pir
 from pirlib.backends.inproc import InprocBackend
 from pirlib.handlers.v1 import HandlerV1
-from pirlib.package import recurse_hint, operator_call, package_operator
+from pirlib.package import recurse_hint, task_call, package_task
 
-_OP_CONTEXT = contextvars.ContextVar("_OP_CONTEXT")
+_TASK_CONTEXT = contextvars.ContextVar("_TASK_CONTEXT")
 
 
 @dataclass
-class OperatorContext:
+class TaskContext:
     config: Dict[str, Any]
     output: Any
 
 
-def operator_context() -> OperatorContext:
-    return _OP_CONTEXT.get()
+def task_context() -> TaskContext:
+    return _TASK_CONTEXT.get()
 
 
-class OperatorInstance(object):
+class TaskInstance(object):
     def __init__(self, defn, name, config=None):
         self._defn = defn
         self._name = name
@@ -50,9 +50,9 @@ class OperatorInstance(object):
     def framework(self):
         return self.defn.framework
 
-    @operator_call
+    @task_call
     def __call__(self, *args, **kwargs):
-        package = package_operator(self.defn)
+        package = package_task(self.defn)
         inputs = {}
         sig = inspect.signature(self.func)
         for idx, param in enumerate(sig.parameters.values()):
@@ -70,7 +70,7 @@ class OperatorInstance(object):
         )
 
 
-class OperatorDefinition(HandlerV1):
+class TaskDefinition(HandlerV1):
     def __init__(
         self,
         func: Optional[Callable] = None,
@@ -102,7 +102,7 @@ class OperatorDefinition(HandlerV1):
 
     def __call__(self, *args, **kwargs):
         if len(args) == 1 and callable(args[0]) and not kwargs:
-            wrapper = OperatorDefinition(
+            wrapper = TaskDefinition(
                 func=args[0],
                 name=self.name,
                 config=self.config,
@@ -112,8 +112,8 @@ class OperatorDefinition(HandlerV1):
             return wrapper
         return self.instance(self.name)(*args, **kwargs)
 
-    def instance(self, name: str) -> OperatorInstance:
-        return OperatorInstance(self, name, config=self.config)
+    def instance(self, name: str) -> TaskInstance:
+        return TaskInstance(self, name, config=self.config)
 
     def get_input_type(self, input_name: str) -> type:
         sig = inspect.signature(self.func)
@@ -130,7 +130,7 @@ class OperatorDefinition(HandlerV1):
         inputs: Dict[str, Any],
         outputs: Dict[str, Any],
     ) -> None:
-        context = OperatorContext(node.config, None)
+        context = TaskContext(node.config, None)
         sig = inspect.signature(self.func)
         context.output = recurse_hint(
             lambda name, hint: outputs[name], "return", sig.return_annotation
@@ -144,11 +144,11 @@ class OperatorDefinition(HandlerV1):
                 kwargs[param.name] = value
             else:
                 args.append(value)
-        token = _OP_CONTEXT.set(context)
+        token = _TASK_CONTEXT.set(context)
         try:
             return_value = self.func(*args, **kwargs)
         finally:
-            _OP_CONTEXT.reset(token)
+            _TASK_CONTEXT.reset(token)
         recurse_hint(
             lambda n, h, v: outputs.__setitem__(n, v),
             "return",
@@ -157,20 +157,20 @@ class OperatorDefinition(HandlerV1):
         )
 
 
-def operator(
+def task(
     func: Optional[Callable] = None,
     *,  # Keyword-only arguments below.
     name: Optional[str] = None,
     config: Optional[dict] = None,
     framework: Optional[pirlib.pir.Framework] = None,
-) -> OperatorDefinition:
+) -> TaskDefinition:
     if framework:
         if config is None:
             config = {}
         f_name = framework.name
         for k, v in framework.config.items():
             config[f"{f_name}/{k}"] = v
-    wrapper = OperatorDefinition(
+    wrapper = TaskDefinition(
         func=func,
         name=name,
         config=config,
@@ -180,4 +180,4 @@ def operator(
     return wrapper
 
 
-operator.context = operator_context
+task.context = task_context

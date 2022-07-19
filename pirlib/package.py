@@ -117,7 +117,7 @@ def _inspect_graph_outputs(func: callable, return_value: typing.Any):
     return outputs
 
 
-def package_operator(definition) -> Package:
+def package_task(definition) -> Package:
     graph_id = node_id = definition.name
     graph = Graph(id=graph_id)
     graph.meta.name = definition.name
@@ -251,7 +251,7 @@ def _create_entrypoints(func):
     return {"main": entrypoint}
 
 
-def operator_call(func):
+def task_call(func):
     @functools.wraps(func)
     def wrapper(instance, *args, **kwargs):
         if not is_packaging():

@@ -6,26 +6,26 @@ from typing import Tuple, TypedDict
 
 from pirlib.frameworks.adaptdl import AdaptDL
 from pirlib.iotypes import DirectoryPath, FilePath
-from pirlib.operator import operator
+from pirlib.task import task
 from pirlib.pipeline import pipeline
 
 
-@operator
+@task
 def clean(dataset: DirectoryPath) -> DirectoryPath:
     with open(dataset / "file.txt") as f:
         print("clean({})".format(f.read().strip()))
-    outdir = operator.context().output
+    outdir = task.context().output
     with open(outdir / "file.txt", "w") as f:
         f.write("clean_result")
     return outdir
 
 
-@operator(framework=AdaptDL(min_replicas=1, max_replicas=4))
+@task(framework=AdaptDL(min_replicas=1, max_replicas=4))
 def train(dataset: DirectoryPath) -> FilePath:
-    opctx = operator.context()
+    task_ctx = task.context()
     with open(dataset / "file.txt") as f:
-        print("train({}, config={})".format(f.read().strip(), opctx.config))
-    outfile = operator.context().output
+        print("train({}, config={})".format(f.read().strip(), task_ctx.config))
+    outfile = task.context().output
     with open(outfile, "w") as f:
         f.write("train_result")
     return outfile
@@ -36,34 +36,34 @@ class EvaluateInput(TypedDict):
     predictions: DirectoryPath
 
 
-@operator
+@task
 def evaluate(kwargs: EvaluateInput) -> pandas.DataFrame:
     test_dataset = kwargs["test_dataset"]
     predictions = kwargs["predictions"]
     with open(test_dataset / "file.txt") as f, open(predictions / "file.txt") as g:
         print("evaluate({}, {})".format(f.read().strip(), g.read().strip()))
-    outdir = operator.context().output
+    outdir = task.context().output
     df = pandas.DataFrame([{"evaluate": "result"}])
     return df
 
 
-@operator
+@task
 def translate(args: Tuple[FilePath, DirectoryPath]) -> DirectoryPath:
     model, sentences = args
-    opctx = operator.context()
+    task_ctx = task.context()
     with open(model) as f, open(sentences / "file.txt") as g:
-        print("translate({}, {}, config={})".format(f.read().strip(), g.read().strip(), opctx.config))
-    outdir = opctx.output
+        print("translate({}, {}, config={})".format(f.read().strip(), g.read().strip(), task_ctx.config))
+    outdir = task_ctx.output
     with open(outdir / "file.txt", "w") as f:
         f.write("translate_result")
     return outdir
 
 
-@operator
+@task
 def sentiment(model: FilePath, sentences: DirectoryPath) -> DirectoryPath:
     with open(model) as f, open(sentences / "file.txt") as g:
         print("sentiment({}, {})".format(f.read().strip(), g.read().strip()))
-    outdir = operator.context().output
+    outdir = task.context().output
     with open(outdir / "file.txt", "w") as f:
         f.write("sentiment_result")
     return outdir
