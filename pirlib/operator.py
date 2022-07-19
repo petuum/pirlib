@@ -48,7 +48,7 @@ class OperatorInstance(object):
 
     @property
     def framework(self):
-        return self._config["framework"]
+        return self._config.get("framework", None)
 
     @operator_call
     def __call__(self, *args, **kwargs):
