@@ -2,9 +2,7 @@ import contextvars
 import copy
 import functools
 import inspect
-import threading
 import typeguard
-import typing
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Optional
 
@@ -54,7 +52,7 @@ class OperatorInstance(object):
 
     @operator_call
     def __call__(self, *args, **kwargs):
-        package = package_operator(self)
+        package = package_operator(self.defn)
         inputs = {}
         sig = inspect.signature(self.func)
         for idx, param in enumerate(sig.parameters.values()):
@@ -166,6 +164,12 @@ def operator(
     config: Optional[dict] = None,
     framework: Optional[pirlib.pir.Framework] = None,
 ) -> OperatorDefinition:
+    if framework:
+        if config is None:
+            config = {}
+        f_name = framework.name
+        for k, v in framework.config.items():
+            config[f"{f_name}/{k}"] = v
     wrapper = OperatorDefinition(
         func=func,
         name=name,

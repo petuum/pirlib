@@ -1,152 +1,229 @@
 graphs:
-- name: train_pipeline
+- id: train_pipeline
   nodes:
-  - name: clean
-    entrypoint:
-      version: v1
-      handler: example.example:clean
-      runtime: python:3.8
-      codeurl: null
-      image: pircli-build:fbb9b1d1-11ed-48a6-a70c-67a1f6c928a5
+  - id: clean
+    entrypoints:
+      main:
+        version: v1
+        handler: example.example:clean
+        runtime: python:3.9
+        codeurl: null
+        image: pircli-build:12abefff-89d7-483a-9b23-78153dd510dc
     framework: null
     config: {}
     inputs:
-    - name: dataset
+    - id: dataset
       iotype: DIRECTORY
       source:
-        node: null
-        subgraph: null
-        output: null
-        graph_input: train_dataset
+        node_id: null
+        subgraph_id: null
+        output_id: null
+        graph_input_id: train_dataset
+      meta:
+        name: dataset
+        annotations: null
     outputs:
-    - name: return
+    - id: return
       iotype: DIRECTORY
-  - name: train
-    entrypoint:
-      version: v1
-      handler: example.example:train
-      runtime: python:3.8
-      codeurl: null
-      image: pircli-build:fbb9b1d1-11ed-48a6-a70c-67a1f6c928a5
+      meta:
+        name: return
+        annotations: null
+    meta:
+      name: clean
+      annotations: null
+  - id: train
+    entrypoints:
+      main:
+        version: v1
+        handler: example.example:train
+        runtime: python:3.9
+        codeurl: null
+        image: pircli-build:12abefff-89d7-483a-9b23-78153dd510dc
     framework:
       name: adaptdl
-      config:
-        min_replicas: 1
-        max_replicas: 4
-    config: {}
+      version: null
+    config:
+      adaptdl/min_replicas: 1
+      adaptdl/max_replicas: 4
     inputs:
-    - name: dataset
+    - id: dataset
       iotype: DIRECTORY
       source:
-        node: clean
-        subgraph: null
-        output: return
-        graph_input: null
+        node_id: clean
+        subgraph_id: null
+        output_id: return
+        graph_input_id: null
+      meta:
+        name: dataset
+        annotations: null
     outputs:
-    - name: return
+    - id: return
       iotype: FILE
-  - name: evaluate
-    entrypoint:
-      version: v1
-      handler: example.example:evaluate
-      runtime: python:3.8
-      codeurl: null
-      image: pircli-build:fbb9b1d1-11ed-48a6-a70c-67a1f6c928a5
+      meta:
+        name: return
+        annotations: null
+    meta:
+      name: train
+      annotations: null
+  - id: evaluate
+    entrypoints:
+      main:
+        version: v1
+        handler: example.example:evaluate
+        runtime: python:3.9
+        codeurl: null
+        image: pircli-build:12abefff-89d7-483a-9b23-78153dd510dc
     framework: null
     config: {}
     inputs:
-    - name: kwargs.test_dataset
+    - id: kwargs.test_dataset
       iotype: DIRECTORY
       source:
-        node: null
-        subgraph: null
-        output: null
-        graph_input: sentences
-    - name: kwargs.predictions
+        node_id: null
+        subgraph_id: null
+        output_id: null
+        graph_input_id: sentences
+      meta:
+        name: kwargs.test_dataset
+        annotations: null
+    - id: kwargs.predictions
       iotype: DIRECTORY
       source:
-        node: infer_pipeline.sentiment
-        subgraph: null
-        output: return
-        graph_input: null
+        node_id: infer_pipeline.sentiment
+        subgraph_id: null
+        output_id: return
+        graph_input_id: null
+      meta:
+        name: kwargs.predictions
+        annotations: null
     outputs:
-    - name: return
+    - id: return
       iotype: DATAFRAME
-  - name: infer_pipeline.translate_1
-    entrypoint:
-      version: v1
-      handler: example.example:translate
-      runtime: python:3.8
-      codeurl: null
-      image: pircli-build:fbb9b1d1-11ed-48a6-a70c-67a1f6c928a5
+      meta:
+        name: return
+        annotations: null
+    meta:
+      name: evaluate
+      annotations: null
+  - id: infer_pipeline.translate_1
+    entrypoints:
+      main:
+        version: v1
+        handler: example.example:translate
+        runtime: python:3.9
+        codeurl: null
+        image: pircli-build:12abefff-89d7-483a-9b23-78153dd510dc
     framework: null
     config:
       key: value
     inputs:
-    - name: args.0
+    - id: args.0
       iotype: FILE
       source:
-        node: null
-        subgraph: null
-        output: null
-        graph_input: translate_model
-    - name: args.1
+        node_id: null
+        subgraph_id: null
+        output_id: null
+        graph_input_id: translate_model
+      meta:
+        name: args.0
+        annotations: null
+    - id: args.1
       iotype: DIRECTORY
       source:
-        node: null
-        subgraph: null
-        output: null
-        graph_input: sentences
+        node_id: null
+        subgraph_id: null
+        output_id: null
+        graph_input_id: sentences
+      meta:
+        name: args.1
+        annotations: null
     outputs:
-    - name: return
+    - id: return
       iotype: DIRECTORY
-  - name: infer_pipeline.sentiment
-    entrypoint:
-      version: v1
-      handler: example.example:sentiment
-      runtime: python:3.8
-      codeurl: null
-      image: pircli-build:fbb9b1d1-11ed-48a6-a70c-67a1f6c928a5
+      meta:
+        name: return
+        annotations: null
+    meta:
+      name: translate_1
+      annotations: null
+  - id: infer_pipeline.sentiment
+    entrypoints:
+      main:
+        version: v1
+        handler: example.example:sentiment
+        runtime: python:3.9
+        codeurl: null
+        image: pircli-build:12abefff-89d7-483a-9b23-78153dd510dc
     framework: null
     config: {}
     inputs:
-    - name: model
+    - id: model
       iotype: FILE
       source:
-        node: train
-        subgraph: null
-        output: return
-        graph_input: null
-    - name: sentences
+        node_id: train
+        subgraph_id: null
+        output_id: return
+        graph_input_id: null
+      meta:
+        name: model
+        annotations: null
+    - id: sentences
       iotype: DIRECTORY
       source:
-        node: infer_pipeline.translate_1
-        subgraph: null
-        output: return
-        graph_input: null
+        node_id: infer_pipeline.translate_1
+        subgraph_id: null
+        output_id: return
+        graph_input_id: null
+      meta:
+        name: sentences
+        annotations: null
     outputs:
-    - name: return
+    - id: return
       iotype: DIRECTORY
+      meta:
+        name: return
+        annotations: null
+    meta:
+      name: sentiment
+      annotations: null
   subgraphs: []
   inputs:
-  - name: train_dataset
+  - id: train_dataset
     iotype: DIRECTORY
-  - name: translate_model
+    meta:
+      name: train_dataset
+      annotations: null
+  - id: translate_model
     iotype: FILE
-  - name: sentences
+    meta:
+      name: translate_model
+      annotations: null
+  - id: sentences
     iotype: DIRECTORY
+    meta:
+      name: sentences
+      annotations: null
   outputs:
-  - name: return.0
+  - id: return.0
     iotype: FILE
     source:
-      node: train
-      subgraph: null
-      output: return
-      graph_input: null
-  - name: return.1
+      node_id: train
+      subgraph_id: null
+      output_id: return
+      graph_input_id: null
+    meta:
+      name: return.0
+      annotations: null
+  - id: return.1
     iotype: DATAFRAME
     source:
-      node: evaluate
-      subgraph: null
-      output: return
-      graph_input: null
+      node_id: evaluate
+      subgraph_id: null
+      output_id: return
+      graph_input_id: null
+    meta:
+      name: return.1
+      annotations: null
+  meta:
+    name: train_pipeline
+    annotations: null

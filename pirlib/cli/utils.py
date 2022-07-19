@@ -38,9 +38,9 @@ def package_pipelines(
             pkg.graphs = [pkg.flatten_graph(pipeline.name, validate=True)]
         for g in pkg.graphs:
             for graph in package.graphs:
-                if g.name == graph.name:
+                if g.id == graph.id:
                     if g != graph:
-                        parser.error(f"conflicting graphs named '{g.name}'")
+                        parser.error(f"conflicting graphs id '{g.id}'")
                     break
             else:
                 package.graphs.append(g)

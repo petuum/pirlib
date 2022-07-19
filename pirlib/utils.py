@@ -1,4 +1,4 @@
-def find_by_name(iterable, name):
+def find_by_id(iterable, id):
     for item in iterable:
-        if item.name == name:
+        if item.id == id:
             return item
