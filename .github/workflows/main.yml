@@ -21,10 +21,12 @@ jobs:
 
       - name: Install dependencies
         run: pip install --progress-bar off pytest==5.1.3
-        run: pip install example/requirements.txt
 
       - name: Install PirLib
         run: pip install --progress-bar off .
+        
+      - name: Install example dependencies
+        run: pip install example/requirements.txt
 
       - name: Test with pytest
         run: pytest tests/
