@@ -2,7 +2,7 @@ from pirlib.pipeline import pipeline
 from pirlib.task import task
 from pirlib.iotypes import DirectoryPath, FilePath
 from pirlib.pir import Graph
-from pirlib.utils import find_by_name
+from pirlib.utils import find_by_id
 
 def test_pipeline_defn():
 
@@ -12,7 +12,7 @@ def test_pipeline_defn():
         return out_path
 
     assert my_pipeline.name == "my_pipeline"
-    assert my_pipeline.config["key"] == "value"
+    assert my_pipeline.config.get("key", None) == "value"
 
 def test_pipeline_pkg1():
     @task
@@ -57,6 +57,6 @@ def test_pipeline_pkg2():
     assert p2.name == "p2"
     assert p2.config is None
     assert len(pkg.graphs) == 2
-    p2_graph = find_by_name(pkg.graphs, "p2")[0]
+    p2_graph = find_by_id(pkg.graphs, "p2")
     assert len(p2_graph.nodes) == 1
     assert len(p2_graph.subgraphs) == 1

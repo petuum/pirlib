@@ -9,7 +9,7 @@ def test_task_defn1():
         return inp / "file.txt"
 
     assert my_task.name == "my_task"
-    assert my_task.config["framework"] is None
+    assert my_task.framework is None
     
 
 def test_task_defn2():
@@ -29,7 +29,7 @@ def test_task_defn2():
 
     assert my_task.name == "my_task"
     assert my_task.config["key"] == "value"
-    assert my_task.framework["name"] == "adaptdl"
-    assert my_task.framework["version"] == "0.0.0"
-    assert my_task.framework["config"]["min_replicas"] == 1
-    assert my_task.framework["config"]["max_replicas"] == 4
+    assert my_task.framework.name == "adaptdl"
+    assert my_task.framework.version == "0.0.0"
+    assert my_task.config.get("adaptdl/min_replicas", None) == 1
+    assert my_task.config.get("adaptdl/max_replicas", None) == 4
