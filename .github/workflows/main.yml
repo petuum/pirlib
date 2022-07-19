@@ -1,0 +1,26 @@
+name: PIRLib Actions
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+      - develop
+
+jobs:
+  test:
+    name: Running Units Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Install dependencies
+        run: pip install --progress-bar off pytest==5.1.3
+
+      - name: Test with pytest
+        run: pytest tests/
