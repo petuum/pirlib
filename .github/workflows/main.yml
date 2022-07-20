@@ -3,9 +3,7 @@ name: PIRLib Actions
 on:
   push:
   pull_request:
-    branches:
-      - master
-      - develop
+    branches: [ master ]
 
 jobs:
   test:
