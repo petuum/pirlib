@@ -1,198 +1,305 @@
 graphs:
-- name: infer_pipeline
+- id: infer_pipeline
   nodes:
-  - name: translate_1
-    entrypoint:
-      version: v1
-      handler: example.example:translate
-      runtime: python:3.8
-      codeurl: null
-      image: null
+  - id: translate_1
+    entrypoints:
+      main:
+        version: v1
+        handler: example.example:translate
+        runtime: python:3.9
+        codeurl: null
+        image: null
     framework: null
     config:
       key: value
     inputs:
-    - name: args.0
+    - id: args.0
       iotype: FILE
       source:
-        node: null
-        subgraph: null
-        output: null
-        graph_input: translate_model
-    - name: args.1
+        node_id: null
+        subgraph_id: null
+        output_id: null
+        graph_input_id: translate_model
+      meta:
+        name: args.0
+        annotations: null
+    - id: args.1
       iotype: DIRECTORY
       source:
-        node: null
-        subgraph: null
-        output: null
-        graph_input: sentences
+        node_id: null
+        subgraph_id: null
+        output_id: null
+        graph_input_id: sentences
+      meta:
+        name: args.1
+        annotations: null
     outputs:
-    - name: return
+    - id: return
       iotype: DIRECTORY
-  - name: sentiment
-    entrypoint:
-      version: v1
-      handler: example.example:sentiment
-      runtime: python:3.8
-      codeurl: null
-      image: null
+      meta:
+        name: return
+        annotations: null
+    meta:
+      name: translate_1
+      annotations: null
+  - id: sentiment
+    entrypoints:
+      main:
+        version: v1
+        handler: example.example:sentiment
+        runtime: python:3.9
+        codeurl: null
+        image: null
     framework: null
     config: {}
     inputs:
-    - name: model
+    - id: model
       iotype: FILE
       source:
-        node: null
-        subgraph: null
-        output: null
-        graph_input: sentiment_model
-    - name: sentences
+        node_id: null
+        subgraph_id: null
+        output_id: null
+        graph_input_id: sentiment_model
+      meta:
+        name: model
+        annotations: null
+    - id: sentences
       iotype: DIRECTORY
       source:
-        node: translate_1
-        subgraph: null
-        output: return
-        graph_input: null
+        node_id: translate_1
+        subgraph_id: null
+        output_id: return
+        graph_input_id: null
+      meta:
+        name: sentences
+        annotations: null
     outputs:
-    - name: return
+    - id: return
       iotype: DIRECTORY
+      meta:
+        name: return
+        annotations: null
+    meta:
+      name: sentiment
+      annotations: null
   subgraphs: []
   inputs:
-  - name: translate_model
+  - id: translate_model
     iotype: FILE
-  - name: sentiment_model
+    meta:
+      name: translate_model
+      annotations: null
+  - id: sentiment_model
     iotype: FILE
-  - name: sentences
+    meta:
+      name: sentiment_model
+      annotations: null
+  - id: sentences
     iotype: DIRECTORY
+    meta:
+      name: sentences
+      annotations: null
   outputs:
-  - name: return
+  - id: return
     iotype: DIRECTORY
     source:
-      node: sentiment
-      subgraph: null
-      output: return
-      graph_input: null
-- name: train_pipeline
+      node_id: sentiment
+      subgraph_id: null
+      output_id: return
+      graph_input_id: null
+    meta:
+      name: return
+      annotations: null
+  meta:
+    name: infer_pipeline
+    annotations: null
+- id: train_pipeline
   nodes:
-  - name: clean
-    entrypoint:
-      version: v1
-      handler: example.example:clean
-      runtime: python:3.8
-      codeurl: null
-      image: null
+  - id: clean
+    entrypoints:
+      main:
+        version: v1
+        handler: example.example:clean
+        runtime: python:3.9
+        codeurl: null
+        image: null
     framework: null
     config: {}
     inputs:
-    - name: dataset
+    - id: dataset
       iotype: DIRECTORY
       source:
-        node: null
-        subgraph: null
-        output: null
-        graph_input: train_dataset
+        node_id: null
+        subgraph_id: null
+        output_id: null
+        graph_input_id: train_dataset
+      meta:
+        name: dataset
+        annotations: null
     outputs:
-    - name: return
+    - id: return
       iotype: DIRECTORY
-  - name: train
-    entrypoint:
-      version: v1
-      handler: example.example:train
-      runtime: python:3.8
-      codeurl: null
-      image: null
+      meta:
+        name: return
+        annotations: null
+    meta:
+      name: clean
+      annotations: null
+  - id: train
+    entrypoints:
+      main:
+        version: v1
+        handler: example.example:train
+        runtime: python:3.9
+        codeurl: null
+        image: null
     framework:
       name: adaptdl
-      config:
-        min_replicas: 1
-        max_replicas: 4
-    config: {}
+      version: null
+    config:
+      adaptdl/min_replicas: 1
+      adaptdl/max_replicas: 4
     inputs:
-    - name: dataset
+    - id: dataset
       iotype: DIRECTORY
       source:
-        node: clean
-        subgraph: null
-        output: return
-        graph_input: null
+        node_id: clean
+        subgraph_id: null
+        output_id: return
+        graph_input_id: null
+      meta:
+        name: dataset
+        annotations: null
     outputs:
-    - name: return
+    - id: return
       iotype: FILE
-  - name: evaluate
-    entrypoint:
-      version: v1
-      handler: example.example:evaluate
-      runtime: python:3.8
-      codeurl: null
-      image: null
+      meta:
+        name: return
+        annotations: null
+    meta:
+      name: train
+      annotations: null
+  - id: evaluate
+    entrypoints:
+      main:
+        version: v1
+        handler: example.example:evaluate
+        runtime: python:3.9
+        codeurl: null
+        image: null
     framework: null
     config: {}
     inputs:
-    - name: kwargs.test_dataset
+    - id: kwargs.test_dataset
       iotype: DIRECTORY
       source:
-        node: null
-        subgraph: null
-        output: null
-        graph_input: sentences
-    - name: kwargs.predictions
+        node_id: null
+        subgraph_id: null
+        output_id: null
+        graph_input_id: sentences
+      meta:
+        name: kwargs.test_dataset
+        annotations: null
+    - id: kwargs.predictions
       iotype: DIRECTORY
       source:
-        node: null
-        subgraph: infer_pipeline
-        output: return
-        graph_input: null
+        node_id: null
+        subgraph_id: infer_pipeline
+        output_id: return
+        graph_input_id: null
+      meta:
+        name: kwargs.predictions
+        annotations: null
     outputs:
-    - name: return
+    - id: return
       iotype: DATAFRAME
+      meta:
+        name: return
+        annotations: null
+    meta:
+      name: evaluate
+      annotations: null
   subgraphs:
-  - name: infer_pipeline
-    graph: infer_pipeline
+  - id: infer_pipeline
+    graph_id: infer_pipeline
     config: {}
     inputs:
-    - name: translate_model
+    - id: translate_model
       iotype: FILE
       source:
-        node: null
-        subgraph: null
-        output: null
-        graph_input: translate_model
-    - name: sentiment_model
+        node_id: null
+        subgraph_id: null
+        output_id: null
+        graph_input_id: translate_model
+      meta:
+        name: translate_model
+        annotations: null
+    - id: sentiment_model
       iotype: FILE
       source:
-        node: train
-        subgraph: null
-        output: return
-        graph_input: null
-    - name: sentences
+        node_id: train
+        subgraph_id: null
+        output_id: return
+        graph_input_id: null
+      meta:
+        name: sentiment_model
+        annotations: null
+    - id: sentences
       iotype: DIRECTORY
       source:
-        node: null
-        subgraph: null
-        output: null
-        graph_input: sentences
+        node_id: null
+        subgraph_id: null
+        output_id: null
+        graph_input_id: sentences
+      meta:
+        name: sentences
+        annotations: null
     outputs:
-    - name: return
+    - id: return
       iotype: DIRECTORY
+      meta:
+        name: return
+        annotations: null
+    meta:
+      name: infer_pipeline
+      annotations: null
   inputs:
-  - name: train_dataset
+  - id: train_dataset
     iotype: DIRECTORY
-  - name: translate_model
+    meta:
+      name: train_dataset
+      annotations: null
+  - id: translate_model
     iotype: FILE
-  - name: sentences
+    meta:
+      name: translate_model
+      annotations: null
+  - id: sentences
     iotype: DIRECTORY
+    meta:
+      name: sentences
+      annotations: null
   outputs:
-  - name: return.0
+  - id: return.0
     iotype: FILE
     source:
-      node: train
-      subgraph: null
-      output: return
-      graph_input: null
-  - name: return.1
+      node_id: train
+      subgraph_id: null
+      output_id: return
+      graph_input_id: null
+    meta:
+      name: return.0
+      annotations: null
+  - id: return.1
     iotype: DATAFRAME
     source:
-      node: evaluate
-      subgraph: null
-      output: return
-      graph_input: null
+      node_id: evaluate
+      subgraph_id: null
+      output_id: return
+      graph_input_id: null
+    meta:
+      name: return.1
+      annotations: null
+  meta:
+    name: train_pipeline
+    annotations: null

@@ -1,0 +1,71 @@
+# Copyright 2022 Petuum, Inc. All Rights Reserved.
+
+graphs: list(include("graph"))
+---
+graph:
+  id: str()
+  nodes: list(include("node"))
+  subgraphs: list(include("subgraph"))
+  inputs: list(include("graph_input"))
+  outputs: list(include("graph_output"))
+  meta: include("metadata", required=False)
+---
+node:
+  id: str()
+  entrypoints: map(include("entrypoint"))
+  framework: any(include("framework"), null())
+  config: map()
+  inputs: list(include("input"))
+  outputs: list(include("output"))
+  meta: include("metadata", required=False)
+---
+subgraph:
+  id: str()
+  graph_id: str()
+  config: map()
+  inputs: list(include("input")) 
+  outputs: list(include("output"))
+  meta: include("metadata", required=False)
+---
+graph_input:
+  id: str()
+  iotype: str()
+  meta: include("metadata", required=False)
+---
+graph_output:
+  id: str()
+  iotype: str()
+  source: include("datasource")
+  meta: include("metadata", required=False)
+---
+input:
+  id: str()
+  iotype: str()
+  source: include("datasource")
+  meta: include("metadata", required=False)
+---
+output:
+  id: str()
+  iotype: str()
+  meta: include("metadata", required=False)
+---
+metadata:
+  name: str(required=False)
+  annotations: map(required=False)
+---
+datasource:
+  node_id: any(str(), null())
+  subgraph_id: any(str(), null())
+  output_id: any(str(), null())
+  graph_input_id: any(str(), null())
+---
+framework:
+  name: str()
+  version: any(str(), null())
+---
+entrypoint:
+  version: str()
+  codeurl: any(str(), null())
+  handler: str()
+  image: any(str(), null())
+  runtime: str()

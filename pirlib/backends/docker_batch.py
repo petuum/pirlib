@@ -43,8 +43,8 @@ class DockerBatchBackend(Backend):
         assert len(package.graphs) == 1
         graph = package.graphs[0]  # FIXME: need to handle multiple graphs
         for node in graph.nodes:
-            service = compose["services"][f"{graph.name}.{node.name}"] = {
-                "image": node.entrypoint.image,
+            service = compose["services"][f"{graph.id}.{node.id}"] = {
+                "image": node.entrypoints["main"].image,
                 "command": [
                     "python",
                     "-m",
@@ -56,28 +56,28 @@ class DockerBatchBackend(Backend):
                 "volumes": ["node_outputs:/mnt/node_outputs"],
             }
             for inp in node.inputs:
-                if inp.source.node is not None:
-                    name = f"{graph.name}.{inp.source.node}"
+                if inp.source.node_id is not None:
+                    name = f"{graph.id}.{inp.source.node_id}"
                     service.setdefault("depends_on", {})[name] = {
                         "condition": "service_completed_successfully",
                     }
-                if inp.source.graph_input is not None:
-                    name = inp.source.graph_input
+                if inp.source.graph_input_id is not None:
+                    name = inp.source.graph_input_id
                     path = f"${{INPUT_{name}:?err}}"
                     service["volumes"].append(f"{path}:/mnt/graph_inputs/{name}")
-        service = compose["services"][f"{graph.name}"] = {
-            "image": node.entrypoint.image,  # FIXME: a bit of a hack.
+        service = compose["services"][f"{graph.id}"] = {
+            "image": node.entrypoints["main"].image,  # FIXME: a bit of a hack.
             "command": ["python", "-m", __name__, "graph", encode(graph.outputs)],
             "volumes": ["node_outputs:/mnt/node_outputs"],
         }
         for g_inp in graph.inputs:
-            path = f"${{INPUT_{g_inp.name}:?err}}"
-            service["volumes"].append(f"{path}:/mnt/graph_inputs/{g_inp.name}")
+            path = f"${{INPUT_{g_inp.id}:?err}}"
+            service["volumes"].append(f"{path}:/mnt/graph_inputs/{g_inp.id}")
         if graph.outputs:
             service["volumes"].append(f"${{OUTPUT:?err}}:/mnt/graph_outputs")
         service["depends_on"] = {}
         for node in graph.nodes:
-            service["depends_on"][f"{graph.name}.{node.name}"] = {
+            service["depends_on"][f"{graph.id}.{node.id}"] = {
                 "condition": "service_completed_successfully",
             }
         if args is not None and args.output is not None:
@@ -92,39 +92,39 @@ def run_node(node, graph_inputs):
     import pathlib
     from pirlib.iotypes import DirectoryPath, FilePath
 
-    module_name, handler_name = node.entrypoint.handler.split(":")
+    module_name, handler_name = node.entrypoints["main"].handler.split(":")
     handler = getattr(importlib.import_module(module_name), handler_name)
     inputs = {}
     for inp in node.inputs:
-        if inp.source.node is not None:
-            path = f"/mnt/node_outputs/{inp.source.node}/{inp.source.output}"
-        if inp.source.graph_input is not None:
-            path = f"/mnt/graph_inputs/{inp.source.graph_input}"
+        if inp.source.node_id is not None:
+            path = f"/mnt/node_outputs/{inp.source.node_id}/{inp.source.output_id}"
+        if inp.source.graph_input_id is not None:
+            path = f"/mnt/graph_inputs/{inp.source.graph_input_id}"
         if inp.iotype == "DIRECTORY":
-            inputs[inp.name] = DirectoryPath(path)
+            inputs[inp.id] = DirectoryPath(path)
         elif inp.iotype == "FILE":
-            inputs[inp.name] = FilePath(path)
+            inputs[inp.id] = FilePath(path)
         elif inp.iotype == "DATAFRAME":
-            inputs[inp.name] = pandas.read_csv(path)
+            inputs[inp.id] = pandas.read_csv(path)
         else:
             raise TypeError(f"unsupported iotype {inp.iotype}")
     outputs = {}
     for out in node.outputs:
-        path = f"/mnt/node_outputs/{node.name}/{out.name}"
+        path = f"/mnt/node_outputs/{node.id}/{out.id}"
         if out.iotype == "DIRECTORY":
-            outputs[out.name] = DirectoryPath(path)
-            outputs[out.name].mkdir(parents=True, exist_ok=True)
+            outputs[out.id] = DirectoryPath(path)
+            outputs[out.id].mkdir(parents=True, exist_ok=True)
         elif out.iotype == "FILE":
-            outputs[out.name] = FilePath(path)
-            outputs[out.name].parents[0].mkdir(parents=True, exist_ok=True)
+            outputs[out.id] = FilePath(path)
+            outputs[out.id].parents[0].mkdir(parents=True, exist_ok=True)
         else:
-            outputs[out.name] = None
+            outputs[out.id] = None
     handler.run_handler(node, inputs, outputs)
     for out in node.outputs:
-        path = f"/mnt/node_outputs/{node.name}/{out.name}"
+        path = f"/mnt/node_outputs/{node.id}/{out.id}"
         if out.iotype == "DATAFRAME":
             pathlib.Path(path).parents[0].mkdir(parents=True, exist_ok=True)
-            outputs[out.name].to_csv(path)
+            outputs[out.id].to_csv(path)
 
 
 def run_graph(graph_outputs):
@@ -132,11 +132,11 @@ def run_graph(graph_outputs):
 
     for g_out in graph_outputs:
         source = g_out.source
-        if source.node is not None:
-            path_from = f"/mnt/node_outputs/{source.node}/{source.output}"
-        if source.graph_input is not None:
-            path_from = f"/mnt/graph_inputs/{source.graph_input}"
-        path_to = f"/mnt/graph_outputs/{g_out.name}"
+        if source.node_id is not None:
+            path_from = f"/mnt/node_outputs/{source.node_id}/{source.output_id}"
+        if source.graph_input_id is not None:
+            path_from = f"/mnt/graph_inputs/{source.graph_input_id}"
+        path_to = f"/mnt/graph_outputs/{g_out.id}"
         if g_out.iotype == "DIRECTORY":
             shutil.coptytree(path_from, path_to)
         else:
