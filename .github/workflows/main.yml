@@ -27,4 +27,5 @@ jobs:
         run: pip install -r example/requirements.txt
 
       - name: Test with pytest
-        run: python -m pytest -s -v --cov=pirlib --cov-branch --cov-report term-missing tests
+        run: |
+          python -m pytest -s -v --cov=pirlib --cov-branch --cov-report term-missing tests pirlib

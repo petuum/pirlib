@@ -91,12 +91,13 @@ def train_pipeline(
     return sentiment_model, evaluate(eval_input)
 
 
+# Prepare inputs.
+dir_1 = tempfile.TemporaryDirectory()
+file_2 = tempfile.NamedTemporaryFile()
+dir_3 = tempfile.TemporaryDirectory()
 
 def test_pipeline_run():
-    # Prepare inputs.
-    dir_1 = tempfile.TemporaryDirectory()
-    file_2 = tempfile.NamedTemporaryFile()
-    dir_3 = tempfile.TemporaryDirectory()
+
     with open(f"{dir_1.name}/file.txt", "w") as f:
         f.write("train_dataset")
     with open(f"{file_2.name}", "w") as f:
@@ -114,8 +115,6 @@ def test_pipeline_run():
 
 
 def test_task_run():
-    # Prepare inputs.
-    dir_1 = tempfile.TemporaryDirectory()
     with open(f"{dir_1.name}/file.txt", "w") as f:
         f.write("train_dataset")
     ## Test calling single operator.
