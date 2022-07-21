@@ -27,8 +27,9 @@ jobs:
 
       - name: Lint with flake8
         run: |
-          # stop the build if there are Python syntax errors or undefined names
+          # Stop if there are Python syntax errors or undefined names
           flake8 pirlib/ tests/ --count --select=E9,F63,F7,F82 --show-source --statistics
+          # Ignore C901 (Function is too complex), W503 (Line break occurred before a binary operator), and E203 (Whitespace before ':')
           flake8 pirlib/ tests/ --ignore C901,W503,E203 --count --exit-zero --max-complexity=10 --max-line-length=100 --statistics
 
       - name: Install PirLib
