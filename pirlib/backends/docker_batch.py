@@ -1,7 +1,5 @@
 import argparse
 import base64
-import dataclasses
-import json
 import pickle
 import sys
 import yaml
@@ -67,14 +65,20 @@ class DockerBatchBackend(Backend):
                     service["volumes"].append(f"{path}:/mnt/graph_inputs/{name}")
         service = compose["services"][f"{graph.id}"] = {
             "image": node.entrypoints["main"].image,  # FIXME: a bit of a hack.
-            "command": ["python", "-m", __name__, "graph", encode(graph.outputs)],
+            "command": [
+                "python",
+                "-m",
+                __name__,
+                "graph",
+                encode(graph.outputs),
+            ],
             "volumes": ["node_outputs:/mnt/node_outputs"],
         }
         for g_inp in graph.inputs:
             path = f"${{INPUT_{g_inp.id}:?err}}"
             service["volumes"].append(f"{path}:/mnt/graph_inputs/{g_inp.id}")
         if graph.outputs:
-            service["volumes"].append(f"${{OUTPUT:?err}}:/mnt/graph_outputs")
+            service["volumes"].append("${OUTPUT:?err}:/mnt/graph_outputs")
         service["depends_on"] = {}
         for node in graph.nodes:
             service["depends_on"][f"{graph.id}.{node.id}"] = {

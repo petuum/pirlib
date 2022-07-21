@@ -2,16 +2,13 @@ import argparse
 import importlib
 from typing import List, Optional
 
-from pirlib.backends import Backend
 from pirlib.pipeline import PipelineDefinition
 from pirlib.pir import Package
 
 
 def pipeline_def(arg: str) -> PipelineDefinition:
     if arg.count(":") != 1:
-        raise argparse.ArgumentTypeError(
-            f"malformatted reference to pipeline definition '{arg}'"
-        )
+        raise argparse.ArgumentTypeError(f"malformatted reference to pipeline definition '{arg}'")
     module_name, pipeline_name = arg.split(":")
     try:
         module = importlib.import_module(module_name)

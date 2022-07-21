@@ -1,14 +1,8 @@
 import contextvars
-import copy
 import functools
 import inspect
 import sys
-import threading
-import typeguard
 import typing
-from collections import OrderedDict
-from dataclasses import dataclass
-from typing import Optional
 
 from pirlib.iotypes import pytype_to_iotype
 from pirlib.pir import (
@@ -77,10 +71,7 @@ def _inspect_graph_inputs(func: callable):
         iotype = pytype_to_iotype(hint)
         graph_input_id = name
         source = DataSource(graph_input_id=graph_input_id)
-        graph_input = GraphInput(
-            id=graph_input_id,
-            iotype=iotype
-        )
+        graph_input = GraphInput(id=graph_input_id, iotype=iotype)
         graph_input.meta.name = name
         inputs.append(graph_input)
         return _create_ivalue(pytype=hint, source=source)
@@ -104,11 +95,7 @@ def _inspect_graph_outputs(func: callable, return_value: typing.Any):
     def add_output(name, hint, value):
         iotype = pytype_to_iotype(value.pytype)
         graph_output_id = name
-        graph_output = GraphOutput(
-            id=graph_output_id,
-            iotype = iotype,
-            source=value.source
-        )
+        graph_output = GraphOutput(id=graph_output_id, iotype=iotype, source=value.source)
         graph_output.meta.name = name
         outputs.append(graph_output)
 
@@ -151,9 +138,7 @@ def package_pipeline(definition) -> Package:
     return package
 
 
-def _pipeline_to_graph(
-    pipeline_func: callable, pipeline_name: str, pipeline_config: dict
-) -> Graph:
+def _pipeline_to_graph(pipeline_func: callable, pipeline_name: str, pipeline_config: dict) -> Graph:
     package = _PACKAGE.get()
     graph_id = pipeline_name
     graph = Graph(id=graph_id)
@@ -189,9 +174,7 @@ def pipeline_call(method):
             inputs=_inspect_inputs(instance.func, args, kwargs),
         )
         subgraph.meta.name = instance.name
-        subgraph.outputs, value = _inspect_outputs(
-            instance.func, subgraph=subgraph_id
-        )
+        subgraph.outputs, value = _inspect_outputs(instance.func, subgraph=subgraph_id)
         graph.subgraphs.append(subgraph)
         return value
 
@@ -204,11 +187,7 @@ def _inspect_inputs(func: callable, args, kwargs):
     def add_input(name, hint, value):
         iotype = pytype_to_iotype(hint)
         input_id = name
-        inp = Input(
-            id=input_id,
-            iotype=iotype,
-            source=value.source
-        )
+        inp = Input(id=input_id, iotype=iotype, source=value.source)
         inp.meta.name = name
         inputs.append(inp)
 
@@ -229,10 +208,7 @@ def _inspect_outputs(func: callable, node=None, subgraph=None):
         source = DataSource(node_id=node, subgraph_id=subgraph, output_id=name)
         iotype = pytype_to_iotype(hint)
         output_id = name
-        output = Output(
-            id=output_id,
-            iotype=iotype
-        )
+        output = Output(id=output_id, iotype=iotype)
         output.meta.name = name
         outputs.append(output)
         return _create_ivalue(pytype=hint, source=source)
@@ -243,7 +219,7 @@ def _inspect_outputs(func: callable, node=None, subgraph=None):
 
 
 def _create_entrypoints(func):
-    entrypoint =  Entrypoint(
+    entrypoint = Entrypoint(
         version="v1",
         handler=f"{func.__module__}:{func.__name__}",
         runtime=f"python:{sys.version_info[0]}.{sys.version_info[1]}",

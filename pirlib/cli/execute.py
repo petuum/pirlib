@@ -19,9 +19,7 @@ def config_execute_parser(parser: argparse.ArgumentParser) -> None:
 
 def _execute_handler(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
     if args.target.count(":") != 1:
-        raise argparse.ArgumentTypeError(
-            f"malformatted reference to backend class '{args.target}'"
-        )
+        raise argparse.ArgumentTypeError(f"malformatted reference to backend class '{args.target}'")
     module_name, backend_name = args.target.split(":")
     try:
         module = importlib.import_module(module_name)
