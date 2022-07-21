@@ -7,29 +7,37 @@ from pirlib.utils import find_by_id
 
 
 pipeline_config = {"key": "value"}
+
+
 @pipeline(config=pipeline_config)
 def p0(inp: FilePath) -> FilePath:
     return inp
+
 
 @task
 def t1(inp: DirectoryPath) -> DirectoryPath:
     return inp
 
+
 @task
 def t2(inp: DirectoryPath) -> FilePath:
     return FilePath(inp / "file.txt")
+
 
 @pipeline
 def p1(inp: DirectoryPath) -> DirectoryPath:
     return t1(inp)
 
+
 @pipeline
 def p2(inp: DirectoryPath) -> FilePath:
     return t2(t1(inp))
 
+
 @pipeline
 def p3(inp: DirectoryPath) -> FilePath:
     return t2(p1(inp))
+
 
 @pipeline
 def broken_pipeline(inp: DirectoryPath) -> FilePath:
@@ -39,6 +47,7 @@ def broken_pipeline(inp: DirectoryPath) -> FilePath:
 
 test_dir_path = DirectoryPath("test")
 test_file_path = FilePath("test/file.txt")
+
 
 def test_pipeline_defn():
     assert p0.name == "p0"

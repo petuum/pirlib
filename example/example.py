@@ -42,7 +42,6 @@ def evaluate(kwargs: EvaluateInput) -> pandas.DataFrame:
     predictions = kwargs["predictions"]
     with open(test_dataset / "file.txt") as f, open(predictions / "file.txt") as g:
         print("evaluate({}, {})".format(f.read().strip(), g.read().strip()))
-    outdir = task.context().output
     df = pandas.DataFrame([{"evaluate": "result"}])
     return df
 
@@ -52,7 +51,12 @@ def translate(args: Tuple[FilePath, DirectoryPath]) -> DirectoryPath:
     model, sentences = args
     task_ctx = task.context()
     with open(model) as f, open(sentences / "file.txt") as g:
-        print("translate({}, {}, config={})".format(f.read().strip(), g.read().strip(), task_ctx.config))
+        print(
+            "translate({}, {}, config={})".format(
+                f.read().strip(),
+                g.read().strip(),
+                task_ctx.config)
+        )
     outdir = task_ctx.output
     with open(outdir / "file.txt", "w") as f:
         f.write("translate_result")
@@ -82,8 +86,7 @@ def infer_pipeline(translate_model: FilePath,
 def train_pipeline(
         train_dataset: DirectoryPath,
         translate_model: FilePath,
-        sentences: DirectoryPath,
-    ) -> Tuple[FilePath, pandas.DataFrame]:
+        sentences: DirectoryPath) -> Tuple[FilePath, pandas.DataFrame]:
     sentiment_model = train(clean(train_dataset))
     sentiment = infer_pipeline(translate_model, sentiment_model, sentences)
     eval_input = {"test_dataset": sentences, "predictions": sentiment}

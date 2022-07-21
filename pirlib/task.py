@@ -65,9 +65,7 @@ class TaskInstance(object):
             )
         backend = InprocBackend()
         outputs = backend.execute(package, self.name, self.config, inputs=inputs)
-        return recurse_hint(
-            lambda name, hint: outputs[name], "return", sig.return_annotation
-        )
+        return recurse_hint(lambda name, hint: outputs[name], "return", sig.return_annotation)
 
 
 class TaskDefinition(HandlerV1):
@@ -137,9 +135,7 @@ class TaskDefinition(HandlerV1):
         )
         args, kwargs = [], {}
         for param in sig.parameters.values():
-            value = recurse_hint(
-                lambda name, hint: inputs[name], param.name, param.annotation
-            )
+            value = recurse_hint(lambda name, hint: inputs[name], param.name, param.annotation)
             if param.kind == param.KEYWORD_ONLY:
                 kwargs[param.name] = value
             else:

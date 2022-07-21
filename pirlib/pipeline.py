@@ -3,7 +3,7 @@ import functools
 import inspect
 import typeguard
 
-from typing import Any, Callable, Optional
+from typing import Callable, Optional
 
 from pirlib.backends.inproc import InprocBackend
 from pirlib.package import package_pipeline, pipeline_call, recurse_hint
@@ -47,9 +47,7 @@ class PipelineInstance(object):
             )
         backend = InprocBackend()
         outputs = backend.execute(package, self.name, self.config, inputs=inputs)
-        return recurse_hint(
-            lambda name, hint: outputs[name], "return", sig.return_annotation
-        )
+        return recurse_hint(lambda name, hint: outputs[name], "return", sig.return_annotation)
 
 
 class PipelineDefinition(object):

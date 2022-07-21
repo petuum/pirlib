@@ -1,7 +1,6 @@
 import argparse
 import importlib
 import pandas
-import pathlib
 import tempfile
 from typing import Any, Dict, Optional
 
@@ -41,9 +40,7 @@ class InprocBackend(Backend):
         # Execute nodes one at a time.
         node_outputs = {}
         while True:
-            remaining_nodes = [
-                node for node in graph.nodes if node.id not in node_outputs
-            ]
+            remaining_nodes = [node for node in graph.nodes if node.id not in node_outputs]
             if not remaining_nodes:
                 break
             # Find a node that has all inputs ready.
@@ -61,9 +58,7 @@ class InprocBackend(Backend):
                         if inp.source.output_id not in node_outputs[inp.source.node_id]:
                             # Provider's output is not ready
                             break
-                        node_inputs[inp.id] = node_outputs[inp.source.node_id][
-                            inp.source.output_id
-                        ]
+                        node_inputs[inp.id] = node_outputs[inp.source.node_id][inp.source.output_id]
                 else:
                     break
             else:
