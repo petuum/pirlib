@@ -78,7 +78,7 @@ class DockerBatchBackend(Backend):
             path = f"${{INPUT_{g_inp.id}:?err}}"
             service["volumes"].append(f"{path}:/mnt/graph_inputs/{g_inp.id}")
         if graph.outputs:
-            service["volumes"].append("${{OUTPUT:?err}}:/mnt/graph_outputs")
+            service["volumes"].append("${OUTPUT:?err}:/mnt/graph_outputs")
         service["depends_on"] = {}
         for node in graph.nodes:
             service["depends_on"][f"{graph.id}.{node.id}"] = {
