@@ -7,6 +7,7 @@ from typing import Any, Dict, Optional
 import pirlib.pir
 import pirlib.iotypes
 from pirlib.backends import Backend
+from pirlib.context import TaskContext
 from pirlib.iotypes import DirectoryPath, FilePath
 from pirlib.utils import find_by_id
 
@@ -89,5 +90,10 @@ class InprocBackend(Backend):
                 outputs[out.id] = FilePath(tempfile.mkstemp()[1])
             else:
                 outputs[out.id] = None
-        handler.run_handler(node, inputs, outputs)
+        event = {
+            "inputs": inputs,
+            "outputs": outputs,
+        }
+        context = TaskContext(node.config, None)
+        handler.run_handler(event, context)
         return outputs

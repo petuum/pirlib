@@ -3,21 +3,15 @@ import copy
 import functools
 import inspect
 import typeguard
-from dataclasses import dataclass
 from typing import Any, Callable, Dict, Optional
 
 import pirlib.pir
+from pirlib.context import TaskContext
 from pirlib.backends.inproc import InprocBackend
 from pirlib.handlers.v1 import HandlerV1
 from pirlib.package import recurse_hint, task_call, package_task
 
 _TASK_CONTEXT = contextvars.ContextVar("_TASK_CONTEXT")
-
-
-@dataclass
-class TaskContext:
-    config: Dict[str, Any]
-    output: Any
 
 
 def task_context() -> TaskContext:
@@ -124,11 +118,10 @@ class TaskDefinition(HandlerV1):
 
     def run_handler(
         self,
-        node: pirlib.pir.Node,
-        inputs: Dict[str, Any],
-        outputs: Dict[str, Any],
+        event: Dict[str, Any],
+        context: Dict[str, Any],
     ) -> None:
-        context = TaskContext(node.config, None)
+        inputs, outputs = event["inputs"], event["outputs"]
         sig = inspect.signature(self.func)
         context.output = recurse_hint(
             lambda name, hint: outputs[name], "return", sig.return_annotation
