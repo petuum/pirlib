@@ -3,15 +3,22 @@ import copy
 import functools
 import inspect
 import typeguard
+from dataclasses import dataclass
 from typing import Any, Callable, Dict, Optional
 
 import pirlib.pir
-from pirlib.context import TaskContext
 from pirlib.backends.inproc import InprocBackend
-from pirlib.handlers.v1 import HandlerV1
+from pirlib.handlers.v1 import HandlerV1, HandlerContext, HandlerEvent
 from pirlib.package import recurse_hint, task_call, package_task
 
+
 _TASK_CONTEXT = contextvars.ContextVar("_TASK_CONTEXT")
+
+
+@dataclass
+class TaskContext:
+    config: Dict[str, Any]
+    output: Any
 
 
 def task_context() -> TaskContext:
@@ -118,10 +125,10 @@ class TaskDefinition(HandlerV1):
 
     def run_handler(
         self,
-        event: Dict[str, Any],
-        context: Dict[str, Any],
+        event: HandlerEvent,
+        context: HandlerContext,
     ) -> None:
-        inputs, outputs = event["inputs"], event["outputs"]
+        inputs, outputs = event.inputs, event.outputs
         sig = inspect.signature(self.func)
         context.output = recurse_hint(
             lambda name, hint: outputs[name], "return", sig.return_annotation
@@ -133,7 +140,8 @@ class TaskDefinition(HandlerV1):
                 kwargs[param.name] = value
             else:
                 args.append(value)
-        token = _TASK_CONTEXT.set(context)
+        task_context = TaskContext(context.config, context.output)
+        token = _TASK_CONTEXT.set(task_context)
         try:
             return_value = self.func(*args, **kwargs)
         finally:

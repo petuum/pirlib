@@ -1,5 +1,18 @@
 from abc import abstractmethod
+from dataclasses import dataclass
 from typing import Any, Dict
+
+
+@dataclass
+class HandlerContext(object):
+    config: Dict[str, Any]
+    output: Any
+
+
+@dataclass
+class HandlerEvent(object):
+    inputs: Dict[str, Any]
+    outputs: Dict[str, Any]
 
 
 class HandlerV1(object):
@@ -14,7 +27,7 @@ class HandlerV1(object):
     @abstractmethod
     def run_handler(
         self,
-        event: Dict[str, Any],
-        context: Dict[str, Any],
+        event: HandlerEvent,
+        context: HandlerContext,
     ) -> None:
         raise NotImplementedError
