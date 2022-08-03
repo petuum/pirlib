@@ -91,6 +91,6 @@ class InprocBackend(Backend):
             else:
                 outputs[out.id] = None
         event = HandlerEvent(inputs, outputs)
-        context = HandlerContext(node.config, None)
+        context = HandlerContext(node.config)
         handler.run_handler(event, context)
         return outputs

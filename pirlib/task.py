@@ -130,7 +130,8 @@ class TaskDefinition(HandlerV1):
     ) -> None:
         inputs, outputs = event.inputs, event.outputs
         sig = inspect.signature(self.func)
-        context.output = recurse_hint(
+        task_context = TaskContext(context.node_config, None)
+        task_context.output = recurse_hint(
             lambda name, hint: outputs[name], "return", sig.return_annotation
         )
         args, kwargs = [], {}
@@ -140,7 +141,6 @@ class TaskDefinition(HandlerV1):
                 kwargs[param.name] = value
             else:
                 args.append(value)
-        task_context = TaskContext(context.config, context.output)
         token = _TASK_CONTEXT.set(task_context)
         try:
             return_value = self.func(*args, **kwargs)

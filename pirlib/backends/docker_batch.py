@@ -125,7 +125,7 @@ def run_node(node, graph_inputs):
         else:
             outputs[out.id] = None
     events = HandlerEvent(inputs, outputs)
-    context = HandlerContext(node.config, None)
+    context = HandlerContext(node.config)
     handler.run_handler(events, context)
     for out in node.outputs:
         path = f"/mnt/node_outputs/{node.id}/{out.id}"

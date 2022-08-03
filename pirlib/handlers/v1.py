@@ -5,8 +5,7 @@ from typing import Any, Dict
 
 @dataclass
 class HandlerContext(object):
-    config: Dict[str, Any]
-    output: Any
+    node_config: Dict[str, Any]
 
 
 @dataclass
