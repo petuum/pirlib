@@ -7,6 +7,7 @@ from typing import Optional
 
 import pirlib.pir
 from pirlib.backends import Backend
+from pirlib.handlers.v1 import HandlerV1Context, HandlerV1Event
 
 
 def encode(x):
@@ -123,7 +124,9 @@ def run_node(node, graph_inputs):
             outputs[out.id].parents[0].mkdir(parents=True, exist_ok=True)
         else:
             outputs[out.id] = None
-    handler.run_handler(node, inputs, outputs)
+    events = HandlerV1Event(inputs, outputs)
+    context = HandlerV1Context(node)
+    handler.run_handler(events, context)
     for out in node.outputs:
         path = f"/mnt/node_outputs/{node.id}/{out.id}"
         if out.iotype == "DATAFRAME":

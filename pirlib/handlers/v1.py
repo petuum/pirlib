@@ -1,7 +1,18 @@
 from abc import abstractmethod
+from dataclasses import dataclass
 from typing import Any, Dict
+from pirlib.pir import Node
 
-import pirlib.pir
+
+@dataclass
+class HandlerV1Context(object):
+    node: Node
+
+
+@dataclass
+class HandlerV1Event(object):
+    inputs: Dict[str, Any]
+    outputs: Dict[str, Any]
 
 
 class HandlerV1(object):
@@ -16,8 +27,7 @@ class HandlerV1(object):
     @abstractmethod
     def run_handler(
         self,
-        node: pirlib.pir.Node,
-        inputs: Dict[str, Any],
-        outputs: Dict[str, Any],
+        event: HandlerV1Event,
+        context: HandlerV1Context,
     ) -> None:
         raise NotImplementedError
