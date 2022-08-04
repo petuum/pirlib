@@ -7,7 +7,7 @@ from typing import Optional
 
 import pirlib.pir
 from pirlib.backends import Backend
-from pirlib.handlers.v1 import HandlerContext, HandlerEvent
+from pirlib.handlers.v1 import HandlerV1Context, HandlerV1Event
 
 
 def encode(x):
@@ -124,8 +124,8 @@ def run_node(node, graph_inputs):
             outputs[out.id].parents[0].mkdir(parents=True, exist_ok=True)
         else:
             outputs[out.id] = None
-    events = HandlerEvent(inputs, outputs)
-    context = HandlerContext(node.config)
+    events = HandlerV1Event(inputs, outputs)
+    context = HandlerV1Context(node)
     handler.run_handler(events, context)
     for out in node.outputs:
         path = f"/mnt/node_outputs/{node.id}/{out.id}"

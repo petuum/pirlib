@@ -8,7 +8,7 @@ from typing import Any, Callable, Dict, Optional
 
 import pirlib.pir
 from pirlib.backends.inproc import InprocBackend
-from pirlib.handlers.v1 import HandlerV1, HandlerContext, HandlerEvent
+from pirlib.handlers.v1 import HandlerV1, HandlerV1Context, HandlerV1Event
 from pirlib.package import recurse_hint, task_call, package_task
 
 
@@ -125,12 +125,12 @@ class TaskDefinition(HandlerV1):
 
     def run_handler(
         self,
-        event: HandlerEvent,
-        context: HandlerContext,
+        event: HandlerV1Event,
+        context: HandlerV1Context,
     ) -> None:
         inputs, outputs = event.inputs, event.outputs
         sig = inspect.signature(self.func)
-        task_context = TaskContext(context.node_config, None)
+        task_context = TaskContext(context.node.config, None)
         task_context.output = recurse_hint(
             lambda name, hint: outputs[name], "return", sig.return_annotation
         )
