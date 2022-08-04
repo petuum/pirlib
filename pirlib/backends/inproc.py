@@ -92,5 +92,7 @@ class InprocBackend(Backend):
                 outputs[out.id] = None
         event = HandlerV1Event(inputs, outputs)
         context = HandlerV1Context(node)
+        handler.setup(context)
         handler.run_handler(event, context)
+        handler.teardown(context)
         return outputs

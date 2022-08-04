@@ -31,3 +31,15 @@ class HandlerV1(object):
         context: HandlerV1Context,
     ) -> None:
         raise NotImplementedError
+
+    def setup(
+        self,
+        context: HandlerV1Context,
+    ) -> None:
+        pass
+
+    def teardown(
+        self,
+        context: HandlerV1Context,
+    ) -> None:
+        pass

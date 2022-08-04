@@ -2,6 +2,7 @@ import contextvars
 import copy
 import functools
 import inspect
+import importlib
 import typeguard
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Optional
@@ -153,6 +154,18 @@ class TaskDefinition(HandlerV1):
             return_value,
         )
 
+    def setup(
+        self,
+        context: HandlerV1Context,
+    ):
+        pass
+
+    def teardown(
+        self,
+        context: HandlerV1Context,
+    ):
+        pass
+
 
 def task(
     func: Optional[Callable] = None,
@@ -160,6 +173,8 @@ def task(
     name: Optional[str] = None,
     config: Optional[dict] = None,
     framework: Optional[pirlib.pir.Framework] = None,
+    setup: str = None,
+    teardown: str = None,
 ) -> TaskDefinition:
     if framework:
         if config is None:
@@ -174,6 +189,13 @@ def task(
         framework=framework,
     )
     functools.update_wrapper(wrapper, func)
+    if setup:
+        module_name, handler_name = setup.split(":")
+        setattr(wrapper, "setup", getattr(module_name, handler_name))
+    if teardown:
+        module_name, handler_name = setup.split(":")
+        setattr(wrapper, "teardown", getattr(module_name, handler_name))
+
     return wrapper
 
 
