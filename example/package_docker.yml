@@ -8,7 +8,7 @@ graphs:
         handler: example.example:clean
         runtime: python:3.9
         codeurl: null
-        image: pircli-build:12abefff-89d7-483a-9b23-78153dd510dc
+        image: pircli-build:b8f7ebb4-2b49-4f87-8c1a-afdb85b956ac
     framework: null
     config: {}
     inputs:
@@ -38,7 +38,7 @@ graphs:
         handler: example.example:train
         runtime: python:3.9
         codeurl: null
-        image: pircli-build:12abefff-89d7-483a-9b23-78153dd510dc
+        image: pircli-build:b8f7ebb4-2b49-4f87-8c1a-afdb85b956ac
     framework:
       name: adaptdl
       version: null
@@ -72,7 +72,7 @@ graphs:
         handler: example.example:evaluate
         runtime: python:3.9
         codeurl: null
-        image: pircli-build:12abefff-89d7-483a-9b23-78153dd510dc
+        image: pircli-build:b8f7ebb4-2b49-4f87-8c1a-afdb85b956ac
     framework: null
     config: {}
     inputs:
@@ -112,22 +112,12 @@ graphs:
         handler: example.example:translate
         runtime: python:3.9
         codeurl: null
-        image: pircli-build:12abefff-89d7-483a-9b23-78153dd510dc
+        image: pircli-build:b8f7ebb4-2b49-4f87-8c1a-afdb85b956ac
     framework: null
     config:
       key: value
     inputs:
-    - id: args.0
-      iotype: FILE
-      source:
-        node_id: null
-        subgraph_id: null
-        output_id: null
-        graph_input_id: translate_model
-      meta:
-        name: args.0
-        annotations: null
-    - id: args.1
+    - id: sentences
       iotype: DIRECTORY
       source:
         node_id: null
@@ -135,7 +125,7 @@ graphs:
         output_id: null
         graph_input_id: sentences
       meta:
-        name: args.1
+        name: sentences
         annotations: null
     outputs:
     - id: return
@@ -153,7 +143,7 @@ graphs:
         handler: example.example:sentiment
         runtime: python:3.9
         codeurl: null
-        image: pircli-build:12abefff-89d7-483a-9b23-78153dd510dc
+        image: pircli-build:b8f7ebb4-2b49-4f87-8c1a-afdb85b956ac
     framework: null
     config: {}
     inputs:
@@ -192,11 +182,6 @@ graphs:
     iotype: DIRECTORY
     meta:
       name: train_dataset
-      annotations: null
-  - id: translate_model
-    iotype: FILE
-    meta:
-      name: translate_model
       annotations: null
   - id: sentences
     iotype: DIRECTORY

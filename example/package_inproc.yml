@@ -13,17 +13,7 @@ graphs:
     config:
       key: value
     inputs:
-    - id: args.0
-      iotype: FILE
-      source:
-        node_id: null
-        subgraph_id: null
-        output_id: null
-        graph_input_id: translate_model
-      meta:
-        name: args.0
-        annotations: null
-    - id: args.1
+    - id: sentences
       iotype: DIRECTORY
       source:
         node_id: null
@@ -31,7 +21,7 @@ graphs:
         output_id: null
         graph_input_id: sentences
       meta:
-        name: args.1
+        name: sentences
         annotations: null
     outputs:
     - id: return
@@ -84,11 +74,6 @@ graphs:
       annotations: null
   subgraphs: []
   inputs:
-  - id: translate_model
-    iotype: FILE
-    meta:
-      name: translate_model
-      annotations: null
   - id: sentiment_model
     iotype: FILE
     meta:
@@ -224,16 +209,6 @@ graphs:
     graph_id: infer_pipeline
     config: {}
     inputs:
-    - id: translate_model
-      iotype: FILE
-      source:
-        node_id: null
-        subgraph_id: null
-        output_id: null
-        graph_input_id: translate_model
-      meta:
-        name: translate_model
-        annotations: null
     - id: sentiment_model
       iotype: FILE
       source:
@@ -268,11 +243,6 @@ graphs:
     iotype: DIRECTORY
     meta:
       name: train_dataset
-      annotations: null
-  - id: translate_model
-    iotype: FILE
-    meta:
-      name: translate_model
       annotations: null
   - id: sentences
     iotype: DIRECTORY

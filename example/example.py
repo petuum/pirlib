@@ -6,6 +6,7 @@ from typing import Tuple, TypedDict
 
 from pirlib.frameworks.adaptdl import AdaptDL
 from pirlib.iotypes import DirectoryPath, FilePath
+from pirlib.handlers.v1 import HandlerV1Context
 from pirlib.task import task
 from pirlib.pipeline import pipeline
 
@@ -23,6 +24,7 @@ def clean(dataset: DirectoryPath) -> DirectoryPath:
 @task(framework=AdaptDL(min_replicas=1, max_replicas=4))
 def train(dataset: DirectoryPath) -> FilePath:
     task_ctx = task.context()
+    task_ctx.set("train accuracy", 0.83)
     with open(dataset / "file.txt") as f:
         print("train({}, config={})".format(f.read().strip(), task_ctx.config))
     outfile = task.context().output
@@ -46,20 +48,34 @@ def evaluate(kwargs: EvaluateInput) -> pandas.DataFrame:
     return df
 
 
-@task
-def translate(args: Tuple[FilePath, DirectoryPath]) -> DirectoryPath:
-    model, sentences = args
+class TranslateModel(object):
+    def translate(self, inp: str) -> str:
+        output = f"translation: {inp}"
+        return output
+
+def translate_setup(context: HandlerV1Context) -> None:
+    context.set("translate_model", TranslateModel())
+    print(">>> Initialized translation model.")
+
+def translate_teardown(context: HandlerV1Context) -> None:
+    context.reset("translate_model")
+    print(">>> Cleaned up translation model.")
+
+@task(setup="translate_setup", teardown="translate_teardown")
+def translate(sentences: DirectoryPath) -> DirectoryPath:
     task_ctx = task.context()
-    with open(model) as f, open(sentences / "file.txt") as g:
+    model = task_ctx.get("translate_model")
+    with open(sentences / "file.txt") as g:
+        inp = g.read().strip()
         print(
-            "translate({}, {}, config={})".format(
-                f.read().strip(),
-                g.read().strip(),
+            "translate({}, config={})".format(
+                inp,
                 task_ctx.config)
         )
+        translate_result = model.translate(inp)
     outdir = task_ctx.output
     with open(outdir / "file.txt", "w") as f:
-        f.write("translate_result")
+        f.write(translate_result)
     return outdir
 
 
@@ -74,21 +90,19 @@ def sentiment(model: FilePath, sentences: DirectoryPath) -> DirectoryPath:
 
 
 @pipeline
-def infer_pipeline(translate_model: FilePath,
-                   sentiment_model: FilePath,
+def infer_pipeline(sentiment_model: FilePath,
                    sentences: DirectoryPath) -> DirectoryPath:
     translate_1 = translate.instance("translate_1")
     translate_1.config["key"] = "value"
-    return sentiment(sentiment_model, translate_1((translate_model, sentences)))
+    return sentiment(sentiment_model, translate_1(sentences))
 
 
 @pipeline
 def train_pipeline(
         train_dataset: DirectoryPath,
-        translate_model: FilePath,
         sentences: DirectoryPath) -> Tuple[FilePath, pandas.DataFrame]:
     sentiment_model = train(clean(train_dataset))
-    sentiment = infer_pipeline(translate_model, sentiment_model, sentences)
+    sentiment = infer_pipeline(sentiment_model, sentences)
     eval_input = {"test_dataset": sentences, "predictions": sentiment}
     return sentiment_model, evaluate(eval_input)
 
@@ -98,17 +112,13 @@ if __name__ == "__main__":
     print(yaml.dump(asdict(package), sort_keys=False))
     # Prepare inputs.
     dir_1 = tempfile.TemporaryDirectory()
-    file_2 = tempfile.NamedTemporaryFile()
     dir_3 = tempfile.TemporaryDirectory()
     with open(f"{dir_1.name}/file.txt", "w") as f:
         f.write("train_dataset")
-    with open(f"{file_2.name}", "w") as f:
-        f.write("translate_model")
     with open(f"{dir_3.name}/file.txt", "w") as f:
         f.write("sentences")
     # Test calling end-to-end pipeline.
     model_path, metrics = train_pipeline(DirectoryPath(dir_1.name),
-                                         FilePath(file_2.name),
                                          DirectoryPath(dir_3.name))
     with open(model_path) as f:
         print("pipeline model: {}".format(f.read().strip()))

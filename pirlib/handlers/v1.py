@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Dict
 from pirlib.pir import Node
 
@@ -7,6 +7,19 @@ from pirlib.pir import Node
 @dataclass
 class HandlerV1Context(object):
     node: Node
+    states: Dict[str, Any] = field(default_factory=dict)
+
+    def set(self, key: str, value: Any):
+        self.states[key] = value
+
+    def get(self, key: str, default: Any =None) -> Any:
+        return self.states.get(key, default)
+
+    def reset(self, key: str) -> None:
+        del self.states[key]
+
+    def sync_states(self, context) -> None:
+        self.states.update(context.states)
 
 
 @dataclass
