@@ -12,7 +12,7 @@ class HandlerV1Context(object):
     def set(self, key: str, value: Any):
         self.states[key] = value
 
-    def get(self, key: str, default: Any =None) -> Any:
+    def get(self, key: str, default: Any = None) -> Any:
         return self.states.get(key, default)
 
     def reset(self, key: str) -> None:

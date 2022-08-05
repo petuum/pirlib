@@ -2,7 +2,6 @@ import contextvars
 import copy
 import functools
 import inspect
-import importlib
 import typeguard
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, Optional
@@ -25,7 +24,7 @@ class TaskContext:
     def set(self, key: str, value: Any) -> None:
         self.states[key] = value
 
-    def get(self, key: str, default: Any =None) -> Any:
+    def get(self, key: str, default: Any = None) -> Any:
         return self.states.get(key, default)
 
     def reset(self, key: str) -> None:
