@@ -6,7 +6,6 @@ from typing import Tuple, TypedDict
 
 from pirlib.frameworks.adaptdl import AdaptDL
 from pirlib.iotypes import DirectoryPath, FilePath
-from pirlib.handlers.v1 import HandlerV1Context
 from pirlib.task import task
 from pirlib.pipeline import pipeline
 
@@ -24,7 +23,6 @@ def clean(dataset: DirectoryPath) -> DirectoryPath:
 @task(framework=AdaptDL(min_replicas=1, max_replicas=4))
 def train(dataset: DirectoryPath) -> FilePath:
     task_ctx = task.context()
-    task_ctx.set("train accuracy", 0.83)
     with open(dataset / "file.txt") as f:
         print("train({}, config={})".format(f.read().strip(), task_ctx.config))
     outfile = task.context().output
