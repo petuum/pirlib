@@ -1,4 +1,3 @@
-from ast import Call
 import contextvars
 import copy
 import functools
@@ -96,7 +95,6 @@ class TaskDefinition(HandlerV1):
         self._setup = None
         self._teardown = None
         self.ctx_token = None
-
 
     @property
     def func(self):
