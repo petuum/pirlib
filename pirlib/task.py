@@ -1,3 +1,4 @@
+from ast import Call
 import contextvars
 import copy
 import functools
@@ -29,9 +30,6 @@ class TaskContext:
 
     def reset(self, key: str) -> None:
         del self.states[key]
-
-    def sync_states(self, handler_context: HandlerV1Context) -> None:
-        self.states.update(handler_context.states)
 
 
 def task_context() -> TaskContext:
@@ -90,27 +88,15 @@ class TaskDefinition(HandlerV1):
         name: Optional[str] = None,
         config: Optional[dict] = None,
         framework: Optional[pirlib.pir.Framework] = None,
-        setup: Optional[str] = None,
-        teardown: Optional[str] = None,
     ):
         self._func = typeguard.typechecked(func)
         self._name = name if name else getattr(func, "__name__", None)
         self._config = copy.deepcopy(config) if config else None
         self._framework = framework
+        self._setup = None
+        self._teardown = None
+        self.ctx_token = None
 
-        # Both setup and teardown methods need to come before func
-        # Otherwise they won't be found in this function
-        func_module = inspect.getmodule(self._func)
-        if setup:
-            if hasattr(func_module, setup):
-                setattr(self, "setup", getattr(func_module, setup))
-            else:
-                raise ValueError(f"Couldn't find setup function {setup}.")
-        if teardown:
-            if hasattr(func_module, teardown):
-                setattr(self, "teardown", getattr(func_module, teardown))
-            else:
-                raise ValueError(f"Couldn't find teardown function {teardown}.")
 
     @property
     def func(self):
@@ -150,8 +136,8 @@ class TaskDefinition(HandlerV1):
     ) -> None:
         inputs, outputs = event.inputs, event.outputs
         sig = inspect.signature(self.func)
-        task_context = TaskContext(context.node.config, None)
-        task_context.sync_states(context)
+        task_context = task.context()
+        task_context.config = context.node.config
         task_context.output = recurse_hint(
             lambda name, hint: outputs[name], "return", sig.return_annotation
         )
@@ -162,18 +148,36 @@ class TaskDefinition(HandlerV1):
                 kwargs[param.name] = value
             else:
                 args.append(value)
-        token = _TASK_CONTEXT.set(task_context)
-        try:
-            return_value = self.func(*args, **kwargs)
-            context.sync_states(task_context)
-        finally:
-            _TASK_CONTEXT.reset(token)
+        return_value = self.func(*args, **kwargs)
         recurse_hint(
             lambda n, h, v: outputs.__setitem__(n, v),
             "return",
             sig.return_annotation,
             return_value,
         )
+
+    def setup_handler(
+        self,
+        context: HandlerV1Context,
+    ) -> None:
+        task_context = TaskContext(None, None)
+        self.ctx_token = _TASK_CONTEXT.set(task_context)
+        if self._setup:
+            self._setup()
+
+    def teardown_handler(
+        self,
+        context: HandlerV1Context,
+    ) -> None:
+        if self._teardown:
+            self._teardown()
+        _TASK_CONTEXT.reset(self.ctx_token)
+
+    def setup(self, func) -> None:
+        setattr(self, "_setup", func)
+
+    def teardown(self, func) -> None:
+        setattr(self, "_teardown", func)
 
 
 def task(
@@ -182,8 +186,6 @@ def task(
     name: Optional[str] = None,
     config: Optional[dict] = None,
     framework: Optional[pirlib.pir.Framework] = None,
-    setup: str = None,
-    teardown: str = None,
 ) -> TaskDefinition:
     if framework:
         if config is None:
@@ -198,8 +200,6 @@ def task(
             name=name,
             config=config,
             framework=framework,
-            setup=setup,
-            teardown=teardown,
         )
         functools.update_wrapper(task_dfn, func)
         return task_dfn

@@ -18,9 +18,6 @@ class HandlerV1Context(object):
     def reset(self, key: str) -> None:
         del self.states[key]
 
-    def sync_states(self, context) -> None:
-        self.states.update(context.states)
-
 
 @dataclass
 class HandlerV1Event(object):
@@ -45,13 +42,13 @@ class HandlerV1(object):
     ) -> None:
         raise NotImplementedError
 
-    def setup(
+    def setup_handler(
         self,
         context: HandlerV1Context,
     ) -> None:
         pass
 
-    def teardown(
+    def teardown_handler(
         self,
         context: HandlerV1Context,
     ) -> None:

@@ -53,15 +53,8 @@ class TranslateModel(object):
         output = f"translation: {inp}"
         return output
 
-def translate_setup(context: HandlerV1Context) -> None:
-    context.set("translate_model", TranslateModel())
-    print(">>> Initialized translation model.")
 
-def translate_teardown(context: HandlerV1Context) -> None:
-    context.reset("translate_model")
-    print(">>> Cleaned up translation model.")
-
-@task(setup="translate_setup", teardown="translate_teardown")
+@task
 def translate(sentences: DirectoryPath) -> DirectoryPath:
     task_ctx = task.context()
     model = task_ctx.get("translate_model")
@@ -77,6 +70,20 @@ def translate(sentences: DirectoryPath) -> DirectoryPath:
     with open(outdir / "file.txt", "w") as f:
         f.write(translate_result)
     return outdir
+
+
+@translate.setup
+def translate_setup() -> None:
+    task_ctx = task.context()
+    task_ctx.set("translate_model", TranslateModel())
+    print(">>> Initialized translation model.")
+
+
+@translate.teardown
+def translate_teardown() -> None:
+    task_ctx = task.context()
+    task_ctx.reset("translate_model")
+    print(">>> Cleaned up translation model.")
 
 
 @task

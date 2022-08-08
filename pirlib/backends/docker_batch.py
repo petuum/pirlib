@@ -126,9 +126,9 @@ def run_node(node, graph_inputs):
             outputs[out.id] = None
     events = HandlerV1Event(inputs, outputs)
     context = HandlerV1Context(node)
-    handler.setup(context)
+    handler.setup_handler(context)
     handler.run_handler(events, context)
-    handler.teardown(context)
+    handler.teardown_handler(context)
     for out in node.outputs:
         path = f"/mnt/node_outputs/{node.id}/{out.id}"
         if out.iotype == "DATAFRAME":
