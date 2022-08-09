@@ -19,16 +19,6 @@ _TASK_CONTEXT = contextvars.ContextVar("_TASK_CONTEXT")
 class TaskContext:
     config: Dict[str, Any]
     output: Any
-    states: Dict = field(default_factory=dict)
-
-    def set(self, key: str, value: Any) -> None:
-        self.states[key] = value
-
-    def get(self, key: str, default: Any = None) -> Any:
-        return self.states.get(key, default)
-
-    def reset(self, key: str) -> None:
-        del self.states[key]
 
 
 def task_context() -> TaskContext:

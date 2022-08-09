@@ -55,7 +55,7 @@ class TranslateModel(object):
 @task
 def translate(sentences: DirectoryPath) -> DirectoryPath:
     task_ctx = task.context()
-    model = task_ctx.get("translate_model")
+    model = task_ctx.translate_model
     with open(sentences / "file.txt") as g:
         inp = g.read().strip()
         print(
@@ -73,14 +73,14 @@ def translate(sentences: DirectoryPath) -> DirectoryPath:
 @translate.setup
 def translate_setup() -> None:
     task_ctx = task.context()
-    task_ctx.set("translate_model", TranslateModel())
+    task_ctx.translate_model = TranslateModel()
     print(">>> Initialized translation model.")
 
 
 @translate.teardown
 def translate_teardown() -> None:
     task_ctx = task.context()
-    task_ctx.reset("translate_model")
+    del task_ctx.translate_model
     print(">>> Cleaned up translation model.")
 
 
