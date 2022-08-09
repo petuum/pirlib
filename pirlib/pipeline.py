@@ -98,6 +98,7 @@ def pipeline(
         )
         functools.update_wrapper(pipeline_dfn, func)
         return pipeline_dfn
+
     if func:
         return wrapper(func)
     else:

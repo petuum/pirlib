@@ -3,7 +3,7 @@ import copy
 import functools
 import inspect
 import typeguard
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Callable, Dict, Optional
 
 import pirlib.pir
