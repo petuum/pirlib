@@ -12,7 +12,7 @@ from pirlib.pipeline import pipeline
 def clean(dataset: DirectoryPath) -> DirectoryPath:
     with open(dataset / "file.txt") as f:
         print("clean({})".format(f.read().strip()))
-    outdir = task.context().output
+    outdir = clean.context.output
     with open(outdir / "file.txt", "w") as f:
         f.write("clean_result")
     return outdir
@@ -20,11 +20,13 @@ def clean(dataset: DirectoryPath) -> DirectoryPath:
 
 @task(framework=AdaptDL(min_replicas=1, max_replicas=4))
 def train(dataset: DirectoryPath) -> FilePath:
+    task_ctx = train.context
     with open(dataset / "file.txt") as f:
-        print("train({})".format(f.read().strip()))
-    outfile = task.context().output
+        print("train({}, config={})".format(f.read().strip(), task_ctx.config))
+    outfile = task_ctx.output
     with open(outfile, "w") as f:
         f.write("train_result")
+    task_ctx.logger.info(">>> Train accuracy: 0.83")
     return outfile
 
 
@@ -43,25 +45,46 @@ def evaluate(kwargs: EvaluateInput) -> pandas.DataFrame:
     return df
 
 
+class TranslateModel(object):
+    def translate(self, inp: str) -> str:
+        output = f"translation: {inp}"
+        return output
+
+
 @task
 def translate(args: Tuple[FilePath, DirectoryPath]) -> DirectoryPath:
-    model, sentences = args
-    opctx = task.context()
-    with open(model) as f, open(sentences / "file.txt") as g:
-        print(
-            "translate({}, {}, config={})".format(f.read().strip(), g.read().strip(), opctx.config)
-        )
-    outdir = opctx.output
+    model_path, sentences = args
+    task_ctx = translate.context
+    model = task_ctx.translate_model
+    with open(model_path) as f, open(sentences / "file.txt") as g:
+        inp = g.read().strip()
+        print("translate({}, {}, config={})".format(f.read().strip(), inp, task_ctx.config))
+        translate_result = model.translate(inp)
+    outdir = task_ctx.output
     with open(outdir / "file.txt", "w") as f:
-        f.write("translate_result")
+        f.write(translate_result)
     return outdir
+
+
+@translate.setup
+def translate_setup() -> None:
+    task_ctx = translate.context
+    task_ctx.translate_model = TranslateModel()
+    task_ctx.logger.info(">>> Initialized translation model.")
+
+
+@translate.teardown
+def translate_teardown() -> None:
+    task_ctx = translate.context
+    del task_ctx.translate_model
+    task_ctx.logger.info(">>> Cleaned up translation model.")
 
 
 @task
 def sentiment(model: FilePath, sentences: DirectoryPath) -> DirectoryPath:
     with open(model) as f, open(sentences / "file.txt") as g:
         print("sentiment({}, {})".format(f.read().strip(), g.read().strip()))
-    outdir = task.context().output
+    outdir = sentiment.context.output
     with open(outdir / "file.txt", "w") as f:
         f.write("sentiment_result")
     return outdir
@@ -69,9 +92,7 @@ def sentiment(model: FilePath, sentences: DirectoryPath) -> DirectoryPath:
 
 @pipeline
 def infer_pipeline(
-    translate_model: FilePath,
-    sentiment_model: FilePath,
-    sentences: DirectoryPath,
+    translate_model: FilePath, sentiment_model: FilePath, sentences: DirectoryPath
 ) -> DirectoryPath:
     translate_1 = translate.instance("translate_1")
     translate_1.config["key"] = "value"
@@ -80,9 +101,7 @@ def infer_pipeline(
 
 @pipeline
 def train_pipeline(
-    train_dataset: DirectoryPath,
-    translate_model: FilePath,
-    sentences: DirectoryPath,
+    train_dataset: DirectoryPath, translate_model: FilePath, sentences: DirectoryPath
 ) -> Tuple[FilePath, pandas.DataFrame]:
     sentiment_model = train(clean(train_dataset))
     sentiment = infer_pipeline(translate_model, sentiment_model, sentences)

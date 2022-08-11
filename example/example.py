@@ -14,7 +14,7 @@ from pirlib.pipeline import pipeline
 def clean(dataset: DirectoryPath) -> DirectoryPath:
     with open(dataset / "file.txt") as f:
         print("clean({})".format(f.read().strip()))
-    outdir = task.context().output
+    outdir = clean.context.output
     with open(outdir / "file.txt", "w") as f:
         f.write("clean_result")
     return outdir
@@ -22,12 +22,13 @@ def clean(dataset: DirectoryPath) -> DirectoryPath:
 
 @task(framework=AdaptDL(min_replicas=1, max_replicas=4))
 def train(dataset: DirectoryPath) -> FilePath:
-    task_ctx = task.context()
+    task_ctx = train.context
     with open(dataset / "file.txt") as f:
         print("train({}, config={})".format(f.read().strip(), task_ctx.config))
-    outfile = task.context().output
+    outfile = task_ctx.output
     with open(outfile, "w") as f:
         f.write("train_result")
+    task_ctx.logger.info(">>> Train accuracy: 0.83")
     return outfile
 
 
@@ -46,28 +47,51 @@ def evaluate(kwargs: EvaluateInput) -> pandas.DataFrame:
     return df
 
 
+class TranslateModel(object):
+    def translate(self, inp: str) -> str:
+        output = f"translation: {inp}"
+        return output
+
+
 @task
 def translate(args: Tuple[FilePath, DirectoryPath]) -> DirectoryPath:
-    model, sentences = args
-    task_ctx = task.context()
-    with open(model) as f, open(sentences / "file.txt") as g:
+    model_path, sentences = args
+    task_ctx = translate.context
+    model = task_ctx.translate_model
+    with open(model_path) as f, open(sentences / "file.txt") as g:
+        inp = g.read().strip()
         print(
             "translate({}, {}, config={})".format(
                 f.read().strip(),
-                g.read().strip(),
+                inp,
                 task_ctx.config)
         )
+        translate_result = model.translate(inp)
     outdir = task_ctx.output
     with open(outdir / "file.txt", "w") as f:
-        f.write("translate_result")
+        f.write(translate_result)
     return outdir
+
+
+@translate.setup
+def translate_setup() -> None:
+    task_ctx = translate.context
+    task_ctx.translate_model = TranslateModel()
+    task_ctx.logger.info(">>> Initialized translation model.")
+
+
+@translate.teardown
+def translate_teardown() -> None:
+    task_ctx = translate.context
+    del task_ctx.translate_model
+    task_ctx.logger.info(">>> Cleaned up translation model.")
 
 
 @task
 def sentiment(model: FilePath, sentences: DirectoryPath) -> DirectoryPath:
     with open(model) as f, open(sentences / "file.txt") as g:
         print("sentiment({}, {})".format(f.read().strip(), g.read().strip()))
-    outdir = task.context().output
+    outdir = sentiment.context.output
     with open(outdir / "file.txt", "w") as f:
         f.write("sentiment_result")
     return outdir

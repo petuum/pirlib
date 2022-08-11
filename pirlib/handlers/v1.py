@@ -1,12 +1,13 @@
 from abc import abstractmethod
 from dataclasses import dataclass
-from typing import Any, Dict
-from pirlib.pir import Node
+from logging import Logger
+from typing import Any, Dict, Optional
 
 
 @dataclass
 class HandlerV1Context(object):
-    node: Node
+    node: Dict[str, Any]
+    logger: Optional[Logger] = None
 
 
 @dataclass
@@ -31,3 +32,15 @@ class HandlerV1(object):
         context: HandlerV1Context,
     ) -> None:
         raise NotImplementedError
+
+    def setup_handler(
+        self,
+        context: HandlerV1Context,
+    ) -> None:
+        pass
+
+    def teardown_handler(
+        self,
+        context: HandlerV1Context,
+    ) -> None:
+        pass

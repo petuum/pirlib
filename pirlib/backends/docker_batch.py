@@ -3,11 +3,13 @@ import base64
 import pickle
 import sys
 import yaml
+from dataclasses import asdict
 from typing import Optional
 
 import pirlib.pir
 from pirlib.backends import Backend
 from pirlib.handlers.v1 import HandlerV1Context, HandlerV1Event
+from pirlib.utils import get_logger
 
 
 def encode(x):
@@ -125,8 +127,13 @@ def run_node(node, graph_inputs):
         else:
             outputs[out.id] = None
     events = HandlerV1Event(inputs, outputs)
-    context = HandlerV1Context(node)
+    context = HandlerV1Context(
+        asdict(node),
+        get_logger(node.id),
+    )
+    handler.setup_handler(context)
     handler.run_handler(events, context)
+    handler.teardown_handler(context)
     for out in node.outputs:
         path = f"/mnt/node_outputs/{node.id}/{out.id}"
         if out.iotype == "DATAFRAME":

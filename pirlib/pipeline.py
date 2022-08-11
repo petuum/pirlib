@@ -75,14 +75,6 @@ class PipelineDefinition(object):
         return self._config
 
     def __call__(self, *args, **kwargs):
-        if len(args) == 1 and callable(args[0]) and not kwargs:
-            wrapper = PipelineDefinition(
-                func=args[0],
-                name=self.name,
-                config=self.config,
-            )
-            functools.update_wrapper(wrapper, args[0])
-            return wrapper
         return self.instance(self.name)(*args, **kwargs)
 
     def instance(self, name: str) -> PipelineInstance:
@@ -98,10 +90,16 @@ def pipeline(
     name: Optional[str] = None,
     config: Optional[dict] = None,
 ) -> PipelineDefinition:
-    wrapper = PipelineDefinition(
-        func=func,
-        name=name,
-        config=config,
-    )
-    functools.update_wrapper(wrapper, func)
-    return wrapper
+    def wrapper(func) -> PipelineDefinition:
+        pipeline_dfn = PipelineDefinition(
+            func=func,
+            name=name,
+            config=config,
+        )
+        functools.update_wrapper(pipeline_dfn, func)
+        return pipeline_dfn
+
+    if func:
+        return wrapper(func)
+    else:
+        return wrapper

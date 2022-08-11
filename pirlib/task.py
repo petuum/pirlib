@@ -1,9 +1,9 @@
-import contextvars
 import copy
 import functools
 import inspect
 import typeguard
 from dataclasses import dataclass
+from logging import Logger
 from typing import Any, Callable, Dict, Optional
 
 import pirlib.pir
@@ -12,17 +12,23 @@ from pirlib.handlers.v1 import HandlerV1, HandlerV1Context, HandlerV1Event
 from pirlib.package import recurse_hint, task_call, package_task
 
 
-_TASK_CONTEXT = contextvars.ContextVar("_TASK_CONTEXT")
-
-
-@dataclass
+@dataclass(init=False)
 class TaskContext:
     config: Dict[str, Any]
     output: Any
+    node_ctx: HandlerV1Context
+    logger: Optional[Logger] = None
 
-
-def task_context() -> TaskContext:
-    return _TASK_CONTEXT.get()
+    def __init__(
+        self,
+        config: Dict[str, Any],
+        output: Any,
+        node_ctx: HandlerV1Context,
+    ):
+        self.config = config
+        self.output = output
+        self.node_ctx = node_ctx
+        self.logger = node_ctx.logger
 
 
 class TaskInstance(object):
@@ -78,10 +84,13 @@ class TaskDefinition(HandlerV1):
         config: Optional[dict] = None,
         framework: Optional[pirlib.pir.Framework] = None,
     ):
-        self._func = func if func is None else typeguard.typechecked(func)
+        self._func = typeguard.typechecked(func)
         self._name = name if name else getattr(func, "__name__", None)
         self._config = copy.deepcopy(config) if config else None
         self._framework = framework
+        self._setup = None
+        self._teardown = None
+        self.context = None
 
     @property
     def func(self):
@@ -100,15 +109,6 @@ class TaskDefinition(HandlerV1):
         return self._framework
 
     def __call__(self, *args, **kwargs):
-        if len(args) == 1 and callable(args[0]) and not kwargs:
-            wrapper = TaskDefinition(
-                func=args[0],
-                name=self.name,
-                config=self.config,
-                framework=self.framework,
-            )
-            functools.update_wrapper(wrapper, args[0])
-            return wrapper
         return self.instance(self.name)(*args, **kwargs)
 
     def instance(self, name: str) -> TaskInstance:
@@ -130,10 +130,22 @@ class TaskDefinition(HandlerV1):
     ) -> None:
         inputs, outputs = event.inputs, event.outputs
         sig = inspect.signature(self.func)
-        task_context = TaskContext(context.node.config, None)
-        task_context.output = recurse_hint(
-            lambda name, hint: outputs[name], "return", sig.return_annotation
-        )
+        if self.context is None:
+            # If setup_handler is not called,
+            # need to initialize task context here.
+            self.context = TaskContext(
+                context.node["config"],
+                recurse_hint(
+                    lambda name, hint: outputs[name],
+                    "return",
+                    sig.return_annotation,
+                ),
+                context,
+            )
+        else:
+            self.context.output = recurse_hint(
+                lambda name, hint: outputs[name], "return", sig.return_annotation
+            )
         args, kwargs = [], {}
         for param in sig.parameters.values():
             value = recurse_hint(lambda name, hint: inputs[name], param.name, param.annotation)
@@ -141,17 +153,41 @@ class TaskDefinition(HandlerV1):
                 kwargs[param.name] = value
             else:
                 args.append(value)
-        token = _TASK_CONTEXT.set(task_context)
-        try:
-            return_value = self.func(*args, **kwargs)
-        finally:
-            _TASK_CONTEXT.reset(token)
+        return_value = self.func(*args, **kwargs)
         recurse_hint(
             lambda n, h, v: outputs.__setitem__(n, v),
             "return",
             sig.return_annotation,
             return_value,
         )
+
+    def setup_handler(
+        self,
+        context: HandlerV1Context,
+    ) -> None:
+        # Initialize task context
+        self.context = TaskContext(
+            context.node["config"],
+            None,
+            context,
+        )
+        if self._setup:
+            self._setup()
+
+    def teardown_handler(
+        self,
+        context: HandlerV1Context,
+    ) -> None:
+        if self._teardown:
+            self._teardown()
+        # Reset task context
+        self.context = None
+
+    def setup(self, func) -> None:
+        setattr(self, "_setup", func)
+
+    def teardown(self, func) -> None:
+        setattr(self, "_teardown", func)
 
 
 def task(
@@ -167,14 +203,18 @@ def task(
         f_name = framework.name
         for k, v in framework.config.items():
             config[f"{f_name}/{k}"] = v
-    wrapper = TaskDefinition(
-        func=func,
-        name=name,
-        config=config,
-        framework=framework,
-    )
-    functools.update_wrapper(wrapper, func)
-    return wrapper
 
+    def wrapper(func) -> TaskDefinition:
+        task_dfn = TaskDefinition(
+            func=func,
+            name=name,
+            config=config,
+            framework=framework,
+        )
+        functools.update_wrapper(task_dfn, func)
+        return task_dfn
 
-task.context = task_context
+    if func:
+        return wrapper(func)
+    else:
+        return wrapper
