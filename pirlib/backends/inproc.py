@@ -2,6 +2,7 @@ import argparse
 import importlib
 import pandas
 import tempfile
+from dataclasses import asdict
 from typing import Any, Dict, Optional
 
 import pirlib.pir
@@ -9,7 +10,7 @@ import pirlib.iotypes
 from pirlib.backends import Backend
 from pirlib.handlers.v1 import HandlerV1Context, HandlerV1Event
 from pirlib.iotypes import DirectoryPath, FilePath
-from pirlib.utils import find_by_id
+from pirlib.utils import find_by_id, get_logger
 
 
 class InprocBackend(Backend):
@@ -91,7 +92,10 @@ class InprocBackend(Backend):
             else:
                 outputs[out.id] = None
         event = HandlerV1Event(inputs, outputs)
-        context = HandlerV1Context(node)
+        context = HandlerV1Context(
+            asdict(node),
+            get_logger(node.id),
+        )
         handler.setup_handler(context)
         handler.run_handler(event, context)
         handler.teardown_handler(context)

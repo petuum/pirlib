@@ -1,9 +1,9 @@
-import contextvars
 import copy
 import functools
 import inspect
 import typeguard
 from dataclasses import dataclass
+from logging import Logger
 from typing import Any, Callable, Dict, Optional
 
 import pirlib.pir
@@ -12,17 +12,23 @@ from pirlib.handlers.v1 import HandlerV1, HandlerV1Context, HandlerV1Event
 from pirlib.package import recurse_hint, task_call, package_task
 
 
-_TASK_CONTEXT = contextvars.ContextVar("_TASK_CONTEXT")
-
-
-@dataclass
+@dataclass(init=False)
 class TaskContext:
     config: Dict[str, Any]
     output: Any
+    node_ctx: HandlerV1Context
+    logger: Optional[Logger] = None
 
-
-def task_context() -> TaskContext:
-    return _TASK_CONTEXT.get()
+    def __init__(
+        self,
+        config: Dict[str, Any],
+        output: Any,
+        node_ctx: HandlerV1Context,
+    ):
+        self.config = config
+        self.output = output
+        self.node_ctx = node_ctx
+        self.logger = node_ctx.logger
 
 
 class TaskInstance(object):
@@ -84,7 +90,7 @@ class TaskDefinition(HandlerV1):
         self._framework = framework
         self._setup = None
         self._teardown = None
-        self.ctx_token = None
+        self.context = None
 
     @property
     def func(self):
@@ -124,11 +130,22 @@ class TaskDefinition(HandlerV1):
     ) -> None:
         inputs, outputs = event.inputs, event.outputs
         sig = inspect.signature(self.func)
-        task_context = task.context()
-        task_context.config = context.node.config
-        task_context.output = recurse_hint(
-            lambda name, hint: outputs[name], "return", sig.return_annotation
-        )
+        if self.context is None:
+            # If setup_handler is not called,
+            # need to initialize task context here.
+            self.context = TaskContext(
+                context.node["config"],
+                recurse_hint(
+                    lambda name, hint: outputs[name],
+                    "return",
+                    sig.return_annotation,
+                ),
+                context,
+            )
+        else:
+            self.context.output = recurse_hint(
+                lambda name, hint: outputs[name], "return", sig.return_annotation
+            )
         args, kwargs = [], {}
         for param in sig.parameters.values():
             value = recurse_hint(lambda name, hint: inputs[name], param.name, param.annotation)
@@ -148,8 +165,12 @@ class TaskDefinition(HandlerV1):
         self,
         context: HandlerV1Context,
     ) -> None:
-        task_context = TaskContext(None, None)
-        self.ctx_token = _TASK_CONTEXT.set(task_context)
+        # Initialize task context
+        self.context = TaskContext(
+            context.node["config"],
+            None,
+            context,
+        )
         if self._setup:
             self._setup()
 
@@ -159,7 +180,8 @@ class TaskDefinition(HandlerV1):
     ) -> None:
         if self._teardown:
             self._teardown()
-        _TASK_CONTEXT.reset(self.ctx_token)
+        # Reset task context
+        self.context = None
 
     def setup(self, func) -> None:
         setattr(self, "_setup", func)
@@ -196,6 +218,3 @@ def task(
         return wrapper(func)
     else:
         return wrapper
-
-
-task.context = task_context

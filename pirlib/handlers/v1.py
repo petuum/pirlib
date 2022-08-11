@@ -1,13 +1,13 @@
 from abc import abstractmethod
-from dataclasses import dataclass, field
-from typing import Any, Dict
-from pirlib.pir import Node
+from dataclasses import dataclass
+from logging import Logger
+from typing import Any, Dict, Optional
 
 
 @dataclass
 class HandlerV1Context(object):
-    node: Node
-    states: Dict[str, Any] = field(default_factory=dict)
+    node: Dict[str, Any]
+    logger: Optional[Logger] = None
 
 
 @dataclass
