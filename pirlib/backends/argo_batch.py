@@ -1,5 +1,6 @@
 import argparse
 import base64
+import os
 import pickle
 import sys
 from tkinter import W
@@ -18,6 +19,31 @@ def encode(x):
 
 def decode(x):
     return pickle.loads(base64.b64decode(x.encode()))
+
+
+def create_nfs_volume_spec(
+    name: str, path_env_var: str, readonly: bool = False
+) -> Dict[str, Any]:
+    """Creates Kubernetes specs for defining NFS volumes.
+
+    :param name: Name of the volume, required for mount reference.
+    :type name: str
+    :param path_env_var: Enviroment variable containing the NFS path of the
+    directory/file.
+    :type path_env_var: str
+    :param readonly: Defines if the volume should be read only, defaults to False
+    :type readonly: bool, optional
+    :return: K8s specification for the NFS volume.
+    :rtype: Dict[str, Any]
+    """
+    spec = {"name": name}
+    nfs = {
+        "server": os.environ("NFS_SERVER"),
+        "path": os.environ(path_env_var),
+        "readOnly": "yes" if readonly else "no",
+    }
+    spec["nfs"] = nfs
+    return spec
 
 
 def create_template_from_node(
@@ -45,7 +71,10 @@ def create_template_from_node(
     ]
 
     # Define the volume to be mounted.
-    volume = {"name": "node_outputs", "mountPath": "/mnt/node_outputs"}
+    host_output_dir = os.environ("OUTPUT")
+    nfs_server = os.environ("NFS_SERVER")
+    # volumes = [{"name": "node_outputs", ""}]
+    volume_mounts = [{"name": "node_outputs", "mountPath": "/mnt/node_outputs"}]
 
     # If the node has a valid graph input source,
     # mount the respective host system's file to the input volume
