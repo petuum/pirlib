@@ -23,7 +23,16 @@ def decode(x):
 def create_template_from_node(
     graph_inputs_encoded: str, node: pirlib.pir.Node
 ) -> Dict[str, Any]:
-    # print(node)
+    """Generates an Argo template dictionary from the provided Node.
+
+    :param graph_inputs_encoded: base64 encoding of the graph inputs.
+    :type graph_inputs_encoded: str
+    :param node: `Node` of a graph.
+    :type node: pirlib.pir.Node
+    :return: A dictionary containing the fields required to generate
+    an Argo template for the given node.
+    :rtype: Dict[str, Any]
+    """
     name = node.id
     script = {}
     image = node.entrypoints["main"].image
