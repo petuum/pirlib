@@ -76,7 +76,7 @@ def create_template_from_node(
 
     # Define the volume to be mounted.
     host_output_dir = os.environ["OUTPUT"]
-    volumes = [create_nfs_volume_spec("node_output", "OUTPUT")]
+    volumes = [create_nfs_volume_spec("node_outputs", "OUTPUT")]
     volume_mounts = [{"name": "node_outputs", "mountPath": "/mnt/node_outputs"}]
 
     # If the node has a valid graph input source,
@@ -116,8 +116,10 @@ def create_template_from_node(
 def create_template_from_graph(
     graph_outputs_encoded: str, graph: pirlib.pir.Graph
 ) -> Dict[str, Any]:
+    template = {}
     name = graph.id
-    print(name)
+    image = graph.nodes[0].entrypoints["main"].image
+    command = ["python", "-m", __name__, "graph", graph_outputs_encoded]
 
 
 class ArgoBatchBackend(Backend):
@@ -153,6 +155,8 @@ class ArgoBatchBackend(Backend):
         templates = []
         graph_inputs_encoded = encode(graph.inputs)
         graph_outputs_encoded = encode(graph.outputs)
+
+        # Generate template for the nodes.
         for i, node in enumerate(graph.nodes):
             # Using the first node as the entrypoint of the workflow.
             if i == 0:
@@ -160,5 +164,7 @@ class ArgoBatchBackend(Backend):
 
             # Creating a template for the current node.
             template = create_template_from_node(graph_inputs_encoded, node)
-            # NOTE: Need to replace true and false with yes and no.
+            # NOTE: Need to replace true and false with yes and no in the final string.
             templates.append(template)
+
+        # Generate template for the graph.
