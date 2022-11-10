@@ -212,3 +212,4 @@ class ArgoBatchBackend(Backend):
             templates.append(template)
 
         # Generate template for the graph.
+        # TODO: Use the graph tempate function
