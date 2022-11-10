@@ -4,7 +4,7 @@ import os
 import pickle
 import re
 import sys
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import yaml
 
@@ -98,8 +98,13 @@ def create_template_from_node(
 
             # Create mounting spec for the volume.
             mount_spec = {
+<<<<<<< HEAD
                 "name": argo_name(inp_id),
                 "mountPath": f"/mnt/graph_inputs/{inp_id}",
+=======
+                "name": argo_name(inp_name),
+                "mountPath": f"/mnt/graph_inputs/{name}",
+>>>>>>> chore: added Argo specific refactoring.
             }
 
             # Add the volume mount spec to the volume mount list.
