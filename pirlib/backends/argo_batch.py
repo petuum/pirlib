@@ -4,7 +4,7 @@ import os
 import pickle
 import re
 import sys
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Optional
 
 import yaml
 
@@ -226,7 +226,7 @@ class ArgoBatchBackend(Backend):
         workflow = {
             "apiVersion": "argoproj.io/v1alpha1",
             "kind": "Workflow",
-            "metadata": {"generateName": f"{output_name}"},
+            "metadata": {"generateName": f"{output_name}-"},
             "spec": {},
         }
 
@@ -288,6 +288,7 @@ class ArgoBatchBackend(Backend):
 
 
 def run_node(node, graph_inputs):
+    print("Hello world!")
     import importlib
     import pathlib
 
@@ -349,10 +350,13 @@ def run_graph(graph_outputs):
 
 
 if __name__ == "__main__":
+    with open("/mnt/node_outputs/jabai.txt", "w") as f:
+        f.write("OUTPUT_YAAAAAY!!!")
     if sys.argv[1] == "node":
         node = decode(sys.argv[2])
         graph_inputs = decode(sys.argv[3])
         run_node(node, graph_inputs)
+
     else:
         assert sys.argv[1] == "graph"
         graph_outputs = decode(sys.argv[2])

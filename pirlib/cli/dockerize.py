@@ -6,6 +6,7 @@ import pathlib
 import subprocess
 import sys
 import uuid
+
 import yaml
 
 from .utils import package_pipelines, pipeline_def
@@ -43,7 +44,9 @@ def config_dockerize_parser(parser: argparse.ArgumentParser) -> None:
     parser.set_defaults(parser=parser, handler=_dockerize_handler)
 
 
-def _dockerize_handler(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
+def _dockerize_handler(
+    parser: argparse.ArgumentParser, args: argparse.Namespace
+) -> None:
     package = package_pipelines(parser, args.pipeline, flatten=args.flatten)
     image = f"pircli-build:{uuid.uuid4()}"
     command = ["docker", "build", args.path, "-t", image]
@@ -68,6 +71,27 @@ def _dockerize_handler(parser: argparse.ArgumentParser, args: argparse.Namespace
         sys.exit("ERROR: docker is required but was not found")
     except subprocess.CalledProcessError:
         sys.exit("ERROR: failed to build docker image")
+
+    if "DOCKER_USER" in os.environ and "PIRLIB_REPO" in os.environ:
+        pushed_image = f"{os.environ['DOCKER_USER']}/{os.environ['PIRLIB_REPO']}"
+        tag_command = ["docker", "tag", image, pushed_image]
+        push_command = [
+            "docker",
+            "push",
+            pushed_image,
+        ]
+        try:
+            subprocess.run(tag_command)
+            subprocess.run(push_command)
+        except FileNotFoundError:
+            sys.exit("ERROR: docker is required but was not found")
+        except subprocess.CalledProcessError:
+            sys.exit("ERROR: failed to push the generated image")
+        finally:
+            image = pushed_image
+    else:
+        raise Warning("Docker username and PIRlib repo are undefined")
+
     for graph in package.graphs:
         for node in graph.nodes:
             entrypoint = node.entrypoints["main"]
@@ -135,7 +159,10 @@ def _infer_conda_env() -> dict:
     except FileNotFoundError:
         sys.exit("ERROR: conda is required for automatic dockerization")
     except subprocess.CalledProcessError:
-        sys.exit("ERROR: could not infer current conda environment for " "automatic dockerization")
+        sys.exit(
+            "ERROR: could not infer current conda environment for "
+            "automatic dockerization"
+        )
     env = {"channels": full["channels"], "dependencies": hist["dependencies"]}
     for idx, dep in enumerate(env["dependencies"]):
         if not isinstance(dep, str):

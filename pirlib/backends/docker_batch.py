@@ -2,8 +2,9 @@ import argparse
 import base64
 import pickle
 import sys
-import yaml
 from typing import Optional
+
+import yaml
 
 import pirlib.pir
 from pirlib.backends import Backend
@@ -93,8 +94,10 @@ class DockerBatchBackend(Backend):
 
 def run_node(node, graph_inputs):
     import importlib
-    import pandas
     import pathlib
+
+    import pandas
+
     from pirlib.iotypes import DirectoryPath, FilePath
 
     module_name, handler_name = node.entrypoints["main"].handler.split(":")

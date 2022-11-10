@@ -1,13 +1,14 @@
-import pandas
 import tempfile
-import yaml
 from dataclasses import asdict
 from typing import Tuple, TypedDict
 
+import pandas
+import yaml
+
 from pirlib.frameworks.adaptdl import AdaptDL
 from pirlib.iotypes import DirectoryPath, FilePath
-from pirlib.task import task
 from pirlib.pipeline import pipeline
+from pirlib.task import task
 
 
 @task
@@ -48,14 +49,15 @@ def evaluate(kwargs: EvaluateInput) -> pandas.DataFrame:
 
 @task
 def translate(args: Tuple[FilePath, DirectoryPath]) -> DirectoryPath:
-    model, sentences = args
+    model_dir, sentences = args
     task_ctx = task.context()
-    with open(model) as f, open(sentences / "file.txt") as g:
+    with open(model_dir / "translate_model.txt") as f, open(
+        sentences / "file.txt"
+    ) as g:
         print(
             "translate({}, {}, config={})".format(
-                f.read().strip(),
-                g.read().strip(),
-                task_ctx.config)
+                f.read().strip(), g.read().strip(), task_ctx.config
+            )
         )
     outdir = task_ctx.output
     with open(outdir / "file.txt", "w") as f:
@@ -74,9 +76,9 @@ def sentiment(model: FilePath, sentences: DirectoryPath) -> DirectoryPath:
 
 
 @pipeline
-def infer_pipeline(translate_model: FilePath,
-                   sentiment_model: FilePath,
-                   sentences: DirectoryPath) -> DirectoryPath:
+def infer_pipeline(
+    translate_model: FilePath, sentiment_model: FilePath, sentences: DirectoryPath
+) -> DirectoryPath:
     translate_1 = translate.instance("translate_1")
     translate_1.config["key"] = "value"
     return sentiment(sentiment_model, translate_1((translate_model, sentences)))
@@ -84,9 +86,8 @@ def infer_pipeline(translate_model: FilePath,
 
 @pipeline
 def train_pipeline(
-        train_dataset: DirectoryPath,
-        translate_model: FilePath,
-        sentences: DirectoryPath) -> Tuple[FilePath, pandas.DataFrame]:
+    train_dataset: DirectoryPath, translate_model: FilePath, sentences: DirectoryPath
+) -> Tuple[FilePath, pandas.DataFrame]:
     sentiment_model = train(clean(train_dataset))
     sentiment = infer_pipeline(translate_model, sentiment_model, sentences)
     eval_input = {"test_dataset": sentences, "predictions": sentiment}
@@ -107,9 +108,9 @@ if __name__ == "__main__":
     with open(f"{dir_3.name}/file.txt", "w") as f:
         f.write("sentences")
     # Test calling end-to-end pipeline.
-    model_path, metrics = train_pipeline(DirectoryPath(dir_1.name),
-                                         FilePath(file_2.name),
-                                         DirectoryPath(dir_3.name))
+    model_path, metrics = train_pipeline(
+        DirectoryPath(dir_1.name), FilePath(file_2.name), DirectoryPath(dir_3.name)
+    )
     with open(model_path) as f:
         print("pipeline model: {}".format(f.read().strip()))
     print("pipeline metrics: {}".format(metrics.to_records()))
