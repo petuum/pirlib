@@ -36,14 +36,18 @@ class ArgoBatchBackend(Backend):
         args: Optional[argparse.Namespace] = None,
     ) -> Any:
 
+        output_name = args.output.parts[-1].strip(".yml")
+
         workflow = {
             "apiVersion": "argoproj.io/v1alpha1",
             "kind": "Workflow",
-            "metadata": {"generateName": ""},
+            "metadata": {"generateName": f"{output_name}"},
             "spec": {},
         }
 
         # Currently only 1 graph is supported
         assert len(package.graphs)
         graph = package.graphs[0]  # FIXME: need to handle multiple graphs
-        print(package)
+        print(args)
+        for node in graph.nodes:
+            print(node)
