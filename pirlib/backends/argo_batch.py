@@ -2,8 +2,9 @@ import argparse
 import base64
 import os
 import pickle
+import re
 import sys
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import yaml
 
@@ -18,6 +19,9 @@ def encode(x):
 
 def decode(x):
     return pickle.loads(base64.b64decode(x.encode()))
+
+
+argo_name = lambda x: re.sub("[^a-zA-Z0-9]", "-", x.strip())
 
 
 def create_nfs_volume_spec(
@@ -40,7 +44,7 @@ def create_nfs_volume_spec(
             "Required environment variable `NFS_SERVER` is undefined. Please specify the NFS server to use."
         )
 
-    spec = {"name": name}
+    spec = {"name": argo_name(name)}
     nfs = {
         "server": os.environ["NFS_SERVER"],
         "path": os.environ[path_env_var],
@@ -76,7 +80,9 @@ def create_template_from_node(
 
     # Define the volume to be mounted.
     volumes = [create_nfs_volume_spec("node_outputs", "OUTPUT")]
-    volume_mounts = [{"name": "node_outputs", "mountPath": "/mnt/node_outputs"}]
+    volume_mounts = [
+        {"name": argo_name("node_outputs"), "mountPath": "/mnt/node_outputs"}
+    ]
     dependencies = []
 
     # If the node has a valid graph input source,
@@ -97,18 +103,21 @@ def create_template_from_node(
             volumes.append(inp_volume_spec)
 
             # Create mounting spec for the volume.
-            mount_spec = {"name": inp_name, "mountPath": f"/mnt/graph_inputs/{name}"}
+            mount_spec = {
+                "name": argo_name(inp_name),
+                "mountPath": f"/mnt/graph_inputs/{name}",
+            }
 
             # Add the volume mount spec to the volume mount list.
             volume_mounts.append(mount_spec)
 
-        # Add temporary field for defining a single dependencies.
+        # Add temporary field for defining dependencies.
         if inp.source.node_id:
-            dependencies.append(inp.source.node_id)
+            dependencies.append(argo_name(inp.source.node_id))
 
     # Create the template dictionary.
     template = {
-        "name": name,
+        "name": argo_name(name),
         "container": {
             "image": image,
             "command": command,
@@ -148,7 +157,7 @@ def create_template_from_graph(
         volumes.append(inp_volume_spec)
 
         inp_mount_spec = {
-            "name": inp_name,
+            "name": argo_name(inp_name),
             "mountPath": f"/mnt/graph_inputs/{inp_name}",
         }
         volume_mounts.append(inp_mount_spec)
@@ -156,11 +165,11 @@ def create_template_from_graph(
     if graph.outputs:
         volumes.append(create_nfs_volume_spec("node_outputs", "OUTPUT"))
         volume_mounts.append(
-            {"name": "node_outputs", "mountPath": "/mnt/graph_outputs"}
+            {"name": argo_name("node_outputs"), "mountPath": "/mnt/graph_outputs"}
         )
 
     template = {
-        "name": name,
+        "name": argo_name(name),
         "container": {
             "image": image,
             "command": command,
@@ -170,6 +179,21 @@ def create_template_from_graph(
     }
 
     return template
+
+
+def argo_refactor(workflow_yaml: str) -> str:
+    """Applies Argo specific refactoring on the
+    generated YAML file string.
+
+    :param workflow_yaml: The YAML string defining an Argo workflow.
+    :type workflow_yaml: str
+    :return: Argo compatiable YAML string.
+    :rtype: str
+    """
+    workflow_yaml = workflow_yaml.replace("true", "yes")
+    workflow_yaml = workflow_yaml.replace("false", "no")
+
+    return workflow_yaml
 
 
 class ArgoBatchBackend(Backend):
@@ -187,7 +211,16 @@ class ArgoBatchBackend(Backend):
         package: pirlib.pir.Package,
         config: Optional[dict] = None,
         args: Optional[argparse.Namespace] = None,
-    ) -> Any:
+    ) -> None:
+        """Generates an YAML file that defines an Argo workflow replicating the input package Graph.
+
+        :param package: PIRlib package containing a Graph.
+        :type package: pirlib.pir.Package
+        :param config: Parser config, defaults to None
+        :type config: Optional[dict], optional
+        :param args: Pipeline arguments, defaults to None
+        :type args: Optional[argparse.Namespace], optional
+        """
 
         output_name = args.output.parts[-1].strip(".yml")
 
@@ -215,36 +248,45 @@ class ArgoBatchBackend(Backend):
         # Generate template for the graph.
         graph_template = create_template_from_graph(graph_outputs_encoded, graph)
 
-        # Modify Node template names to include graph ID.
-        for template in templates:
-            template["name"] = f"{graph.id}{template['name']}"
-
         # Add all the nodes as the dependency for the graph.
         graph_template["dependencies"] = [t["name"] for t in templates]
 
         templates.append(graph_template)
 
+        # Modify Node template names to include graph ID.
+        for template in templates:
+            template["name"] = argo_name(f"{graph.id}-{template['name']}")
+
         # Create the DAG entrypoint.
-        dag = {"name": f"DAG-{graph.id}", "dag": {"tasks": []}}
+        dag = {"name": argo_name(f"DAG-{graph.id}"), "dag": {"tasks": []}}
 
         for template in templates:
             name = template["name"]
             task = {
                 "name": name,
                 "template": f"{name}-template",
-                "dependencies": template.pop("dependencies"),
+                "dependencies": [
+                    argo_name(f"{graph.id}-{tname}")
+                    for tname in template.pop("dependencies")
+                ],
             }
             dag["dag"]["tasks"].append(task)
-            template["name"] = f"{name}-template"
+            template["name"] += "-template"
+        templates.append(dag)
 
         workflow["spec"]["entrypoint"] = dag["name"]
         workflow["spec"]["templates"] = templates
 
         # Generate YAML string.
         workflow_yaml = yaml.dump(workflow, sort_keys=False)
-        workflow_yaml.replace("true", "yes")
-        workflow_yaml.replace("false", "no")
-        print(workflow_yaml)
+
+        # Refactor.
+        workflow_yaml = argo_refactor(workflow_yaml)
+
+        # Wrirting the workflow YAML to disk.
+        if args and args.output:
+            with open(args.output, "w") as f:
+                f.write(workflow_yaml)
 
 
 def run_node(node, graph_inputs):
