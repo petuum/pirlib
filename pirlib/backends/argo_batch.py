@@ -2,7 +2,8 @@ import argparse
 import base64
 import pickle
 import sys
-from typing import Any, Optional
+from tkinter import W
+from typing import Any, Dict, Optional
 
 import yaml
 
@@ -17,6 +18,32 @@ def encode(x):
 
 def decode(x):
     return pickle.loads(base64.b64decode(x.encode()))
+
+
+def create_template_from_node(
+    graph_inputs_encoded: str, node: pirlib.pir.Node
+) -> Dict[str, Any]:
+    # print(node)
+    name = node.id
+    script = {}
+    image = node.entrypoints["main"].image
+    command = [
+        "python",
+        "-m",
+        __name__,
+        "node",
+        encode(node),
+        encode(graph_inputs_encoded),
+    ]
+
+    volume = {"name": "node_outputs", "mountPath": "/mnt/node_outputs"}
+
+    template = {
+        "name": name,
+        "container": {"image": image, "command": command, "volumeMounts": [volume]},
+    }
+    print(yaml.dump(template, default_flow_style=False, sort_keys=False))
+    return template
 
 
 class ArgoBatchBackend(Backend):
@@ -49,5 +76,14 @@ class ArgoBatchBackend(Backend):
         assert len(package.graphs)
         graph = package.graphs[0]  # FIXME: need to handle multiple graphs
         print(args)
-        for node in graph.nodes:
-            print(node)
+        templates = []
+        graph_inputs_encoded = encode(graph.inputs)
+        graph_outputs_encoded = encode(graph.outputs)
+        for i, node in enumerate(graph.nodes):
+            # Using the first node as the entrypoint of the workflow.
+            if i == 0:
+                entrypoint = node.id
+
+            # Creating a template for the current node.
+            template = {}
+            create_template_from_node(graph_inputs_encoded, node)
