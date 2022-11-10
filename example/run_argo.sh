@@ -17,7 +17,7 @@ INPUT_translate_model=$EXAMPLEDIR/inputs/ \
 INPUT_sentences=$EXAMPLEDIR/inputs/sentences \
 OUTPUT=$EXAMPLEDIR/outputs \
 NFS_SERVER=k8s-master.cm.cluster \
-python  $ROOTDIR/bin/pircli argoize $EXAMPLEDIR/package_argo.yml \
+python  $ROOTDIR/bin/pircli generate $EXAMPLEDIR/package_argo.yml \
 	--target pirlib.backends.argo_batch:ArgoBatchBackend \
 	--output $EXAMPLEDIR/argo-train.yml
 
