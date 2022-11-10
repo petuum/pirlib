@@ -4,7 +4,7 @@ import os
 import pickle
 import re
 import sys
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Optional
 
 import yaml
 
@@ -98,17 +98,8 @@ def create_template_from_node(
 
             # Create mounting spec for the volume.
             mount_spec = {
-<<<<<<< HEAD
                 "name": argo_name(inp_id),
                 "mountPath": f"/mnt/graph_inputs/{inp_id}",
-=======
-                "name": argo_name(inp_name),
-<<<<<<< HEAD
-                "mountPath": f"/mnt/graph_inputs/{name}",
->>>>>>> chore: added Argo specific refactoring.
-=======
-                "mountPath": f"/mnt/graph_inputs/{inp_name}",
->>>>>>> chore: refactored argo task names.
             }
 
             # Add the volume mount spec to the volume mount list.
@@ -226,8 +217,6 @@ class ArgoBatchBackend(Backend):
 
         output_name = args.output.parts[-1].strip(".yml")
 
-        output_name = args.output.parts[-1].strip(".yml")
-
         workflow = {
             "apiVersion": "argoproj.io/v1alpha1",
             "kind": "Workflow",
@@ -269,9 +258,7 @@ class ArgoBatchBackend(Backend):
             task = {
                 "name": name,
                 "template": f"{name}-template",
-                "dependencies": [
-                    argo_name(f"{tname}") for tname in template.pop("dependencies")
-                ],
+                "dependencies": [argo_name(f"{tname}") for tname in template.pop("dependencies")],
             }
             dag["dag"]["tasks"].append(task)
             template["name"] += "-template"
@@ -348,7 +335,7 @@ def run_graph(graph_outputs):
             path_from = f"/mnt/graph_inputs/{source.graph_input_id}"
         path_to = f"/mnt/graph_outputs/{g_out.id}"
         if g_out.iotype == "DIRECTORY":
-            shutil.coptytree(path_from, path_to)
+            shutil.copytree(path_from, path_to)
         else:
             shutil.copy(path_from, path_to)
 
@@ -358,6 +345,7 @@ if __name__ == "__main__":
         node = decode(sys.argv[2])
         graph_inputs = decode(sys.argv[3])
         run_node(node, graph_inputs)
+
     else:
         assert sys.argv[1] == "graph"
         graph_outputs = decode(sys.argv[2])
