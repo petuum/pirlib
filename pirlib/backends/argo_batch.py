@@ -75,7 +75,6 @@ def create_template_from_node(
     ]
 
     # Define the volume to be mounted.
-    host_output_dir = os.environ["OUTPUT"]
     volumes = [create_nfs_volume_spec("node_outputs", "OUTPUT")]
     volume_mounts = [{"name": "node_outputs", "mountPath": "/mnt/node_outputs"}]
 
@@ -92,10 +91,14 @@ def create_template_from_node(
             inp_volume_spec = create_nfs_volume_spec(
                 inp_name, inp_env_var, readonly=True
             )
+
+            # Add the volume to the volume list.
             volumes.append(inp_volume_spec)
 
-            # Add the volume to the volume mount list.
+            # Create mounting spec for the volume.
             mount_spec = {"name": inp_name, "mountPath": f"/mnt/graph_inputs/{name}"}
+
+            # Add the volume mount spec to the volume mount list.
             volume_mounts.append(mount_spec)
 
     # Create the template dictionary.
@@ -116,10 +119,51 @@ def create_template_from_node(
 def create_template_from_graph(
     graph_outputs_encoded: str, graph: pirlib.pir.Graph
 ) -> Dict[str, Any]:
-    template = {}
+    """Generates an Argo template dictionary from the provided Graph.
+
+    :param graph_outputs_encoded: base64 encoding of the graph outputs.
+    :type graph_outputs_encoded: str
+    :param graph: A PIRlib Graph object.
+    :type graph: pirlib.pir.Graph
+    :return: An Argo template dict for the Graph object.
+    :rtype: Dict[str, Any]
+    """
     name = graph.id
     image = graph.nodes[0].entrypoints["main"].image
     command = ["python", "-m", __name__, "graph", graph_outputs_encoded]
+    volumes = []
+    volume_mounts = []
+
+    for inp in graph.inputs:
+        inp_name = inp.id
+        inp_env_var = f"INPUT_{inp_name}"
+
+        inp_volume_spec = create_nfs_volume_spec(inp_name, inp_env_var, readonly=True)
+        volumes.append(inp_volume_spec)
+
+        inp_mount_spec = {
+            "name": inp_name,
+            "mountPath": f"/mnt/graph_inputs/{inp_name}",
+        }
+        volume_mounts.append(inp_mount_spec)
+
+    if graph.outputs:
+        volumes.append(create_nfs_volume_spec("node_outputs", "OUTPUT"))
+        volume_mounts.append(
+            {"name": "node_outputs", "mountPath": "/mnt/graph_outputs"}
+        )
+
+    template = {
+        "name": name,
+        "container": {
+            "image": image,
+            "command": command,
+            "volumeMounts": volume_mounts,
+        },
+        "volumes": volumes,
+    }
+
+    return template
 
 
 class ArgoBatchBackend(Backend):
