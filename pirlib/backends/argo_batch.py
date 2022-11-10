@@ -44,7 +44,7 @@ def create_nfs_volume_spec(
     nfs = {
         "server": os.environ["NFS_SERVER"],
         "path": os.environ[path_env_var],
-        "readOnly": "yes" if readonly else "no",
+        "readOnly": readonly,
     }
     spec["nfs"] = nfs
     return spec
@@ -109,7 +109,7 @@ def create_template_from_node(
         "volumes": volumes,
     }
 
-    print(yaml.dump(template, default_flow_style=None, sort_keys=False))
+    print(yaml.dump(template, sort_keys=False))
     return template
 
 
@@ -160,4 +160,5 @@ class ArgoBatchBackend(Backend):
 
             # Creating a template for the current node.
             template = create_template_from_node(graph_inputs_encoded, node)
+            # NOTE: Need to replace true and false with yes and no.
             templates.append(template)
