@@ -145,8 +145,10 @@ def create_template_from_graph(
     name = graph.id
     image = graph.nodes[0].entrypoints["main"].image
     command = ["python", "-m", __name__, "graph", graph_outputs_encoded]
-    volumes = []
-    volume_mounts = []
+    volumes = [create_nfs_volume_spec("node_outputs", "OUTPUT")]
+    volume_mounts = [
+        {"name": argo_name("node_outputs"), "mountPath": "/mnt/node_outputs"}
+    ]
 
     for inp in graph.inputs:
         inp_name = inp.id
@@ -162,9 +164,9 @@ def create_template_from_graph(
         volume_mounts.append(inp_mount_spec)
 
     if graph.outputs:
-        volumes.append(create_nfs_volume_spec("node_outputs", "OUTPUT"))
+        volumes.append(create_nfs_volume_spec("graph_outputs", "OUTPUT"))
         volume_mounts.append(
-            {"name": argo_name("node_outputs"), "mountPath": "/mnt/graph_outputs"}
+            {"name": argo_name("graph_outputs"), "mountPath": "/mnt/graph_outputs"}
         )
 
     template = {
@@ -350,15 +352,13 @@ def run_graph(graph_outputs):
 
 
 if __name__ == "__main__":
-    # with open("/mnt/node_outputs/jabai.txt", "w") as f:
-    #     f.write("OUTPUT_YAAAAAY!!!")
-    # if sys.argv[1] == "node":
-    #     node = decode(sys.argv[2])
-    #     graph_inputs = decode(sys.argv[3])
-    #     run_node(node, graph_inputs)
+    if sys.argv[1] == "node":
+        node = decode(sys.argv[2])
+        graph_inputs = decode(sys.argv[3])
+        run_node(node, graph_inputs)
 
-    # else:
-    #     assert sys.argv[1] == "graph"
-    #     graph_outputs = decode(sys.argv[2])
-    #     run_graph(graph_outputs)
+    else:
+        assert sys.argv[1] == "graph"
+        graph_outputs = decode(sys.argv[2])
+        run_graph(graph_outputs)
     pass

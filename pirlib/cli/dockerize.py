@@ -115,7 +115,7 @@ def _generate_dockerfile(context_path: pathlib.Path) -> str:
                 "RUN wget https://repo.anaconda.com/miniconda/Miniconda3"
                 "-latest-Linux-$(uname -m).sh -O /tmp/Miniconda3.sh"
             ),
-            f"RUN bash /tmp/Miniconda3.sh -b -p {miniconda3} && rm /tmp/Miniconda3.sh",
+            f"RUN bash /tmp/Miniconda3.sh -b -p {miniconda3}",  # && rm /tmp/Miniconda3.sh",
             "RUN echo $CONDA_ENV_B64 | base64 -d > /tmp/environment.yml",
             f"RUN {conda} env create -n pircli -f /tmp/environment.yml",
             f"COPY . {workdir}",
