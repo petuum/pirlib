@@ -347,7 +347,6 @@ if __name__ == "__main__":
         node = decode(sys.argv[2])
         graph_inputs = decode(sys.argv[3])
         run_node(node, graph_inputs)
-
     else:
         assert sys.argv[1] == "graph"
         graph_outputs = decode(sys.argv[2])
