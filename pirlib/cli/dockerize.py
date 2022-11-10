@@ -1,6 +1,7 @@
 import argparse
 import base64
 import dataclasses
+import logging
 import os
 import pathlib
 import subprocess
@@ -90,7 +91,7 @@ def _dockerize_handler(
         finally:
             image = pushed_image
     else:
-        raise Warning("Docker username and PIRlib repo are undefined")
+        logging.warn("Docker username and PIRlib repo are undefined")
 
     for graph in package.graphs:
         for node in graph.nodes:
@@ -106,6 +107,7 @@ def _generate_dockerfile(context_path: pathlib.Path) -> str:
     miniconda3 = "/pircli/miniconda3"
     conda = f"{miniconda3}/bin/conda"
     pythonpath = _infer_pythonpath(context_path, workdir)
+
     return "\n".join(
         [
             f"FROM python:{sys.version_info.major}.{sys.version_info.minor}",
@@ -118,8 +120,12 @@ def _generate_dockerfile(context_path: pathlib.Path) -> str:
             "RUN echo $CONDA_ENV_B64 | base64 -d > /tmp/environment.yml",
             f"RUN {conda} env create -n pircli -f /tmp/environment.yml",
             f'ENTRYPOINT ["{conda}", "run", "-n", "pircli"]',
-            f"ENV PYTHONPATH={pythonpath}",
+            # f"ENV PYTHONPATH={pythonpath}",
             f"COPY . {workdir}",
+            f"RUN ls -alh {workdir}",
+            f"RUN ls -alh {workdir}/pirlib/backends",
+            f"RUN {miniconda3}/envs/pircli/bin/pip install --no-cache-dir {workdir}",
+            f'RUN {miniconda3}/envs/pircli/bin/python -c "from pirlib.backends import argo_batch"',
             f"WORKDIR {workdir}",
         ]
     )

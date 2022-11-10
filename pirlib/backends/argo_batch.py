@@ -350,14 +350,15 @@ def run_graph(graph_outputs):
 
 
 if __name__ == "__main__":
-    with open("/mnt/node_outputs/jabai.txt", "w") as f:
-        f.write("OUTPUT_YAAAAAY!!!")
-    if sys.argv[1] == "node":
-        node = decode(sys.argv[2])
-        graph_inputs = decode(sys.argv[3])
-        run_node(node, graph_inputs)
+    # with open("/mnt/node_outputs/jabai.txt", "w") as f:
+    #     f.write("OUTPUT_YAAAAAY!!!")
+    # if sys.argv[1] == "node":
+    #     node = decode(sys.argv[2])
+    #     graph_inputs = decode(sys.argv[3])
+    #     run_node(node, graph_inputs)
 
-    else:
-        assert sys.argv[1] == "graph"
-        graph_outputs = decode(sys.argv[2])
-        run_graph(graph_outputs)
+    # else:
+    #     assert sys.argv[1] == "graph"
+    #     graph_outputs = decode(sys.argv[2])
+    #     run_graph(graph_outputs)
+    pass
