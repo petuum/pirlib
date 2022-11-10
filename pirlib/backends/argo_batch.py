@@ -34,7 +34,6 @@ def create_template_from_node(
     :rtype: Dict[str, Any]
     """
     name = node.id
-    script = {}
     image = node.entrypoints["main"].image
     command = [
         "python",
@@ -45,14 +44,33 @@ def create_template_from_node(
         encode(graph_inputs_encoded),
     ]
 
+    # Define the volume to be mounted.
     volume = {"name": "node_outputs", "mountPath": "/mnt/node_outputs"}
 
+    # If the node has a valid graph input source,
+    # mount the respective host system's file to the input volume
+
+    # TODO: Read env vars and map the values to the input volume
+
+    # Create the template dictionary.
     template = {
         "name": name,
-        "container": {"image": image, "command": command, "volumeMounts": [volume]},
+        "container": {
+            "image": image,
+            "command": command,
+            "volumeMounts": [volume],
+        },
     }
+
     print(yaml.dump(template, default_flow_style=False, sort_keys=False))
     return template
+
+
+def create_template_from_graph(
+    graph_outputs_encoded: str, graph: pirlib.pir.Graph
+) -> Dict[str, Any]:
+    name = graph.id
+    print(name)
 
 
 class ArgoBatchBackend(Backend):
@@ -84,7 +102,7 @@ class ArgoBatchBackend(Backend):
         # Currently only 1 graph is supported
         assert len(package.graphs)
         graph = package.graphs[0]  # FIXME: need to handle multiple graphs
-        print(args)
+        print(graph)
         templates = []
         graph_inputs_encoded = encode(graph.inputs)
         graph_outputs_encoded = encode(graph.outputs)
@@ -94,5 +112,4 @@ class ArgoBatchBackend(Backend):
                 entrypoint = node.id
 
             # Creating a template for the current node.
-            template = {}
-            create_template_from_node(graph_inputs_encoded, node)
+            template = create_template_from_node(graph_inputs_encoded, node)
