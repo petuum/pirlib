@@ -43,6 +43,12 @@ def main():
         )
     )
 
+    config_generate_parser(
+        subparsers.add_parser(
+            "argoize",
+        )
+    )
+
     args = parser.parse_args()
     try:
         args.handler(args.parser, args)
