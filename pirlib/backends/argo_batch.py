@@ -103,8 +103,12 @@ def create_template_from_node(
                 "mountPath": f"/mnt/graph_inputs/{inp_id}",
 =======
                 "name": argo_name(inp_name),
+<<<<<<< HEAD
                 "mountPath": f"/mnt/graph_inputs/{name}",
 >>>>>>> chore: added Argo specific refactoring.
+=======
+                "mountPath": f"/mnt/graph_inputs/{inp_name}",
+>>>>>>> chore: refactored argo task names.
             }
 
             # Add the volume mount spec to the volume mount list.
@@ -265,7 +269,9 @@ class ArgoBatchBackend(Backend):
             task = {
                 "name": name,
                 "template": f"{name}-template",
-                "dependencies": [argo_name(f"{tname}") for tname in template.pop("dependencies")],
+                "dependencies": [
+                    argo_name(f"{tname}") for tname in template.pop("dependencies")
+                ],
             }
             dag["dag"]["tasks"].append(task)
             template["name"] += "-template"
