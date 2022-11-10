@@ -3,7 +3,6 @@ import base64
 import os
 import pickle
 import sys
-from tkinter import W
 from typing import Any, Dict, Optional
 
 import yaml
@@ -36,10 +35,15 @@ def create_nfs_volume_spec(
     :return: K8s specification for the NFS volume.
     :rtype: Dict[str, Any]
     """
+    if "NFS_SERVER" not in os.environ:
+        raise RuntimeError(
+            "Required environment variable `NFS_SERVER` is undefined. Please specify the NFS server to use."
+        )
+
     spec = {"name": name}
     nfs = {
-        "server": os.environ("NFS_SERVER"),
-        "path": os.environ(path_env_var),
+        "server": os.environ["NFS_SERVER"],
+        "path": os.environ[path_env_var],
         "readOnly": "yes" if readonly else "no",
     }
     spec["nfs"] = nfs
@@ -67,19 +71,32 @@ def create_template_from_node(
         __name__,
         "node",
         encode(node),
-        encode(graph_inputs_encoded),
+        graph_inputs_encoded,
     ]
 
     # Define the volume to be mounted.
-    host_output_dir = os.environ("OUTPUT")
-    nfs_server = os.environ("NFS_SERVER")
-    # volumes = [{"name": "node_outputs", ""}]
+    host_output_dir = os.environ["OUTPUT"]
+    volumes = [create_nfs_volume_spec("node_output", "OUTPUT")]
     volume_mounts = [{"name": "node_outputs", "mountPath": "/mnt/node_outputs"}]
 
     # If the node has a valid graph input source,
     # mount the respective host system's file to the input volume
+    for inp in node.inputs:
+        if inp.source.graph_input_id is not None:
+            # Construct the env var name for the env var that contains the
+            # input directory/file path.
+            inp_name = inp.source.graph_input_id
+            inp_env_var = f"INPUT_{inp_name}"
 
-    # TODO: Read env vars and map the values to the input volume
+            # Create NFS volume spec.
+            inp_volume_spec = create_nfs_volume_spec(
+                inp_name, inp_env_var, readonly=True
+            )
+            volumes.append(inp_volume_spec)
+
+            # Add the volume to the volume mount list.
+            mount_spec = {"name": inp_name, "mountPath": f"/mnt/graph_inputs/{name}"}
+            volume_mounts.append(mount_spec)
 
     # Create the template dictionary.
     template = {
@@ -87,11 +104,12 @@ def create_template_from_node(
         "container": {
             "image": image,
             "command": command,
-            "volumeMounts": [volume],
+            "volumeMounts": volume_mounts,
         },
+        "volumes": volumes,
     }
 
-    print(yaml.dump(template, default_flow_style=False, sort_keys=False))
+    print(yaml.dump(template, default_flow_style=None, sort_keys=False))
     return template
 
 
@@ -142,3 +160,4 @@ class ArgoBatchBackend(Backend):
 
             # Creating a template for the current node.
             template = create_template_from_node(graph_inputs_encoded, node)
+            templates.append(template)
