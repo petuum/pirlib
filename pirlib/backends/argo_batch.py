@@ -105,7 +105,7 @@ def create_template_from_node(
             # Create mounting spec for the volume.
             mount_spec = {
                 "name": argo_name(inp_name),
-                "mountPath": f"/mnt/graph_inputs/{name}",
+                "mountPath": f"/mnt/graph_inputs/{inp_name}",
             }
 
             # Add the volume mount spec to the volume mount list.
@@ -127,7 +127,6 @@ def create_template_from_node(
         "dependencies": dependencies,
     }
 
-    # print(yaml.dump(template, sort_keys=False))
     return template
 
 
@@ -255,7 +254,7 @@ class ArgoBatchBackend(Backend):
 
         # Modify Node template names to include graph ID.
         for template in templates:
-            template["name"] = argo_name(f"{graph.id}-{template['name']}")
+            template["name"] = argo_name(f"{template['name']}")
 
         # Create the DAG entrypoint.
         dag = {"name": argo_name(f"DAG-{graph.id}"), "dag": {"tasks": []}}
@@ -266,8 +265,7 @@ class ArgoBatchBackend(Backend):
                 "name": name,
                 "template": f"{name}-template",
                 "dependencies": [
-                    argo_name(f"{graph.id}-{tname}")
-                    for tname in template.pop("dependencies")
+                    argo_name(f"{tname}") for tname in template.pop("dependencies")
                 ],
             }
             dag["dag"]["tasks"].append(task)
