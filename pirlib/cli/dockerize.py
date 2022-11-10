@@ -106,7 +106,6 @@ def _generate_dockerfile(context_path: pathlib.Path) -> str:
     workdir = "/pircli/workdir"
     miniconda3 = "/pircli/miniconda3"
     conda = f"{miniconda3}/bin/conda"
-    pythonpath = _infer_pythonpath(context_path, workdir)
 
     return "\n".join(
         [
@@ -116,17 +115,12 @@ def _generate_dockerfile(context_path: pathlib.Path) -> str:
                 "RUN wget https://repo.anaconda.com/miniconda/Miniconda3"
                 "-latest-Linux-$(uname -m).sh -O /tmp/Miniconda3.sh"
             ),
-            f"RUN bash /tmp/Miniconda3.sh -b -p {miniconda3}",
+            f"RUN bash /tmp/Miniconda3.sh -b -p {miniconda3} && rm /tmp/Miniconda3.sh",
             "RUN echo $CONDA_ENV_B64 | base64 -d > /tmp/environment.yml",
             f"RUN {conda} env create -n pircli -f /tmp/environment.yml",
-            f'ENTRYPOINT ["{conda}", "run", "-n", "pircli"]',
-            # f"ENV PYTHONPATH={pythonpath}",
             f"COPY . {workdir}",
-            f"RUN ls -alh {workdir}",
-            f"RUN ls -alh {workdir}/pirlib/backends",
-            f"RUN {miniconda3}/envs/pircli/bin/pip install --no-cache-dir {workdir}",
-            f'RUN {miniconda3}/envs/pircli/bin/python -c "from pirlib.backends import argo_batch"',
             f"WORKDIR {workdir}",
+            f'ENV PATH="{miniconda3}/envs/pircli/bin"',
         ]
     )
 

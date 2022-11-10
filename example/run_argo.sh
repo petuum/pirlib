@@ -20,9 +20,3 @@ NFS_SERVER=k8s-master.cm.cluster \
 python  $ROOTDIR/bin/pircli generate $EXAMPLEDIR/package_argo.yml \
 	--target pirlib.backends.argo_batch:ArgoBatchBackend \
 	--output $EXAMPLEDIR/argo-train.yml
-
-### Module_3: Argo_Execute_Module
-# PYTHONPATH=$ROOTDIR $ROOTDIR/bin/pircli execute_argo $EXAMPLEDIR/argo-compose.yml \
-
-### Execute the Argo workflow
-# argo submit -n argo --watch $EXAMPLEDIR/argo-compose.yml
