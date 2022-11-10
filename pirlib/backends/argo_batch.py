@@ -217,6 +217,8 @@ class ArgoBatchBackend(Backend):
 
         output_name = args.output.parts[-1].strip(".yml")
 
+        output_name = args.output.parts[-1].strip(".yml")
+
         workflow = {
             "apiVersion": "argoproj.io/v1alpha1",
             "kind": "Workflow",
