@@ -77,11 +77,12 @@ def create_template_from_node(
     # Define the volume to be mounted.
     volumes = [create_nfs_volume_spec("node_outputs", "OUTPUT")]
     volume_mounts = [{"name": "node_outputs", "mountPath": "/mnt/node_outputs"}]
+    dependencies = []
 
     # If the node has a valid graph input source,
     # mount the respective host system's file to the input volume
     for inp in node.inputs:
-        if inp.source.graph_input_id is not None:
+        if inp.source.graph_input_id:
             # Construct the env var name for the env var that contains the
             # input directory/file path.
             inp_name = inp.source.graph_input_id
@@ -101,6 +102,10 @@ def create_template_from_node(
             # Add the volume mount spec to the volume mount list.
             volume_mounts.append(mount_spec)
 
+        # Add temporary field for defining a single dependencies.
+        if inp.source.node_id:
+            dependencies.append(inp.source.node_id)
+
     # Create the template dictionary.
     template = {
         "name": name,
@@ -110,9 +115,10 @@ def create_template_from_node(
             "volumeMounts": volume_mounts,
         },
         "volumes": volumes,
+        "dependencies": dependencies,
     }
 
-    print(yaml.dump(template, sort_keys=False))
+    # print(yaml.dump(template, sort_keys=False))
     return template
 
 
@@ -195,21 +201,119 @@ class ArgoBatchBackend(Backend):
         # Currently only 1 graph is supported
         assert len(package.graphs)
         graph = package.graphs[0]  # FIXME: need to handle multiple graphs
-        print(graph)
         templates = []
         graph_inputs_encoded = encode(graph.inputs)
         graph_outputs_encoded = encode(graph.outputs)
 
         # Generate template for the nodes.
-        for i, node in enumerate(graph.nodes):
-            # Using the first node as the entrypoint of the workflow.
-            if i == 0:
-                entrypoint = node.id
-
+        for node in graph.nodes:
             # Creating a template for the current node.
             template = create_template_from_node(graph_inputs_encoded, node)
             # NOTE: Need to replace true and false with yes and no in the final string.
             templates.append(template)
 
         # Generate template for the graph.
-        # TODO: Use the graph tempate function
+        graph_template = create_template_from_graph(graph_outputs_encoded, graph)
+
+        # Modify Node template names to include graph ID.
+        for template in templates:
+            template["name"] = f"{graph.id}{template['name']}"
+
+        # Add all the nodes as the dependency for the graph.
+        graph_template["dependencies"] = [t["name"] for t in templates]
+
+        templates.append(graph_template)
+
+        # Create the DAG entrypoint.
+        dag = {"name": f"DAG-{graph.id}", "dag": {"tasks": []}}
+
+        for template in templates:
+            name = template["name"]
+            task = {
+                "name": name,
+                "template": f"{name}-template",
+                "dependencies": template.pop("dependencies"),
+            }
+            dag["dag"]["tasks"].append(task)
+            template["name"] = f"{name}-template"
+
+        workflow["spec"]["entrypoint"] = dag["name"]
+        workflow["spec"]["templates"] = templates
+
+        # Generate YAML string.
+        workflow_yaml = yaml.dump(workflow, sort_keys=False)
+        workflow_yaml.replace("true", "yes")
+        workflow_yaml.replace("false", "no")
+        print(workflow_yaml)
+
+
+def run_node(node, graph_inputs):
+    import importlib
+    import pathlib
+
+    import pandas
+
+    from pirlib.iotypes import DirectoryPath, FilePath
+
+    module_name, handler_name = node.entrypoints["main"].handler.split(":")
+    handler = getattr(importlib.import_module(module_name), handler_name)
+    inputs = {}
+    for inp in node.inputs:
+        if inp.source.node_id is not None:
+            path = f"/mnt/node_outputs/{inp.source.node_id}/{inp.source.output_id}"
+        if inp.source.graph_input_id is not None:
+            path = f"/mnt/graph_inputs/{inp.source.graph_input_id}"
+        if inp.iotype == "DIRECTORY":
+            inputs[inp.id] = DirectoryPath(path)
+        elif inp.iotype == "FILE":
+            inputs[inp.id] = FilePath(path)
+        elif inp.iotype == "DATAFRAME":
+            inputs[inp.id] = pandas.read_csv(path)
+        else:
+            raise TypeError(f"unsupported iotype {inp.iotype}")
+    outputs = {}
+    for out in node.outputs:
+        path = f"/mnt/node_outputs/{node.id}/{out.id}"
+        if out.iotype == "DIRECTORY":
+            outputs[out.id] = DirectoryPath(path)
+            outputs[out.id].mkdir(parents=True, exist_ok=True)
+        elif out.iotype == "FILE":
+            outputs[out.id] = FilePath(path)
+            outputs[out.id].parents[0].mkdir(parents=True, exist_ok=True)
+        else:
+            outputs[out.id] = None
+    events = HandlerV1Event(inputs, outputs)
+    context = HandlerV1Context(node)
+    handler.run_handler(events, context)
+    for out in node.outputs:
+        path = f"/mnt/node_outputs/{node.id}/{out.id}"
+        if out.iotype == "DATAFRAME":
+            pathlib.Path(path).parents[0].mkdir(parents=True, exist_ok=True)
+            outputs[out.id].to_csv(path)
+
+
+def run_graph(graph_outputs):
+    import shutil
+
+    for g_out in graph_outputs:
+        source = g_out.source
+        if source.node_id is not None:
+            path_from = f"/mnt/node_outputs/{source.node_id}/{source.output_id}"
+        if source.graph_input_id is not None:
+            path_from = f"/mnt/graph_inputs/{source.graph_input_id}"
+        path_to = f"/mnt/graph_outputs/{g_out.id}"
+        if g_out.iotype == "DIRECTORY":
+            shutil.coptytree(path_from, path_to)
+        else:
+            shutil.copy(path_from, path_to)
+
+
+if __name__ == "__main__":
+    if sys.argv[1] == "node":
+        node = decode(sys.argv[2])
+        graph_inputs = decode(sys.argv[3])
+        run_node(node, graph_inputs)
+    else:
+        assert sys.argv[1] == "graph"
+        graph_outputs = decode(sys.argv[2])
+        run_graph(graph_outputs)
