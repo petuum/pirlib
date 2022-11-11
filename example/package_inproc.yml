@@ -6,7 +6,7 @@ graphs:
       main:
         version: v1
         handler: example.example:translate
-        runtime: python:3.8
+        runtime: python:3.9
         codeurl: null
         image: null
     framework: null
@@ -47,7 +47,7 @@ graphs:
       main:
         version: v1
         handler: example.example:sentiment
-        runtime: python:3.8
+        runtime: python:3.9
         codeurl: null
         image: null
     framework: null
@@ -120,7 +120,7 @@ graphs:
       main:
         version: v1
         handler: example.example:clean
-        runtime: python:3.8
+        runtime: python:3.9
         codeurl: null
         image: null
     framework: null
@@ -150,7 +150,7 @@ graphs:
       main:
         version: v1
         handler: example.example:train
-        runtime: python:3.8
+        runtime: python:3.9
         codeurl: null
         image: null
     framework:
@@ -184,7 +184,7 @@ graphs:
       main:
         version: v1
         handler: example.example:evaluate
-        runtime: python:3.8
+        runtime: python:3.9
         codeurl: null
         image: null
     framework: null
@@ -203,8 +203,8 @@ graphs:
     - id: kwargs.predictions
       iotype: DIRECTORY
       source:
-        node_id: infer_pipeline.sentiment
-        subgraph_id: null
+        node_id: null
+        subgraph_id: infer_pipeline
         output_id: return
         graph_input_id: null
       meta:
@@ -219,19 +219,12 @@ graphs:
     meta:
       name: evaluate
       annotations: null
-  - id: infer_pipeline.translate_1
-    entrypoints:
-      main:
-        version: v1
-        handler: example.example:translate
-        runtime: python:3.8
-        codeurl: null
-        image: null
-    framework: null
-    config:
-      key: value
+  subgraphs:
+  - id: infer_pipeline
+    graph_id: infer_pipeline
+    config: {}
     inputs:
-    - id: args.0
+    - id: translate_model
       iotype: FILE
       source:
         node_id: null
@@ -239,39 +232,9 @@ graphs:
         output_id: null
         graph_input_id: translate_model
       meta:
-        name: args.0
+        name: translate_model
         annotations: null
-    - id: args.1
-      iotype: DIRECTORY
-      source:
-        node_id: null
-        subgraph_id: null
-        output_id: null
-        graph_input_id: sentences
-      meta:
-        name: args.1
-        annotations: null
-    outputs:
-    - id: return
-      iotype: DIRECTORY
-      meta:
-        name: return
-        annotations: null
-    meta:
-      name: translate_1
-      annotations: null
-  - id: infer_pipeline.sentiment
-    entrypoints:
-      main:
-        version: v1
-        handler: example.example:sentiment
-        runtime: python:3.8
-        codeurl: null
-        image: null
-    framework: null
-    config: {}
-    inputs:
-    - id: model
+    - id: sentiment_model
       iotype: FILE
       source:
         node_id: train
@@ -279,15 +242,15 @@ graphs:
         output_id: return
         graph_input_id: null
       meta:
-        name: model
+        name: sentiment_model
         annotations: null
     - id: sentences
       iotype: DIRECTORY
       source:
-        node_id: infer_pipeline.translate_1
+        node_id: null
         subgraph_id: null
-        output_id: return
-        graph_input_id: null
+        output_id: null
+        graph_input_id: sentences
       meta:
         name: sentences
         annotations: null
@@ -298,9 +261,8 @@ graphs:
         name: return
         annotations: null
     meta:
-      name: sentiment
+      name: infer_pipeline
       annotations: null
-  subgraphs: []
   inputs:
   - id: train_dataset
     iotype: DIRECTORY
