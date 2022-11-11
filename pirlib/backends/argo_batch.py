@@ -290,7 +290,6 @@ class ArgoBatchBackend(Backend):
 
 
 def run_node(node, graph_inputs):
-    print("Hello world!")
     import importlib
     import pathlib
 
