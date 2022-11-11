@@ -24,9 +24,7 @@ def decode(x):
 argo_name = lambda x: re.sub("[^a-zA-Z0-9]", "-", x.strip())
 
 
-def create_nfs_volume_spec(
-    name: str, path_env_var: str, readonly: bool = False
-) -> Dict[str, Any]:
+def create_nfs_volume_spec(name: str, path_env_var: str, readonly: bool = False) -> Dict[str, Any]:
     """Creates Kubernetes specs for defining NFS volumes.
 
     :param name: Name of the volume, required for mount reference.
@@ -55,7 +53,8 @@ def create_nfs_volume_spec(
 
 
 def create_template_from_node(
-    graph_inputs_encoded: str, node: pirlib.pir.Node
+    graph_inputs_encoded: str,
+    node: pirlib.pir.Node,
 ) -> Dict[str, Any]:
     """Generates an Argo template dictionary from the provided Node.
 
@@ -80,9 +79,7 @@ def create_template_from_node(
 
     # Define the volume to be mounted.
     volumes = [create_nfs_volume_spec("node_outputs", "OUTPUT")]
-    volume_mounts = [
-        {"name": argo_name("node_outputs"), "mountPath": "/mnt/node_outputs"}
-    ]
+    volume_mounts = [{"name": argo_name("node_outputs"), "mountPath": "/mnt/node_outputs"}]
     dependencies = []
 
     # If the node has a valid graph input source,
@@ -95,9 +92,7 @@ def create_template_from_node(
             inp_env_var = f"INPUT_{inp_name}"
 
             # Create NFS volume spec.
-            inp_volume_spec = create_nfs_volume_spec(
-                inp_name, inp_env_var, readonly=True
-            )
+            inp_volume_spec = create_nfs_volume_spec(inp_name, inp_env_var, readonly=True)
 
             # Add the volume to the volume list.
             volumes.append(inp_volume_spec)
@@ -146,9 +141,7 @@ def create_template_from_graph(
     image = graph.nodes[0].entrypoints["main"].image
     command = ["python", "-m", __name__, "graph", graph_outputs_encoded]
     volumes = [create_nfs_volume_spec("node_outputs", "OUTPUT")]
-    volume_mounts = [
-        {"name": argo_name("node_outputs"), "mountPath": "/mnt/node_outputs"}
-    ]
+    volume_mounts = [{"name": argo_name("node_outputs"), "mountPath": "/mnt/node_outputs"}]
 
     for inp in graph.inputs:
         inp_name = inp.id
@@ -266,9 +259,7 @@ class ArgoBatchBackend(Backend):
             task = {
                 "name": name,
                 "template": f"{name}-template",
-                "dependencies": [
-                    argo_name(f"{tname}") for tname in template.pop("dependencies")
-                ],
+                "dependencies": [argo_name(f"{tname}") for tname in template.pop("dependencies")],
             }
             dag["dag"]["tasks"].append(task)
             template["name"] += "-template"

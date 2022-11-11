@@ -51,9 +51,7 @@ def evaluate(kwargs: EvaluateInput) -> pandas.DataFrame:
 def translate(args: Tuple[FilePath, DirectoryPath]) -> DirectoryPath:
     model_dir, sentences = args
     task_ctx = task.context()
-    with open(model_dir / "translate_model.txt") as f, open(
-        sentences / "file.txt"
-    ) as g:
+    with open(model_dir / "translate_model.txt") as f, open(sentences / "file.txt") as g:
         print(
             "translate({}, {}, config={})".format(
                 f.read().strip(), g.read().strip(), task_ctx.config
