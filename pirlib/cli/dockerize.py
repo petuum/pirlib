@@ -1,11 +1,13 @@
 import argparse
 import base64
 import dataclasses
+import logging
 import os
 import pathlib
 import subprocess
 import sys
 import uuid
+
 import yaml
 
 from .utils import package_pipelines, pipeline_def
@@ -68,6 +70,27 @@ def _dockerize_handler(parser: argparse.ArgumentParser, args: argparse.Namespace
         sys.exit("ERROR: docker is required but was not found")
     except subprocess.CalledProcessError:
         sys.exit("ERROR: failed to build docker image")
+
+    if "DOCKER_USER" in os.environ and "PIRLIB_REPO" in os.environ:
+        pushed_image = f"{os.environ['DOCKER_USER']}/{os.environ['PIRLIB_REPO']}"
+        tag_command = ["docker", "tag", image, pushed_image]
+        push_command = [
+            "docker",
+            "push",
+            pushed_image,
+        ]
+        try:
+            subprocess.run(tag_command)
+            subprocess.run(push_command)
+        except FileNotFoundError:
+            sys.exit("ERROR: docker is required but was not found")
+        except subprocess.CalledProcessError:
+            sys.exit("ERROR: failed to push the generated image")
+        finally:
+            image = pushed_image
+    else:
+        logging.warn("Docker username and PIRlib repo are undefined")
+
     for graph in package.graphs:
         for node in graph.nodes:
             entrypoint = node.entrypoints["main"]
@@ -81,7 +104,7 @@ def _generate_dockerfile(context_path: pathlib.Path) -> str:
     workdir = "/pircli/workdir"
     miniconda3 = "/pircli/miniconda3"
     conda = f"{miniconda3}/bin/conda"
-    pythonpath = _infer_pythonpath(context_path, workdir)
+
     return "\n".join(
         [
             f"FROM python:{sys.version_info.major}.{sys.version_info.minor}",
@@ -90,13 +113,12 @@ def _generate_dockerfile(context_path: pathlib.Path) -> str:
                 "RUN wget https://repo.anaconda.com/miniconda/Miniconda3"
                 "-latest-Linux-$(uname -m).sh -O /tmp/Miniconda3.sh"
             ),
-            f"RUN bash /tmp/Miniconda3.sh -b -p {miniconda3}",
+            f"RUN bash /tmp/Miniconda3.sh -b -p {miniconda3}",  # && rm /tmp/Miniconda3.sh",
             "RUN echo $CONDA_ENV_B64 | base64 -d > /tmp/environment.yml",
             f"RUN {conda} env create -n pircli -f /tmp/environment.yml",
-            f'ENTRYPOINT ["{conda}", "run", "-n", "pircli"]',
-            f"ENV PYTHONPATH={pythonpath}",
             f"COPY . {workdir}",
             f"WORKDIR {workdir}",
+            f'ENV PATH="{miniconda3}/envs/pircli/bin"',
         ]
     )
 
@@ -135,7 +157,7 @@ def _infer_conda_env() -> dict:
     except FileNotFoundError:
         sys.exit("ERROR: conda is required for automatic dockerization")
     except subprocess.CalledProcessError:
-        sys.exit("ERROR: could not infer current conda environment for " "automatic dockerization")
+        sys.exit("ERROR: could not infer current conda environment for automatic dockerization")
     env = {"channels": full["channels"], "dependencies": hist["dependencies"]}
     for idx, dep in enumerate(env["dependencies"]):
         if not isinstance(dep, str):
