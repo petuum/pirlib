@@ -118,7 +118,7 @@ def _generate_dockerfile(context_path: pathlib.Path) -> str:
             f"RUN {conda} env create -n pircli -f /tmp/environment.yml",
             f"COPY . {workdir}",
             f"WORKDIR {workdir}",
-            f'ENV PATH="{miniconda3}/envs/pircli/bin"',
+            f'ENV PATH="{miniconda3}/envs/pircli/bin":$PATH',
         ]
     )
 

@@ -39,7 +39,8 @@ from forte.datasets.wikipedia.dbpedia.dbpedia_datasets import (
 )
 from forte.pipeline import Pipeline
 
-from pirlib.pipeline import pipeline as pirpipe
+from pirlib.iotypes import DirectoryPath
+from pirlib.pipeline import pipeline as pir_pipeline
 from pirlib.task import task
 
 
@@ -170,8 +171,7 @@ def cache_redirects(base_output_path: str, redirect_path: str) -> Dict[str, str]
     return redirect_map
 
 
-@task
-def wiki_parse_task(
+def main(
     nif_context: str,
     nif_page_structure: str,
     mapping_literals: str,
@@ -308,63 +308,60 @@ def wiki_parse_task(
     )
 
 
-def get_path(base_dir, dataset: str):
-    p = os.path.join(base_dir, dataset)
-    if os.path.exists(p):
-        return p
+def get_path(base_dir: DirectoryPath, dataset: str):
+    p = base_dir / dataset
+    if p.exists():
+        return os.path.join(*p.parts)
     else:
         raise FileNotFoundError(
             f"The dataset {dataset} is not found in " f"base directory {base_dir}"
         )
 
 
-@pirpipe
-def wiki_parse_pipeline():
-    base_dir = sys.argv[1]
-    pack_output = sys.argv[2]
-
-    try_samples = False
-    if len(sys.argv) > 3:
-        with_samples = sys.argv[3]
-        try_samples = with_samples.upper().startswith("TRUE")
-
-    will_resume = False
-    if len(sys.argv) > 4:
-        resume = sys.argv[4]
-        will_resume = resume.upper().startswith("TRUE")
-
-    if not os.path.exists(pack_output):
-        os.makedirs(pack_output)
-
-    logging.basicConfig(
-        format="%(asctime)s - %(message)s",
-        level=logging.INFO,
-        filename=os.path.join(pack_output, "dump.log"),
+@task
+def wiki_parse_sample(base_dir: DirectoryPath) -> DirectoryPath:
+    base_output_path = task.context().output
+    print(base_output_path)
+    main(
+        get_path(base_dir, "nif_context.tql"),
+        get_path(base_dir, "nif_page_structure.tql"),
+        get_path(base_dir, "literals.tql"),
+        get_path(base_dir, "mappingbased_objects_en.tql"),
+        get_path(base_dir, "text_links.tql"),
+        get_path(base_dir, "redirects.tql"),
+        get_path(base_dir, "infobox_properties_mapped_en.tql"),
+        get_path(base_dir, "article_categories_en.tql"),
+        os.path.join(*base_output_path.parts),
+        False,
     )
 
-    if try_samples:
-        wiki_parse_task(
-            get_path(base_dir, "nif_context.tql"),
-            get_path(base_dir, "nif_page_structure.tql"),
-            get_path(base_dir, "literals.tql"),
-            get_path(base_dir, "mappingbased_objects_en.tql"),
-            get_path(base_dir, "text_links.tql"),
-            get_path(base_dir, "redirects.tql"),
-            get_path(base_dir, "infobox_properties_mapped_en.tql"),
-            get_path(base_dir, "article_categories_en.tql"),
-            pack_output,
-            will_resume,
-        )
-    else:
-        wiki_parse_task(
-            get_path(base_dir, "nif_context_en.tql.bz2"),
-            get_path(base_dir, "nif_page_structure_en.tql.bz2"),
-            get_path(base_dir, "mappingbased_literals_en.tql.bz2"),
-            get_path(base_dir, "mappingbased_objects_en.tql.bz2"),
-            get_path(base_dir, "nif_text_links_en.tql.bz2"),
-            get_path(base_dir, "redirects_en.tql.bz2"),
-            get_path(base_dir, "infobox_properties_mapped_en.tql.bz2"),
-            get_path(base_dir, "article_categories_en.tql.bz2"),
-            pack_output,
-            will_resume,
-        )
+    return base_output_path
+
+
+@task
+def wiki_parse(base_dir: DirectoryPath) -> DirectoryPath:
+    base_output_path = task.context().output
+    main(
+        get_path(base_dir, "nif_context_en.tql.bz2"),
+        get_path(base_dir, "nif_page_structure_en.tql.bz2"),
+        get_path(base_dir, "mappingbased_literals_en.tql.bz2"),
+        get_path(base_dir, "mappingbased_objects_en.tql.bz2"),
+        get_path(base_dir, "nif_text_links_en.tql.bz2"),
+        get_path(base_dir, "redirects_en.tql.bz2"),
+        get_path(base_dir, "infobox_properties_mapped_en.tql.bz2"),
+        get_path(base_dir, "article_categories_en.tql.bz2"),
+        os.path.join(*base_output_path.parts),
+        False,
+    )
+
+    return base_output_path
+
+
+@pir_pipeline
+def sample_pipeline(input_dir: DirectoryPath) -> DirectoryPath:
+    return wiki_parse_sample(input_dir)
+
+
+@pir_pipeline
+def full_pipeline(input_dir: DirectoryPath) -> DirectoryPath:
+    return wiki_parse(input_dir)
