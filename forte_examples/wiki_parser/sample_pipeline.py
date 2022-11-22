@@ -13,7 +13,6 @@
 # limitations under the License.
 import os
 import pickle
-from tkinter import W
 from typing import Dict, Optional
 
 from forte.common.resources import Resources
