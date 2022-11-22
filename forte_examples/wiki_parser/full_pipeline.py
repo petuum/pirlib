@@ -14,10 +14,9 @@
 import os
 import pickle
 from tkinter import W
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional
 
 from forte.common.resources import Resources
-from forte.data.base_reader import PackReader
 from forte.data.data_pack import DataPack
 from forte.datasets.wikipedia.dbpedia import (
     DBpediaWikiReader,
@@ -47,7 +46,6 @@ def add_wiki_info(
     output_path: str,
     prompt_name: str,
     use_input_index=False,
-    skip_existing=True,
     resume_from_last=False,
     input_index_file_path: Optional[str] = "article.idx",
     output_index_file_name: Optional[str] = "article.idx",
@@ -64,9 +62,7 @@ def add_wiki_info(
         prompt_name: a name to show during processing.
         use_input_index: whether to use the input index to determine the
           output path.
-        skip_existing: whether to skip this function if the folder exists.
-        resume_from_last: whether to resume from last end point, at most one
-          can be true between this and `skip_existing`
+        resume_from_last: whether to resume from last end point.
         input_index_file_path: the full file path to the input index.
         output_index_file_name: the file path to write the output index,
             this is relative to `output_path`.
@@ -76,13 +72,7 @@ def add_wiki_info(
     """
     pl = Pipeline[DataPack](resources)
 
-    if resume_from_last and skip_existing:
-        raise ValueError("resume_from_last and skip_existing cannot both be " "true.")
-
     out_index_path = os.path.join(output_path, output_index_file_name)
-    # if skip_existing and os.path.exists(out_index_path):
-    #     print_progress(f"\n{out_index_path} exist, skipping {prompt_name}", "\n")
-    #     return
 
     if resume_from_last:
         if not os.path.exists(out_index_path):
@@ -132,11 +122,7 @@ def read_wiki_text(
     nif_context: str,
     output_dir: str,
     resources: Resources,
-    skip_existing: bool = False,
 ):
-    # if skip_existing and os.path.exists(output_dir):
-    #     print_progress(f"\n{output_dir} exist, skipping reading text", "\n")
-    #     return
 
     pl = Pipeline[DataPack](resources)
     pl.set_reader(DBpediaWikiReader())
@@ -194,7 +180,6 @@ def read_wiki_task(base_input_dir: DirectoryPath) -> DirectoryPath:
     print_progress("Done loading.", "\n")
 
     # Read the wiki text.
-    # raw_pack_dir = os.path.join(base_output_dir, "nif_raw")
     raw_pack_dir = str(base_output_dir)
     read_wiki_text(nif_context, raw_pack_dir, resources, True)
     print_progress("Done reading wikipedia text.", "\n")
@@ -208,7 +193,6 @@ def add_struct_info(base_input_dir: DirectoryPath, raw_pack_dir: DirectoryPath) 
     raw_pack_dir = str(raw_pack_dir)
 
     nif_page_structure = get_path(base_input_dir, "nif_page_structure_en.tql.bz2")
-    # struct_dir = raw_pack_dir + "_struct"
     struct_dir = str(output_dir)
 
     redirect_map: Dict[str, str] = cache_redirects(str(raw_pack_dir), redirects)
@@ -226,7 +210,6 @@ def add_struct_info(base_input_dir: DirectoryPath, raw_pack_dir: DirectoryPath) 
         struct_dir,
         "page_structures",
         use_input_index=True,
-        skip_existing=True,
         resume_from_last=False,
         input_index_file_path=main_index,
     )
@@ -262,7 +245,6 @@ def add_link_info(
         link_dir,
         "anchor_links",
         use_input_index=True,
-        skip_existing=True,
         resume_from_last=False,
         input_index_file_path=main_index,
     )
@@ -297,7 +279,6 @@ def add_property_info(
         property_dir,
         "info_box_properties",
         use_input_index=True,
-        skip_existing=True,
         resume_from_last=False,
         output_index_file_name="properties.idx",
         input_index_file_path=main_index,
@@ -333,7 +314,6 @@ def add_literal_info(
         literal_dir,
         "literals",
         use_input_index=True,
-        skip_existing=True,
         resume_from_last=False,
         output_index_file_name="literals.idx",
         input_index_file_path=main_index,
@@ -369,7 +349,6 @@ def add_object_info(
         mapping_dir,
         "objects",
         use_input_index=True,
-        skip_existing=True,
         resume_from_last=False,
         output_index_file_name="objects.idx",
         input_index_file_path=main_index,
@@ -405,7 +384,6 @@ def add_category_info(
         category_dir,
         "categories",
         use_input_index=True,
-        skip_existing=True,
         resume_from_last=False,
         output_index_file_name="categories.idx",
         input_index_file_path=main_index,
