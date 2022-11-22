@@ -12,7 +12,7 @@ python $ROOTDIR/bin/pircli dockerize \
 EXAMPLEDIR=$([[ $EXAMPLEDIR = /* ]] && echo "$EXAMPLEDIR" || echo "$PWD/${EXAMPLEDIR#./}")
 
 ### Step 2: Generate Argo YAML
-INPUT_input_dir=$EXAMPLEDIR/inputs/dbpedia/ \
+INPUT_input_dir=$EXAMPLEDIR/inputs/dbpedia_sample/ \
 OUTPUT=$EXAMPLEDIR/outputs \
 NFS_SERVER=k8s-master.cm.cluster \
 python $ROOTDIR/bin/pircli generate $EXAMPLEDIR/sample_pipeline.yml \
