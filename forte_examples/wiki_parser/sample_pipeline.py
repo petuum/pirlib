@@ -11,15 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""
-This creates a pipeline to parse the Wikipedia dump and save the results
-as MultiPacks onto disk.
-"""
-import logging
 import os
 import pickle
-import sys
-from typing import Dict, Optional
+from tkinter import W
+from typing import Dict, Optional, Tuple
 
 from forte.common.resources import Resources
 from forte.data.base_reader import PackReader
@@ -39,7 +34,7 @@ from forte.datasets.wikipedia.dbpedia.dbpedia_datasets import (
 )
 from forte.pipeline import Pipeline
 
-from pirlib.iotypes import DirectoryPath
+from pirlib.iotypes import DirectoryPath, FilePath
 from pirlib.pipeline import pipeline as pir_pipeline
 from pirlib.task import task
 
@@ -85,9 +80,9 @@ def add_wiki_info(
         raise ValueError("resume_from_last and skip_existing cannot both be " "true.")
 
     out_index_path = os.path.join(output_path, output_index_file_name)
-    if skip_existing and os.path.exists(out_index_path):
-        print_progress(f"\n{out_index_path} exist, skipping {prompt_name}", "\n")
-        return
+    # if skip_existing and os.path.exists(out_index_path):
+    #     print_progress(f"\n{out_index_path} exist, skipping {prompt_name}", "\n")
+    #     return
 
     if resume_from_last:
         if not os.path.exists(out_index_path):
@@ -139,9 +134,9 @@ def read_wiki_text(
     resources: Resources,
     skip_existing: bool = False,
 ):
-    if skip_existing and os.path.exists(output_dir):
-        print_progress(f"\n{output_dir} exist, skipping reading text", "\n")
-        return
+    # if skip_existing and os.path.exists(output_dir):
+    #     print_progress(f"\n{output_dir} exist, skipping reading text", "\n")
+    #     return
 
     pl = Pipeline[DataPack](resources)
     pl.set_reader(DBpediaWikiReader())
@@ -171,44 +166,58 @@ def cache_redirects(base_output_path: str, redirect_path: str) -> Dict[str, str]
     return redirect_map
 
 
-def main(
-    nif_context: str,
-    nif_page_structure: str,
-    mapping_literals: str,
-    mapping_objects: str,
-    nif_text_links: str,
-    redirects: str,
-    info_boxs_properties: str,
-    categories: str,
-    base_output_path: str,
-    resume_existing: bool,
-):
-    # Whether to skip the whole step.
-    if resume_existing:
-        skip_existing = False
+def get_path(base_dir: DirectoryPath, dataset: str):
+    p = base_dir / dataset
+    if p.exists():
+        return str(p)
     else:
-        skip_existing = True
+        raise FileNotFoundError(
+            f"The dataset {dataset} is not found in " f"base directory {base_dir}"
+        )
 
+
+@task
+def read_wiki_task(base_input_dir: DirectoryPath) -> DirectoryPath:
+    base_output_dir = task.context().output
+    redirects = get_path(base_input_dir, "redirects.tql")
+    nif_context = get_path(base_input_dir, "nif_context.tql")
+
+    base_output_dir = str(base_output_dir)
     # The datasets are read in a few steps.
-    # 0. Load redirects between wikipedia pages.
+    # Load redirects between wikipedia pages.
     print_progress("Loading redirects", "\n")
 
-    redirect_map: Dict[str, str] = cache_redirects(base_output_path, redirects)
+    redirect_map: Dict[str, str] = cache_redirects(base_output_dir, redirects)
 
     resources: Resources = Resources()
     resources.update(redirects=redirect_map)
     print_progress("Done loading.", "\n")
 
-    # 1. Read the wiki text.
-    raw_pack_dir = os.path.join(base_output_path, "nif_raw")
+    # Read the wiki text.
+    # raw_pack_dir = os.path.join(base_output_dir, "nif_raw")
+    raw_pack_dir = str(base_output_dir)
     read_wiki_text(nif_context, raw_pack_dir, resources, True)
     print_progress("Done reading wikipedia text.", "\n")
+    return DirectoryPath(base_output_dir)
 
-    # Use the same index structure for all writers.
+
+@task
+def add_struct_info(base_input_dir: DirectoryPath, raw_pack_dir: DirectoryPath) -> DirectoryPath:
+    output_dir = task.context().output
+    redirects = get_path(base_input_dir, "redirects.tql")
+    raw_pack_dir = str(raw_pack_dir)
+
+    nif_page_structure = get_path(base_input_dir, "nif_page_structure.tql")
+    # struct_dir = raw_pack_dir + "_struct"
+    struct_dir = str(output_dir)
+
+    redirect_map: Dict[str, str] = cache_redirects(str(raw_pack_dir), redirects)
+
+    resources: Resources = Resources()
+    resources.update(redirects=redirect_map)
+
     main_index = os.path.join(raw_pack_dir, "article.idx")
 
-    # 2. Add wiki page structures, create a new directory for it.
-    struct_dir = raw_pack_dir + "_struct"
     add_wiki_info(
         WikiStructReader(),
         resources,
@@ -217,14 +226,34 @@ def main(
         struct_dir,
         "page_structures",
         use_input_index=True,
-        skip_existing=skip_existing,
-        resume_from_last=resume_existing,
+        skip_existing=True,
+        resume_from_last=False,
         input_index_file_path=main_index,
     )
-    print_progress("Done reading wikipedia structures.", "\n")
 
-    # 3. Add wiki links, create a new directory for it.
-    link_dir = struct_dir + "_links"
+    return output_dir
+
+
+@task
+def add_link_info(
+    base_input_dir: DirectoryPath,
+    raw_pack_dir: DirectoryPath,
+    struct_dir: DirectoryPath,
+) -> DirectoryPath:
+    output_dir = task.context().output
+    redirects = get_path(base_input_dir, "redirects.tql")
+    nif_text_links = get_path(base_input_dir, "text_links.tql")
+
+    struct_dir = str(struct_dir)
+    link_dir = str(output_dir)
+
+    redirect_map: Dict[str, str] = cache_redirects(str(raw_pack_dir), redirects)
+
+    resources: Resources = Resources()
+    resources.update(redirects=redirect_map)
+
+    main_index = os.path.join(raw_pack_dir, "article.idx")
+
     add_wiki_info(
         WikiAnchorReader(),
         resources,
@@ -234,14 +263,32 @@ def main(
         "anchor_links",
         use_input_index=True,
         skip_existing=True,
-        resume_from_last=resume_existing,
+        resume_from_last=False,
         input_index_file_path=main_index,
     )
-    print_progress("Done reading wikipedia anchors.", "\n")
+    return output_dir
 
-    # 4 The following steps add info boxes:
-    # 4.1 Add un-mapped infobox, we directly write to the previous directory
-    property_dir = link_dir
+
+@task
+def add_property_info(
+    base_input_dir: DirectoryPath,
+    raw_pack_dir: DirectoryPath,
+    link_dir: DirectoryPath,
+) -> DirectoryPath:
+    output_dir = task.context().output
+    redirects = get_path(base_input_dir, "redirects.tql")
+    info_boxs_properties = get_path(base_input_dir, "infobox_properties_mapped_en.tql")
+
+    link_dir = str(link_dir)
+    property_dir = str(output_dir)
+
+    redirect_map: Dict[str, str] = cache_redirects(str(raw_pack_dir), redirects)
+
+    resources: Resources = Resources()
+    resources.update(redirects=redirect_map)
+
+    main_index = os.path.join(raw_pack_dir, "article.idx")
+
     add_wiki_info(
         WikiPropertyReader(),
         resources,
@@ -251,14 +298,33 @@ def main(
         "info_box_properties",
         use_input_index=True,
         skip_existing=True,
-        resume_from_last=resume_existing,
+        resume_from_last=False,
         output_index_file_name="properties.idx",
         input_index_file_path=main_index,
     )
-    print_progress("Done reading wikipedia info-boxes properties.", "\n")
+    return output_dir
 
-    # 4.1 Add mapped literal, we directly write to the previous directory.
-    literal_dir = property_dir
+
+@task
+def add_literal_info(
+    base_input_dir: DirectoryPath,
+    raw_pack_dir: DirectoryPath,
+    property_dir: DirectoryPath,
+) -> DirectoryPath:
+    output_dir = task.context().output
+    redirects = get_path(base_input_dir, "redirects.tql")
+    mapping_literals = get_path(base_input_dir, "literals.tql")
+
+    property_dir = str(property_dir)
+    literal_dir = str(output_dir)
+
+    redirect_map: Dict[str, str] = cache_redirects(str(raw_pack_dir), redirects)
+
+    resources: Resources = Resources()
+    resources.update(redirects=redirect_map)
+
+    main_index = os.path.join(raw_pack_dir, "article.idx")
+
     add_wiki_info(
         WikiInfoBoxReader(),
         resources,
@@ -268,14 +334,33 @@ def main(
         "literals",
         use_input_index=True,
         skip_existing=True,
-        resume_from_last=resume_existing,
+        resume_from_last=False,
         output_index_file_name="literals.idx",
         input_index_file_path=main_index,
     )
-    print_progress("Done reading wikipedia info-boxes literals.", "\n")
+    return DirectoryPath(literal_dir)
 
-    # 4.1 Add mapped object, we directly write to the previous directory.
-    mapping_dir = literal_dir
+
+@task
+def add_object_info(
+    base_input_dir: DirectoryPath,
+    raw_pack_dir: DirectoryPath,
+    literal_dir: DirectoryPath,
+) -> DirectoryPath:
+    output_dir = task.context().output
+    redirects = get_path(base_input_dir, "redirects.tql")
+    mapping_objects = get_path(base_input_dir, "mappingbased_objects_en.tql")
+
+    literal_dir = str(literal_dir)
+    mapping_dir = str(output_dir)
+
+    redirect_map: Dict[str, str] = cache_redirects(str(raw_pack_dir), redirects)
+
+    resources: Resources = Resources()
+    resources.update(redirects=redirect_map)
+
+    main_index = os.path.join(raw_pack_dir, "article.idx")
+
     add_wiki_info(
         WikiInfoBoxReader(),
         resources,
@@ -285,14 +370,33 @@ def main(
         "objects",
         use_input_index=True,
         skip_existing=True,
-        resume_from_last=resume_existing,
+        resume_from_last=False,
         output_index_file_name="objects.idx",
         input_index_file_path=main_index,
     )
-    print_progress("Done reading wikipedia info-boxes objects.", "\n")
+    return output_dir
 
-    # 4.2 Add category, directly write to previous directory.
-    category_dir = mapping_dir
+
+@task
+def add_category_info(
+    base_input_dir: DirectoryPath,
+    raw_pack_dir: DirectoryPath,
+    mapping_dir: DirectoryPath,
+) -> DirectoryPath:
+    output_dir = task.context().output
+    redirects = get_path(base_input_dir, "redirects.tql")
+    categories = get_path(base_input_dir, "article_categories_en.tql")
+
+    mapping_dir = str(mapping_dir)
+    category_dir = output_dir
+
+    redirect_map: Dict[str, str] = cache_redirects(str(raw_pack_dir), redirects)
+
+    resources: Resources = Resources()
+    resources.update(redirects=redirect_map)
+
+    main_index = os.path.join(raw_pack_dir, "article.idx")
+
     add_wiki_info(
         WikiCategoryReader(),
         resources,
@@ -302,66 +406,32 @@ def main(
         "categories",
         use_input_index=True,
         skip_existing=True,
-        resume_from_last=resume_existing,
+        resume_from_last=False,
         output_index_file_name="categories.idx",
         input_index_file_path=main_index,
     )
-
-
-def get_path(base_dir: DirectoryPath, dataset: str):
-    p = base_dir / dataset
-    if p.exists():
-        return os.path.join(*p.parts)
-    else:
-        raise FileNotFoundError(
-            f"The dataset {dataset} is not found in " f"base directory {base_dir}"
-        )
-
-
-@task
-def wiki_parse_sample(base_dir: DirectoryPath) -> DirectoryPath:
-    base_output_path = task.context().output
-    print(base_output_path)
-    main(
-        get_path(base_dir, "nif_context.tql"),
-        get_path(base_dir, "nif_page_structure.tql"),
-        get_path(base_dir, "literals.tql"),
-        get_path(base_dir, "mappingbased_objects_en.tql"),
-        get_path(base_dir, "text_links.tql"),
-        get_path(base_dir, "redirects.tql"),
-        get_path(base_dir, "infobox_properties_mapped_en.tql"),
-        get_path(base_dir, "article_categories_en.tql"),
-        os.path.join(*base_output_path.parts),
-        False,
-    )
-
-    return base_output_path
-
-
-@task
-def wiki_parse(base_dir: DirectoryPath) -> DirectoryPath:
-    base_output_path = task.context().output
-    main(
-        get_path(base_dir, "nif_context_en.tql.bz2"),
-        get_path(base_dir, "nif_page_structure_en.tql.bz2"),
-        get_path(base_dir, "mappingbased_literals_en.tql.bz2"),
-        get_path(base_dir, "mappingbased_objects_en.tql.bz2"),
-        get_path(base_dir, "nif_text_links_en.tql.bz2"),
-        get_path(base_dir, "redirects_en.tql.bz2"),
-        get_path(base_dir, "infobox_properties_mapped_en.tql.bz2"),
-        get_path(base_dir, "article_categories_en.tql.bz2"),
-        os.path.join(*base_output_path.parts),
-        False,
-    )
-
-    return base_output_path
+    return output_dir
 
 
 @pir_pipeline
 def sample_pipeline(input_dir: DirectoryPath) -> DirectoryPath:
-    return wiki_parse_sample(input_dir)
-
-
-@pir_pipeline
-def full_pipeline(input_dir: DirectoryPath) -> DirectoryPath:
-    return wiki_parse(input_dir)
+    raw_pack_dir = read_wiki_task(input_dir)
+    return add_category_info(
+        input_dir,
+        raw_pack_dir,
+        add_object_info(
+            input_dir,
+            raw_pack_dir,
+            add_literal_info(
+                input_dir,
+                raw_pack_dir,
+                add_property_info(
+                    input_dir,
+                    raw_pack_dir,
+                    add_link_info(
+                        input_dir, raw_pack_dir, add_struct_info(input_dir, raw_pack_dir)
+                    ),
+                ),
+            ),
+        ),
+    )

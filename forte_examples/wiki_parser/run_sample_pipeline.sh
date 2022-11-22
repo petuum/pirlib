@@ -4,8 +4,8 @@ ROOTDIR=$EXAMPLEDIR/../..
 ### Step 1: Docker Packaging
 python $ROOTDIR/bin/pircli dockerize \
     --auto $ROOTDIR \
-	--pipeline forte_examples.wiki_parser.one_step:sample_pipeline \
-	--output $EXAMPLEDIR/one_step_sample.yml \
+	--pipeline forte_examples.wiki_parser.sample_pipeline:sample_pipeline \
+	--output $EXAMPLEDIR/sample_pipeline.yml \
 	--flatten
 
 # Convert EXAMPLEDIR to absolute path since docker can't bind-mount relative paths.
@@ -15,9 +15,11 @@ EXAMPLEDIR=$([[ $EXAMPLEDIR = /* ]] && echo "$EXAMPLEDIR" || echo "$PWD/${EXAMPL
 INPUT_input_dir=$EXAMPLEDIR/inputs/dbpedia/ \
 OUTPUT=$EXAMPLEDIR/outputs \
 NFS_SERVER=k8s-master.cm.cluster \
-python $ROOTDIR/bin/pircli generate $EXAMPLEDIR/one_step_sample.yml \
+python $ROOTDIR/bin/pircli generate $EXAMPLEDIR/sample_pipeline.yml \
 	--target pirlib.backends.argo_batch:ArgoBatchBackend \
-	--output $EXAMPLEDIR/one-step-wiki-parse-argo.yml
+	--output $EXAMPLEDIR/sample-pipeline-argo.yml
 
 ### Step 3: Execute the Argo Workflow
-argo submit -n argo --watch forte_examples/wiki_parser/one-step-wiki-parse-argo.yml
+argo submit -n argo --watch $EXAMPLEDIR/wiki_parser/sample-pipeline-argo.yml
+
+
