@@ -336,7 +336,7 @@ def run_graph(graph_outputs):
             path_from = f"/mnt/graph_inputs/{source.graph_input_id}"
         path_to = f"/mnt/graph_outputs/{g_out.id}"
         if g_out.iotype == "DIRECTORY":
-            shutil.coptytree(path_from, path_to)
+            shutil.copytree(path_from, path_to)
         else:
             shutil.copy(path_from, path_to)
 

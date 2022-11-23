@@ -2,8 +2,9 @@ import argparse
 import base64
 import pickle
 import sys
-import yaml
 from typing import Optional
+
+import yaml
 
 import pirlib.pir
 from pirlib.backends import Backend
@@ -93,8 +94,10 @@ class DockerBatchBackend(Backend):
 
 def run_node(node, graph_inputs):
     import importlib
-    import pandas
     import pathlib
+
+    import pandas
+
     from pirlib.iotypes import DirectoryPath, FilePath
 
     module_name, handler_name = node.entrypoints["main"].handler.split(":")
@@ -145,7 +148,7 @@ def run_graph(graph_outputs):
             path_from = f"/mnt/graph_inputs/{source.graph_input_id}"
         path_to = f"/mnt/graph_outputs/{g_out.id}"
         if g_out.iotype == "DIRECTORY":
-            shutil.coptytree(path_from, path_to)
+            shutil.copytree(path_from, path_to)
         else:
             shutil.copy(path_from, path_to)
 
