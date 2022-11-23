@@ -1,7 +1,5 @@
 *
 !example/yaml
 !example/*py
-!forte_examples/*.py
-!forte_examples/wiki_parser/*.py
 !bin
 !pirlib
