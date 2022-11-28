@@ -180,7 +180,7 @@ def read_wiki_task(base_input_dir: DirectoryPath) -> DirectoryPath:
 
     # Read the wiki text.
     raw_pack_dir = str(base_output_dir)
-    read_wiki_text(nif_context, raw_pack_dir, resources, True)
+    read_wiki_text(nif_context, raw_pack_dir, resources)
     print_progress("Done reading wikipedia text.", "\n")
     return DirectoryPath(base_output_dir)
 
