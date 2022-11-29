@@ -3,7 +3,8 @@ ROOTDIR=$EXAMPLEDIR/..
 
 ### Module 1: Docker_Packaging
 python $ROOTDIR/bin/pircli dockerize \
-    --auto $ROOTDIR \
+    $ROOTDIR \
+	--auto \
 	--pipeline example.example:train_pipeline \
 	--output $EXAMPLEDIR/package_argo.yml \
 	--flatten
