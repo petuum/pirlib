@@ -37,10 +37,9 @@ def create_nfs_volume_spec(name: str, path_env_var: str, readonly: bool = False)
     :return: K8s specification for the NFS volume.
     :rtype: Dict[str, Any]
     """
-    if "NFS_SERVER" not in os.environ:
-        raise RuntimeError(
-            "Required environment variable `NFS_SERVER` is undefined. Please specify the NFS server to use."
-        )
+    for var in ("NFS_SERVER", path_env_var):
+        if var not in os.environ:
+            raise RuntimeError(f"Required environment variable `{var}` is undefined.")
 
     spec = {"name": argo_name(name)}
     nfs = {
