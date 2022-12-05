@@ -48,11 +48,7 @@ def evaluate(kwargs: EvaluateInput) -> pandas.DataFrame:
 
 
 @task
-<<<<<<< HEAD
-def translate(args: Tuple[DirectoryPath, DirectoryPath]) -> DirectoryPath:
-=======
 def translate(args: Tuple[FilePath, DirectoryPath]) -> DirectoryPath:
->>>>>>> argo-multistep
     model_dir, sentences = args
     task_ctx = task.context()
     with open(model_dir / "translate_model.txt") as f, open(sentences / "file.txt") as g:
@@ -79,11 +75,7 @@ def sentiment(model: FilePath, sentences: DirectoryPath) -> DirectoryPath:
 
 @pipeline
 def infer_pipeline(
-<<<<<<< HEAD
-    translate_model: DirectoryPath, sentiment_model: FilePath, sentences: DirectoryPath
-=======
     translate_model: FilePath, sentiment_model: FilePath, sentences: DirectoryPath
->>>>>>> argo-multistep
 ) -> DirectoryPath:
     translate_1 = translate.instance("translate_1")
     translate_1.config["key"] = "value"
