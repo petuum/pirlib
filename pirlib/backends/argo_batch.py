@@ -37,10 +37,9 @@ def create_nfs_volume_spec(name: str, path_env_var: str, readonly: bool = False)
     :return: K8s specification for the NFS volume.
     :rtype: Dict[str, Any]
     """
-    if "NFS_SERVER" not in os.environ:
-        raise RuntimeError(
-            "Required environment variable `NFS_SERVER` is undefined. Please specify the NFS server to use."
-        )
+    for var in ("NFS_SERVER", path_env_var):
+        if var not in os.environ:
+            raise RuntimeError(f"Required environment variable `{var}` is undefined.")
 
     spec = {"name": argo_name(name)}
     nfs = {
@@ -88,19 +87,19 @@ def create_template_from_node(
         if inp.source.graph_input_id:
             # Construct the env var name for the env var that contains the
             # input directory/file path.
-            inp_name = inp.source.graph_input_id
-            inp_env_var = f"INPUT_{inp_name}"
+            inp_id = inp.source.graph_input_id
+            inp_env_var = f"INPUT_{inp_id}"
 
             # Create NFS volume spec.
-            inp_volume_spec = create_nfs_volume_spec(inp_name, inp_env_var, readonly=True)
+            inp_volume_spec = create_nfs_volume_spec(inp_id, inp_env_var, readonly=True)
 
             # Add the volume to the volume list.
             volumes.append(inp_volume_spec)
 
             # Create mounting spec for the volume.
             mount_spec = {
-                "name": argo_name(inp_name),
-                "mountPath": f"/mnt/graph_inputs/{inp_name}",
+                "name": argo_name(inp_id),
+                "mountPath": f"/mnt/graph_inputs/{inp_id}",
             }
 
             # Add the volume mount spec to the volume mount list.
@@ -144,15 +143,15 @@ def create_template_from_graph(
     volume_mounts = [{"name": argo_name("node_outputs"), "mountPath": "/mnt/node_outputs"}]
 
     for inp in graph.inputs:
-        inp_name = inp.id
-        inp_env_var = f"INPUT_{inp_name}"
+        inp_id = inp.id
+        inp_env_var = f"INPUT_{inp_id}"
 
-        inp_volume_spec = create_nfs_volume_spec(inp_name, inp_env_var, readonly=True)
+        inp_volume_spec = create_nfs_volume_spec(inp_id, inp_env_var, readonly=True)
         volumes.append(inp_volume_spec)
 
         inp_mount_spec = {
-            "name": argo_name(inp_name),
-            "mountPath": f"/mnt/graph_inputs/{inp_name}",
+            "name": argo_name(inp_id),
+            "mountPath": f"/mnt/graph_inputs/{inp_id}",
         }
         volume_mounts.append(inp_mount_spec)
 

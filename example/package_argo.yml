@@ -1,0 +1,229 @@
+graphs:
+- id: train_pipeline
+  nodes:
+  - id: clean
+    entrypoints:
+      main:
+        version: v1
+        handler: example.example:clean
+        runtime: python:3.8
+        codeurl: null
+        image: nilabhra/pirlib
+    framework: null
+    config: {}
+    inputs:
+    - id: dataset
+      iotype: DIRECTORY
+      source:
+        node_id: null
+        subgraph_id: null
+        output_id: null
+        graph_input_id: train_dataset
+      meta:
+        name: dataset
+        annotations: null
+    outputs:
+    - id: return
+      iotype: DIRECTORY
+      meta:
+        name: return
+        annotations: null
+    meta:
+      name: clean
+      annotations: null
+  - id: train
+    entrypoints:
+      main:
+        version: v1
+        handler: example.example:train
+        runtime: python:3.8
+        codeurl: null
+        image: nilabhra/pirlib
+    framework:
+      name: adaptdl
+      version: null
+    config:
+      adaptdl/min_replicas: 1
+      adaptdl/max_replicas: 4
+    inputs:
+    - id: dataset
+      iotype: DIRECTORY
+      source:
+        node_id: clean
+        subgraph_id: null
+        output_id: return
+        graph_input_id: null
+      meta:
+        name: dataset
+        annotations: null
+    outputs:
+    - id: return
+      iotype: FILE
+      meta:
+        name: return
+        annotations: null
+    meta:
+      name: train
+      annotations: null
+  - id: evaluate
+    entrypoints:
+      main:
+        version: v1
+        handler: example.example:evaluate
+        runtime: python:3.8
+        codeurl: null
+        image: nilabhra/pirlib
+    framework: null
+    config: {}
+    inputs:
+    - id: kwargs.test_dataset
+      iotype: DIRECTORY
+      source:
+        node_id: null
+        subgraph_id: null
+        output_id: null
+        graph_input_id: sentences
+      meta:
+        name: kwargs.test_dataset
+        annotations: null
+    - id: kwargs.predictions
+      iotype: DIRECTORY
+      source:
+        node_id: infer_pipeline.sentiment
+        subgraph_id: null
+        output_id: return
+        graph_input_id: null
+      meta:
+        name: kwargs.predictions
+        annotations: null
+    outputs:
+    - id: return
+      iotype: DATAFRAME
+      meta:
+        name: return
+        annotations: null
+    meta:
+      name: evaluate
+      annotations: null
+  - id: infer_pipeline.translate_1
+    entrypoints:
+      main:
+        version: v1
+        handler: example.example:translate
+        runtime: python:3.8
+        codeurl: null
+        image: nilabhra/pirlib
+    framework: null
+    config:
+      key: value
+    inputs:
+    - id: args.0
+      iotype: FILE
+      source:
+        node_id: null
+        subgraph_id: null
+        output_id: null
+        graph_input_id: translate_model
+      meta:
+        name: args.0
+        annotations: null
+    - id: args.1
+      iotype: DIRECTORY
+      source:
+        node_id: null
+        subgraph_id: null
+        output_id: null
+        graph_input_id: sentences
+      meta:
+        name: args.1
+        annotations: null
+    outputs:
+    - id: return
+      iotype: DIRECTORY
+      meta:
+        name: return
+        annotations: null
+    meta:
+      name: translate_1
+      annotations: null
+  - id: infer_pipeline.sentiment
+    entrypoints:
+      main:
+        version: v1
+        handler: example.example:sentiment
+        runtime: python:3.8
+        codeurl: null
+        image: nilabhra/pirlib
+    framework: null
+    config: {}
+    inputs:
+    - id: model
+      iotype: FILE
+      source:
+        node_id: train
+        subgraph_id: null
+        output_id: return
+        graph_input_id: null
+      meta:
+        name: model
+        annotations: null
+    - id: sentences
+      iotype: DIRECTORY
+      source:
+        node_id: infer_pipeline.translate_1
+        subgraph_id: null
+        output_id: return
+        graph_input_id: null
+      meta:
+        name: sentences
+        annotations: null
+    outputs:
+    - id: return
+      iotype: DIRECTORY
+      meta:
+        name: return
+        annotations: null
+    meta:
+      name: sentiment
+      annotations: null
+  subgraphs: []
+  inputs:
+  - id: train_dataset
+    iotype: DIRECTORY
+    meta:
+      name: train_dataset
+      annotations: null
+  - id: translate_model
+    iotype: FILE
+    meta:
+      name: translate_model
+      annotations: null
+  - id: sentences
+    iotype: DIRECTORY
+    meta:
+      name: sentences
+      annotations: null
+  outputs:
+  - id: return.0
+    iotype: FILE
+    source:
+      node_id: train
+      subgraph_id: null
+      output_id: return
+      graph_input_id: null
+    meta:
+      name: return.0
+      annotations: null
+  - id: return.1
+    iotype: DATAFRAME
+    source:
+      node_id: evaluate
+      subgraph_id: null
+      output_id: return
+      graph_input_id: null
+    meta:
+      name: return.1
+      annotations: null
+  meta:
+    name: train_pipeline
+    annotations: null
