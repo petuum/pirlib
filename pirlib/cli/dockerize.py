@@ -104,6 +104,7 @@ def _generate_dockerfile(context_path: pathlib.Path) -> str:
     workdir = "/pircli/workdir"
     miniconda3 = "/pircli/miniconda3"
     conda = f"{miniconda3}/bin/conda"
+    pythonpath = _infer_pythonpath(context_path, workdir)
 
     return "\n".join(
         [
@@ -118,6 +119,7 @@ def _generate_dockerfile(context_path: pathlib.Path) -> str:
             f"RUN {conda} env create -n pircli -f /tmp/environment.yml",
             f"COPY . {workdir}",
             f"WORKDIR {workdir}",
+            f"ENV PYTHONPATH={pythonpath}",
             f'ENV PATH="{miniconda3}/envs/pircli/bin"',
         ]
     )
