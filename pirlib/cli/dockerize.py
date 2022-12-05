@@ -102,21 +102,15 @@ def _dockerize_handler(parser: argparse.ArgumentParser, args: argparse.Namespace
 
 def _generate_dockerfile(context_path: pathlib.Path) -> str:
     workdir = "/pircli/workdir"
-    miniconda3 = "/pircli/miniconda3"
-    conda = f"{miniconda3}/bin/conda"
+    miniconda3 = "/opt/conda"
     pythonpath = _infer_pythonpath(context_path, workdir)
 
     return "\n".join(
         [
-            f"FROM python:{sys.version_info.major}.{sys.version_info.minor}",
+            "FROM continuumio/miniconda3:4.12.0",
             "ARG CONDA_ENV_B64",
-            (
-                "RUN wget https://repo.anaconda.com/miniconda/Miniconda3"
-                "-latest-Linux-$(uname -m).sh -O /tmp/Miniconda3.sh"
-            ),
-            f"RUN bash /tmp/Miniconda3.sh -b -p {miniconda3}",  # && rm /tmp/Miniconda3.sh",
             "RUN echo $CONDA_ENV_B64 | base64 -d > /tmp/environment.yml",
-            f"RUN {conda} env create -n pircli -f /tmp/environment.yml",
+            "RUN conda env create -n pircli -f /tmp/environment.yml",
             f"COPY . {workdir}",
             f"WORKDIR {workdir}",
             f"ENV PYTHONPATH={pythonpath}",
