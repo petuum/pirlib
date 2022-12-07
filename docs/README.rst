@@ -108,6 +108,34 @@ You should be able to see the live execution of the different steps of the pipel
 Open up ``example/package_argo.yml``, ``argo-train.yml`` and see what's inside.
 
 
+Running as an Argo Workflow
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+The following steps require and existing installations of Docker, Kubernetes and Argo.
+
+
+In order for Argo to have access to the docker images, a docker registry needs to be configured. Currently the `dockerize` module uses Docker Hub as the docker registry and only supports public repositories. Follow the following steps to configure Docker Hub:
+
+::
+
+   $ docker login
+   $ export DOCKER_USER=<username>
+   $ export PIRLIB_REPO=<reponame>
+
+Please ensure that the repository already exists under the user name in Docker Hub
+
+
+Follow the instructions `here <https://argoproj.github.io/argo-workflows/quick-start/>`_ and navigate your browser to ``https://127.0.0.1:2746``.
+
+Finally, execute the example.
+::
+
+   bash example/run_argo.sh
+
+
+You should be able to see the live execution of the different steps of the pipeline in the browser.
+Open up ``example/package_argo.yml``, ``argo-train.yml`` and see what's inside.
+
+
 .. include-end-before
 
 A Complex Example
