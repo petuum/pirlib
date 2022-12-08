@@ -1,0 +1,266 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: full-pipeline-argo-
+spec:
+  entrypoint: DAG-full-pipeline
+  templates:
+  - name: read-wiki-task-template
+    container:
+      image: nilabhra/pirlib-forte
+      command:
+      - python
+      - -m
+      - pirlib.backends.argo_batch
+      - node
+      - gASVfQIAAAAAAACMCnBpcmxpYi5waXKUjAROb2RllJOUKYGUfZQojAJpZJSMDnJlYWRfd2lraV90YXNrlIwLZW50cnlwb2ludHOUfZSMBG1haW6UaACMCkVudHJ5cG9pbnSUk5QpgZR9lCiMB3ZlcnNpb26UjAJ2MZSMB2hhbmRsZXKUjDdmb3J0ZV9leGFtcGxlcy53aWtpX3BhcnNlci5mdWxsX3BpcGVsaW5lOnJlYWRfd2lraV90YXNrlIwHcnVudGltZZSMCnB5dGhvbjozLjiUjAdjb2RldXJslE6MBWltYWdllIwVbmlsYWJocmEvcGlybGliLWZvcnRllHVic4wJZnJhbWV3b3JrlE6MBmNvbmZpZ5R9lIwGaW5wdXRzlF2UaACMBUlucHV0lJOUKYGUfZQoaAWMDmJhc2VfaW5wdXRfZGlylIwGaW90eXBllIwJRElSRUNUT1JZlIwGc291cmNllGgAjApEYXRhU291cmNllJOUKYGUfZQojAdub2RlX2lklE6MC3N1YmdyYXBoX2lklE6MCW91dHB1dF9pZJROjA5ncmFwaF9pbnB1dF9pZJSMCWlucHV0X2RpcpR1YowEbWV0YZRoAIwITWV0YWRhdGGUk5QpgZR9lCiMBG5hbWWUjA5iYXNlX2lucHV0X2RpcpSMC2Fubm90YXRpb25zlE51YnViYYwHb3V0cHV0c5RdlGgAjAZPdXRwdXSUk5QpgZR9lChoBYwGcmV0dXJulGghjAlESVJFQ1RPUlmUaC1oLymBlH2UKGgyjAZyZXR1cm6UaDROdWJ1YmFoLWgvKYGUfZQoaDKMDnJlYWRfd2lraV90YXNrlGg0TnVidWIu
+      - gASVjgAAAAAAAABdlIwKcGlybGliLnBpcpSMCkdyYXBoSW5wdXSUk5QpgZR9lCiMAmlklIwJaW5wdXRfZGlylIwGaW90eXBllIwJRElSRUNUT1JZlIwEbWV0YZRoAYwITWV0YWRhdGGUk5QpgZR9lCiMBG5hbWWUjAlpbnB1dF9kaXKUjAthbm5vdGF0aW9uc5ROdWJ1YmEu
+      volumeMounts:
+      - name: node-outputs
+        mountPath: /mnt/node_outputs
+      - name: input-dir
+        mountPath: /mnt/graph_inputs/input_dir
+    volumes:
+    - name: node-outputs
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib/forte_examples/wiki_parser/outputs
+        readOnly: no
+    - name: input-dir
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib/forte_examples/wiki_parser/inputs/dbpedia_full/
+        readOnly: yes
+  - name: add-struct-info-template
+    container:
+      image: nilabhra/pirlib-forte
+      command:
+      - python
+      - -m
+      - pirlib.backends.argo_batch
+      - node
+      - gASV+gIAAAAAAACMCnBpcmxpYi5waXKUjAROb2RllJOUKYGUfZQojAJpZJSMD2FkZF9zdHJ1Y3RfaW5mb5SMC2VudHJ5cG9pbnRzlH2UjARtYWlulGgAjApFbnRyeXBvaW50lJOUKYGUfZQojAd2ZXJzaW9ulIwCdjGUjAdoYW5kbGVylIw4Zm9ydGVfZXhhbXBsZXMud2lraV9wYXJzZXIuZnVsbF9waXBlbGluZTphZGRfc3RydWN0X2luZm+UjAdydW50aW1llIwKcHl0aG9uOjMuOJSMB2NvZGV1cmyUTowFaW1hZ2WUjBVuaWxhYmhyYS9waXJsaWItZm9ydGWUdWJzjAlmcmFtZXdvcmuUTowGY29uZmlnlH2UjAZpbnB1dHOUXZQoaACMBUlucHV0lJOUKYGUfZQoaAWMDmJhc2VfaW5wdXRfZGlylIwGaW90eXBllIwJRElSRUNUT1JZlIwGc291cmNllGgAjApEYXRhU291cmNllJOUKYGUfZQojAdub2RlX2lklE6MC3N1YmdyYXBoX2lklE6MCW91dHB1dF9pZJROjA5ncmFwaF9pbnB1dF9pZJSMCWlucHV0X2RpcpR1YowEbWV0YZRoAIwITWV0YWRhdGGUk5QpgZR9lCiMBG5hbWWUjA5iYXNlX2lucHV0X2RpcpSMC2Fubm90YXRpb25zlE51YnViaB0pgZR9lChoBYwMcmF3X3BhY2tfZGlylGghjAlESVJFQ1RPUlmUaCNoJSmBlH2UKGgojA5yZWFkX3dpa2lfdGFza5RoKU5oKowGcmV0dXJulGgrTnViaC1oLymBlH2UKGgyjAxyYXdfcGFja19kaXKUaDROdWJ1YmWMB291dHB1dHOUXZRoAIwGT3V0cHV0lJOUKYGUfZQoaAWMBnJldHVybpRoIYwJRElSRUNUT1JZlGgtaC8pgZR9lChoMowGcmV0dXJulGg0TnVidWJhaC1oLymBlH2UKGgyjA9hZGRfc3RydWN0X2luZm+UaDROdWJ1Yi4=
+      - gASVjgAAAAAAAABdlIwKcGlybGliLnBpcpSMCkdyYXBoSW5wdXSUk5QpgZR9lCiMAmlklIwJaW5wdXRfZGlylIwGaW90eXBllIwJRElSRUNUT1JZlIwEbWV0YZRoAYwITWV0YWRhdGGUk5QpgZR9lCiMBG5hbWWUjAlpbnB1dF9kaXKUjAthbm5vdGF0aW9uc5ROdWJ1YmEu
+      volumeMounts:
+      - name: node-outputs
+        mountPath: /mnt/node_outputs
+      - name: input-dir
+        mountPath: /mnt/graph_inputs/input_dir
+    volumes:
+    - name: node-outputs
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib/forte_examples/wiki_parser/outputs
+        readOnly: no
+    - name: input-dir
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib/forte_examples/wiki_parser/inputs/dbpedia_full/
+        readOnly: yes
+  - name: add-link-info-template
+    container:
+      image: nilabhra/pirlib-forte
+      command:
+      - python
+      - -m
+      - pirlib.backends.argo_batch
+      - node
+      - gASVagMAAAAAAACMCnBpcmxpYi5waXKUjAROb2RllJOUKYGUfZQojAJpZJSMDWFkZF9saW5rX2luZm+UjAtlbnRyeXBvaW50c5R9lIwEbWFpbpRoAIwKRW50cnlwb2ludJSTlCmBlH2UKIwHdmVyc2lvbpSMAnYxlIwHaGFuZGxlcpSMNmZvcnRlX2V4YW1wbGVzLndpa2lfcGFyc2VyLmZ1bGxfcGlwZWxpbmU6YWRkX2xpbmtfaW5mb5SMB3J1bnRpbWWUjApweXRob246My44lIwHY29kZXVybJROjAVpbWFnZZSMFW5pbGFiaHJhL3BpcmxpYi1mb3J0ZZR1YnOMCWZyYW1ld29ya5ROjAZjb25maWeUfZSMBmlucHV0c5RdlChoAIwFSW5wdXSUk5QpgZR9lChoBYwOYmFzZV9pbnB1dF9kaXKUjAZpb3R5cGWUjAlESVJFQ1RPUlmUjAZzb3VyY2WUaACMCkRhdGFTb3VyY2WUk5QpgZR9lCiMB25vZGVfaWSUTowLc3ViZ3JhcGhfaWSUTowJb3V0cHV0X2lklE6MDmdyYXBoX2lucHV0X2lklIwJaW5wdXRfZGlylHVijARtZXRhlGgAjAhNZXRhZGF0YZSTlCmBlH2UKIwEbmFtZZSMDmJhc2VfaW5wdXRfZGlylIwLYW5ub3RhdGlvbnOUTnVidWJoHSmBlH2UKGgFjAxyYXdfcGFja19kaXKUaCGMCURJUkVDVE9SWZRoI2glKYGUfZQoaCiMDnJlYWRfd2lraV90YXNrlGgpTmgqjAZyZXR1cm6UaCtOdWJoLWgvKYGUfZQoaDKMDHJhd19wYWNrX2RpcpRoNE51YnViaB0pgZR9lChoBYwKc3RydWN0X2RpcpRoIYwJRElSRUNUT1JZlGgjaCUpgZR9lChoKIwPYWRkX3N0cnVjdF9pbmZvlGgpTmgqjAZyZXR1cm6UaCtOdWJoLWgvKYGUfZQoaDKMCnN0cnVjdF9kaXKUaDROdWJ1YmWMB291dHB1dHOUXZRoAIwGT3V0cHV0lJOUKYGUfZQoaAWMBnJldHVybpRoIYwJRElSRUNUT1JZlGgtaC8pgZR9lChoMowGcmV0dXJulGg0TnVidWJhaC1oLymBlH2UKGgyjA1hZGRfbGlua19pbmZvlGg0TnVidWIu
+      - gASVjgAAAAAAAABdlIwKcGlybGliLnBpcpSMCkdyYXBoSW5wdXSUk5QpgZR9lCiMAmlklIwJaW5wdXRfZGlylIwGaW90eXBllIwJRElSRUNUT1JZlIwEbWV0YZRoAYwITWV0YWRhdGGUk5QpgZR9lCiMBG5hbWWUjAlpbnB1dF9kaXKUjAthbm5vdGF0aW9uc5ROdWJ1YmEu
+      volumeMounts:
+      - name: node-outputs
+        mountPath: /mnt/node_outputs
+      - name: input-dir
+        mountPath: /mnt/graph_inputs/input_dir
+    volumes:
+    - name: node-outputs
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib/forte_examples/wiki_parser/outputs
+        readOnly: no
+    - name: input-dir
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib/forte_examples/wiki_parser/inputs/dbpedia_full/
+        readOnly: yes
+  - name: add-property-info-template
+    container:
+      image: nilabhra/pirlib-forte
+      command:
+      - python
+      - -m
+      - pirlib.backends.argo_batch
+      - node
+      - gASVcAMAAAAAAACMCnBpcmxpYi5waXKUjAROb2RllJOUKYGUfZQojAJpZJSMEWFkZF9wcm9wZXJ0eV9pbmZvlIwLZW50cnlwb2ludHOUfZSMBG1haW6UaACMCkVudHJ5cG9pbnSUk5QpgZR9lCiMB3ZlcnNpb26UjAJ2MZSMB2hhbmRsZXKUjDpmb3J0ZV9leGFtcGxlcy53aWtpX3BhcnNlci5mdWxsX3BpcGVsaW5lOmFkZF9wcm9wZXJ0eV9pbmZvlIwHcnVudGltZZSMCnB5dGhvbjozLjiUjAdjb2RldXJslE6MBWltYWdllIwVbmlsYWJocmEvcGlybGliLWZvcnRllHVic4wJZnJhbWV3b3JrlE6MBmNvbmZpZ5R9lIwGaW5wdXRzlF2UKGgAjAVJbnB1dJSTlCmBlH2UKGgFjA5iYXNlX2lucHV0X2RpcpSMBmlvdHlwZZSMCURJUkVDVE9SWZSMBnNvdXJjZZRoAIwKRGF0YVNvdXJjZZSTlCmBlH2UKIwHbm9kZV9pZJROjAtzdWJncmFwaF9pZJROjAlvdXRwdXRfaWSUTowOZ3JhcGhfaW5wdXRfaWSUjAlpbnB1dF9kaXKUdWKMBG1ldGGUaACMCE1ldGFkYXRhlJOUKYGUfZQojARuYW1llIwOYmFzZV9pbnB1dF9kaXKUjAthbm5vdGF0aW9uc5ROdWJ1YmgdKYGUfZQoaAWMDHJhd19wYWNrX2RpcpRoIYwJRElSRUNUT1JZlGgjaCUpgZR9lChoKIwOcmVhZF93aWtpX3Rhc2uUaClOaCqMBnJldHVybpRoK051YmgtaC8pgZR9lChoMowMcmF3X3BhY2tfZGlylGg0TnVidWJoHSmBlH2UKGgFjAhsaW5rX2RpcpRoIYwJRElSRUNUT1JZlGgjaCUpgZR9lChoKIwNYWRkX2xpbmtfaW5mb5RoKU5oKowGcmV0dXJulGgrTnViaC1oLymBlH2UKGgyjAhsaW5rX2RpcpRoNE51YnViZYwHb3V0cHV0c5RdlGgAjAZPdXRwdXSUk5QpgZR9lChoBYwGcmV0dXJulGghjAlESVJFQ1RPUlmUaC1oLymBlH2UKGgyjAZyZXR1cm6UaDROdWJ1YmFoLWgvKYGUfZQoaDKMEWFkZF9wcm9wZXJ0eV9pbmZvlGg0TnVidWIu
+      - gASVjgAAAAAAAABdlIwKcGlybGliLnBpcpSMCkdyYXBoSW5wdXSUk5QpgZR9lCiMAmlklIwJaW5wdXRfZGlylIwGaW90eXBllIwJRElSRUNUT1JZlIwEbWV0YZRoAYwITWV0YWRhdGGUk5QpgZR9lCiMBG5hbWWUjAlpbnB1dF9kaXKUjAthbm5vdGF0aW9uc5ROdWJ1YmEu
+      volumeMounts:
+      - name: node-outputs
+        mountPath: /mnt/node_outputs
+      - name: input-dir
+        mountPath: /mnt/graph_inputs/input_dir
+    volumes:
+    - name: node-outputs
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib/forte_examples/wiki_parser/outputs
+        readOnly: no
+    - name: input-dir
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib/forte_examples/wiki_parser/inputs/dbpedia_full/
+        readOnly: yes
+  - name: add-literal-info-template
+    container:
+      image: nilabhra/pirlib-forte
+      command:
+      - python
+      - -m
+      - pirlib.backends.argo_batch
+      - node
+      - gASVeQMAAAAAAACMCnBpcmxpYi5waXKUjAROb2RllJOUKYGUfZQojAJpZJSMEGFkZF9saXRlcmFsX2luZm+UjAtlbnRyeXBvaW50c5R9lIwEbWFpbpRoAIwKRW50cnlwb2ludJSTlCmBlH2UKIwHdmVyc2lvbpSMAnYxlIwHaGFuZGxlcpSMOWZvcnRlX2V4YW1wbGVzLndpa2lfcGFyc2VyLmZ1bGxfcGlwZWxpbmU6YWRkX2xpdGVyYWxfaW5mb5SMB3J1bnRpbWWUjApweXRob246My44lIwHY29kZXVybJROjAVpbWFnZZSMFW5pbGFiaHJhL3BpcmxpYi1mb3J0ZZR1YnOMCWZyYW1ld29ya5ROjAZjb25maWeUfZSMBmlucHV0c5RdlChoAIwFSW5wdXSUk5QpgZR9lChoBYwOYmFzZV9pbnB1dF9kaXKUjAZpb3R5cGWUjAlESVJFQ1RPUlmUjAZzb3VyY2WUaACMCkRhdGFTb3VyY2WUk5QpgZR9lCiMB25vZGVfaWSUTowLc3ViZ3JhcGhfaWSUTowJb3V0cHV0X2lklE6MDmdyYXBoX2lucHV0X2lklIwJaW5wdXRfZGlylHVijARtZXRhlGgAjAhNZXRhZGF0YZSTlCmBlH2UKIwEbmFtZZSMDmJhc2VfaW5wdXRfZGlylIwLYW5ub3RhdGlvbnOUTnVidWJoHSmBlH2UKGgFjAxyYXdfcGFja19kaXKUaCGMCURJUkVDVE9SWZRoI2glKYGUfZQoaCiMDnJlYWRfd2lraV90YXNrlGgpTmgqjAZyZXR1cm6UaCtOdWJoLWgvKYGUfZQoaDKMDHJhd19wYWNrX2RpcpRoNE51YnViaB0pgZR9lChoBYwMcHJvcGVydHlfZGlylGghjAlESVJFQ1RPUlmUaCNoJSmBlH2UKGgojBFhZGRfcHJvcGVydHlfaW5mb5RoKU5oKowGcmV0dXJulGgrTnViaC1oLymBlH2UKGgyjAxwcm9wZXJ0eV9kaXKUaDROdWJ1YmWMB291dHB1dHOUXZRoAIwGT3V0cHV0lJOUKYGUfZQoaAWMBnJldHVybpRoIYwJRElSRUNUT1JZlGgtaC8pgZR9lChoMowGcmV0dXJulGg0TnVidWJhaC1oLymBlH2UKGgyjBBhZGRfbGl0ZXJhbF9pbmZvlGg0TnVidWIu
+      - gASVjgAAAAAAAABdlIwKcGlybGliLnBpcpSMCkdyYXBoSW5wdXSUk5QpgZR9lCiMAmlklIwJaW5wdXRfZGlylIwGaW90eXBllIwJRElSRUNUT1JZlIwEbWV0YZRoAYwITWV0YWRhdGGUk5QpgZR9lCiMBG5hbWWUjAlpbnB1dF9kaXKUjAthbm5vdGF0aW9uc5ROdWJ1YmEu
+      volumeMounts:
+      - name: node-outputs
+        mountPath: /mnt/node_outputs
+      - name: input-dir
+        mountPath: /mnt/graph_inputs/input_dir
+    volumes:
+    - name: node-outputs
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib/forte_examples/wiki_parser/outputs
+        readOnly: no
+    - name: input-dir
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib/forte_examples/wiki_parser/inputs/dbpedia_full/
+        readOnly: yes
+  - name: add-object-info-template
+    container:
+      image: nilabhra/pirlib-forte
+      command:
+      - python
+      - -m
+      - pirlib.backends.argo_batch
+      - node
+      - gASVcwMAAAAAAACMCnBpcmxpYi5waXKUjAROb2RllJOUKYGUfZQojAJpZJSMD2FkZF9vYmplY3RfaW5mb5SMC2VudHJ5cG9pbnRzlH2UjARtYWlulGgAjApFbnRyeXBvaW50lJOUKYGUfZQojAd2ZXJzaW9ulIwCdjGUjAdoYW5kbGVylIw4Zm9ydGVfZXhhbXBsZXMud2lraV9wYXJzZXIuZnVsbF9waXBlbGluZTphZGRfb2JqZWN0X2luZm+UjAdydW50aW1llIwKcHl0aG9uOjMuOJSMB2NvZGV1cmyUTowFaW1hZ2WUjBVuaWxhYmhyYS9waXJsaWItZm9ydGWUdWJzjAlmcmFtZXdvcmuUTowGY29uZmlnlH2UjAZpbnB1dHOUXZQoaACMBUlucHV0lJOUKYGUfZQoaAWMDmJhc2VfaW5wdXRfZGlylIwGaW90eXBllIwJRElSRUNUT1JZlIwGc291cmNllGgAjApEYXRhU291cmNllJOUKYGUfZQojAdub2RlX2lklE6MC3N1YmdyYXBoX2lklE6MCW91dHB1dF9pZJROjA5ncmFwaF9pbnB1dF9pZJSMCWlucHV0X2RpcpR1YowEbWV0YZRoAIwITWV0YWRhdGGUk5QpgZR9lCiMBG5hbWWUjA5iYXNlX2lucHV0X2RpcpSMC2Fubm90YXRpb25zlE51YnViaB0pgZR9lChoBYwMcmF3X3BhY2tfZGlylGghjAlESVJFQ1RPUlmUaCNoJSmBlH2UKGgojA5yZWFkX3dpa2lfdGFza5RoKU5oKowGcmV0dXJulGgrTnViaC1oLymBlH2UKGgyjAxyYXdfcGFja19kaXKUaDROdWJ1YmgdKYGUfZQoaAWMC2xpdGVyYWxfZGlylGghjAlESVJFQ1RPUlmUaCNoJSmBlH2UKGgojBBhZGRfbGl0ZXJhbF9pbmZvlGgpTmgqjAZyZXR1cm6UaCtOdWJoLWgvKYGUfZQoaDKMC2xpdGVyYWxfZGlylGg0TnVidWJljAdvdXRwdXRzlF2UaACMBk91dHB1dJSTlCmBlH2UKGgFjAZyZXR1cm6UaCGMCURJUkVDVE9SWZRoLWgvKYGUfZQoaDKMBnJldHVybpRoNE51YnViYWgtaC8pgZR9lChoMowPYWRkX29iamVjdF9pbmZvlGg0TnVidWIu
+      - gASVjgAAAAAAAABdlIwKcGlybGliLnBpcpSMCkdyYXBoSW5wdXSUk5QpgZR9lCiMAmlklIwJaW5wdXRfZGlylIwGaW90eXBllIwJRElSRUNUT1JZlIwEbWV0YZRoAYwITWV0YWRhdGGUk5QpgZR9lCiMBG5hbWWUjAlpbnB1dF9kaXKUjAthbm5vdGF0aW9uc5ROdWJ1YmEu
+      volumeMounts:
+      - name: node-outputs
+        mountPath: /mnt/node_outputs
+      - name: input-dir
+        mountPath: /mnt/graph_inputs/input_dir
+    volumes:
+    - name: node-outputs
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib/forte_examples/wiki_parser/outputs
+        readOnly: no
+    - name: input-dir
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib/forte_examples/wiki_parser/inputs/dbpedia_full/
+        readOnly: yes
+  - name: add-category-info-template
+    container:
+      image: nilabhra/pirlib-forte
+      command:
+      - python
+      - -m
+      - pirlib.backends.argo_batch
+      - node
+      - gASVeAMAAAAAAACMCnBpcmxpYi5waXKUjAROb2RllJOUKYGUfZQojAJpZJSMEWFkZF9jYXRlZ29yeV9pbmZvlIwLZW50cnlwb2ludHOUfZSMBG1haW6UaACMCkVudHJ5cG9pbnSUk5QpgZR9lCiMB3ZlcnNpb26UjAJ2MZSMB2hhbmRsZXKUjDpmb3J0ZV9leGFtcGxlcy53aWtpX3BhcnNlci5mdWxsX3BpcGVsaW5lOmFkZF9jYXRlZ29yeV9pbmZvlIwHcnVudGltZZSMCnB5dGhvbjozLjiUjAdjb2RldXJslE6MBWltYWdllIwVbmlsYWJocmEvcGlybGliLWZvcnRllHVic4wJZnJhbWV3b3JrlE6MBmNvbmZpZ5R9lIwGaW5wdXRzlF2UKGgAjAVJbnB1dJSTlCmBlH2UKGgFjA5iYXNlX2lucHV0X2RpcpSMBmlvdHlwZZSMCURJUkVDVE9SWZSMBnNvdXJjZZRoAIwKRGF0YVNvdXJjZZSTlCmBlH2UKIwHbm9kZV9pZJROjAtzdWJncmFwaF9pZJROjAlvdXRwdXRfaWSUTowOZ3JhcGhfaW5wdXRfaWSUjAlpbnB1dF9kaXKUdWKMBG1ldGGUaACMCE1ldGFkYXRhlJOUKYGUfZQojARuYW1llIwOYmFzZV9pbnB1dF9kaXKUjAthbm5vdGF0aW9uc5ROdWJ1YmgdKYGUfZQoaAWMDHJhd19wYWNrX2RpcpRoIYwJRElSRUNUT1JZlGgjaCUpgZR9lChoKIwOcmVhZF93aWtpX3Rhc2uUaClOaCqMBnJldHVybpRoK051YmgtaC8pgZR9lChoMowMcmF3X3BhY2tfZGlylGg0TnVidWJoHSmBlH2UKGgFjAttYXBwaW5nX2RpcpRoIYwJRElSRUNUT1JZlGgjaCUpgZR9lChoKIwPYWRkX29iamVjdF9pbmZvlGgpTmgqjAZyZXR1cm6UaCtOdWJoLWgvKYGUfZQoaDKMC21hcHBpbmdfZGlylGg0TnVidWJljAdvdXRwdXRzlF2UaACMBk91dHB1dJSTlCmBlH2UKGgFjAZyZXR1cm6UaCGMCURJUkVDVE9SWZRoLWgvKYGUfZQoaDKMBnJldHVybpRoNE51YnViYWgtaC8pgZR9lChoMowRYWRkX2NhdGVnb3J5X2luZm+UaDROdWJ1Yi4=
+      - gASVjgAAAAAAAABdlIwKcGlybGliLnBpcpSMCkdyYXBoSW5wdXSUk5QpgZR9lCiMAmlklIwJaW5wdXRfZGlylIwGaW90eXBllIwJRElSRUNUT1JZlIwEbWV0YZRoAYwITWV0YWRhdGGUk5QpgZR9lCiMBG5hbWWUjAlpbnB1dF9kaXKUjAthbm5vdGF0aW9uc5ROdWJ1YmEu
+      volumeMounts:
+      - name: node-outputs
+        mountPath: /mnt/node_outputs
+      - name: input-dir
+        mountPath: /mnt/graph_inputs/input_dir
+    volumes:
+    - name: node-outputs
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib/forte_examples/wiki_parser/outputs
+        readOnly: no
+    - name: input-dir
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib/forte_examples/wiki_parser/inputs/dbpedia_full/
+        readOnly: yes
+  - name: full-pipeline-template
+    container:
+      image: nilabhra/pirlib-forte
+      command:
+      - python
+      - -m
+      - pirlib.backends.argo_batch
+      - graph
+      - gASV/wAAAAAAAABdlIwKcGlybGliLnBpcpSMC0dyYXBoT3V0cHV0lJOUKYGUfZQojAJpZJSMBnJldHVybpSMBmlvdHlwZZSMCURJUkVDVE9SWZSMBnNvdXJjZZRoAYwKRGF0YVNvdXJjZZSTlCmBlH2UKIwHbm9kZV9pZJSMEWFkZF9jYXRlZ29yeV9pbmZvlIwLc3ViZ3JhcGhfaWSUTowJb3V0cHV0X2lklIwGcmV0dXJulIwOZ3JhcGhfaW5wdXRfaWSUTnVijARtZXRhlGgBjAhNZXRhZGF0YZSTlCmBlH2UKIwEbmFtZZSMBnJldHVybpSMC2Fubm90YXRpb25zlE51YnViYS4=
+      volumeMounts:
+      - name: node-outputs
+        mountPath: /mnt/node_outputs
+      - name: input-dir
+        mountPath: /mnt/graph_inputs/input_dir
+      - name: graph-outputs
+        mountPath: /mnt/graph_outputs
+    volumes:
+    - name: node-outputs
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib/forte_examples/wiki_parser/outputs
+        readOnly: no
+    - name: input-dir
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib/forte_examples/wiki_parser/inputs/dbpedia_full/
+        readOnly: yes
+    - name: graph-outputs
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib/forte_examples/wiki_parser/outputs
+        readOnly: no
+  - name: DAG-full-pipeline
+    dag:
+      tasks:
+      - name: read-wiki-task
+        template: read-wiki-task-template
+        dependencies: []
+      - name: add-struct-info
+        template: add-struct-info-template
+        dependencies:
+        - read-wiki-task
+      - name: add-link-info
+        template: add-link-info-template
+        dependencies:
+        - read-wiki-task
+        - add-struct-info
+      - name: add-property-info
+        template: add-property-info-template
+        dependencies:
+        - read-wiki-task
+        - add-link-info
+      - name: add-literal-info
+        template: add-literal-info-template
+        dependencies:
+        - read-wiki-task
+        - add-property-info
+      - name: add-object-info
+        template: add-object-info-template
+        dependencies:
+        - read-wiki-task
+        - add-literal-info
+      - name: add-category-info
+        template: add-category-info-template
+        dependencies:
+        - read-wiki-task
+        - add-object-info
+      - name: full-pipeline
+        template: full-pipeline-template
+        dependencies:
+        - read-wiki-task
+        - add-struct-info
+        - add-link-info
+        - add-property-info
+        - add-literal-info
+        - add-object-info
+        - add-category-info

@@ -1,0 +1,344 @@
+graphs:
+- id: sample_pipeline
+  nodes:
+  - id: read_wiki_task
+    entrypoints:
+      main:
+        version: v1
+        handler: forte_examples.wiki_parser.sample_pipeline:read_wiki_task
+        runtime: python:3.8
+        codeurl: null
+        image: nilabhra/pirlib-forte
+    framework: null
+    config: {}
+    inputs:
+    - id: base_input_dir
+      iotype: DIRECTORY
+      source:
+        node_id: null
+        subgraph_id: null
+        output_id: null
+        graph_input_id: input_dir
+      meta:
+        name: base_input_dir
+        annotations: null
+    outputs:
+    - id: return
+      iotype: DIRECTORY
+      meta:
+        name: return
+        annotations: null
+    meta:
+      name: read_wiki_task
+      annotations: null
+  - id: add_struct_info
+    entrypoints:
+      main:
+        version: v1
+        handler: forte_examples.wiki_parser.sample_pipeline:add_struct_info
+        runtime: python:3.8
+        codeurl: null
+        image: nilabhra/pirlib-forte
+    framework: null
+    config: {}
+    inputs:
+    - id: base_input_dir
+      iotype: DIRECTORY
+      source:
+        node_id: null
+        subgraph_id: null
+        output_id: null
+        graph_input_id: input_dir
+      meta:
+        name: base_input_dir
+        annotations: null
+    - id: raw_pack_dir
+      iotype: DIRECTORY
+      source:
+        node_id: read_wiki_task
+        subgraph_id: null
+        output_id: return
+        graph_input_id: null
+      meta:
+        name: raw_pack_dir
+        annotations: null
+    outputs:
+    - id: return
+      iotype: DIRECTORY
+      meta:
+        name: return
+        annotations: null
+    meta:
+      name: add_struct_info
+      annotations: null
+  - id: add_link_info
+    entrypoints:
+      main:
+        version: v1
+        handler: forte_examples.wiki_parser.sample_pipeline:add_link_info
+        runtime: python:3.8
+        codeurl: null
+        image: nilabhra/pirlib-forte
+    framework: null
+    config: {}
+    inputs:
+    - id: base_input_dir
+      iotype: DIRECTORY
+      source:
+        node_id: null
+        subgraph_id: null
+        output_id: null
+        graph_input_id: input_dir
+      meta:
+        name: base_input_dir
+        annotations: null
+    - id: raw_pack_dir
+      iotype: DIRECTORY
+      source:
+        node_id: read_wiki_task
+        subgraph_id: null
+        output_id: return
+        graph_input_id: null
+      meta:
+        name: raw_pack_dir
+        annotations: null
+    - id: struct_dir
+      iotype: DIRECTORY
+      source:
+        node_id: add_struct_info
+        subgraph_id: null
+        output_id: return
+        graph_input_id: null
+      meta:
+        name: struct_dir
+        annotations: null
+    outputs:
+    - id: return
+      iotype: DIRECTORY
+      meta:
+        name: return
+        annotations: null
+    meta:
+      name: add_link_info
+      annotations: null
+  - id: add_property_info
+    entrypoints:
+      main:
+        version: v1
+        handler: forte_examples.wiki_parser.sample_pipeline:add_property_info
+        runtime: python:3.8
+        codeurl: null
+        image: nilabhra/pirlib-forte
+    framework: null
+    config: {}
+    inputs:
+    - id: base_input_dir
+      iotype: DIRECTORY
+      source:
+        node_id: null
+        subgraph_id: null
+        output_id: null
+        graph_input_id: input_dir
+      meta:
+        name: base_input_dir
+        annotations: null
+    - id: raw_pack_dir
+      iotype: DIRECTORY
+      source:
+        node_id: read_wiki_task
+        subgraph_id: null
+        output_id: return
+        graph_input_id: null
+      meta:
+        name: raw_pack_dir
+        annotations: null
+    - id: link_dir
+      iotype: DIRECTORY
+      source:
+        node_id: add_link_info
+        subgraph_id: null
+        output_id: return
+        graph_input_id: null
+      meta:
+        name: link_dir
+        annotations: null
+    outputs:
+    - id: return
+      iotype: DIRECTORY
+      meta:
+        name: return
+        annotations: null
+    meta:
+      name: add_property_info
+      annotations: null
+  - id: add_literal_info
+    entrypoints:
+      main:
+        version: v1
+        handler: forte_examples.wiki_parser.sample_pipeline:add_literal_info
+        runtime: python:3.8
+        codeurl: null
+        image: nilabhra/pirlib-forte
+    framework: null
+    config: {}
+    inputs:
+    - id: base_input_dir
+      iotype: DIRECTORY
+      source:
+        node_id: null
+        subgraph_id: null
+        output_id: null
+        graph_input_id: input_dir
+      meta:
+        name: base_input_dir
+        annotations: null
+    - id: raw_pack_dir
+      iotype: DIRECTORY
+      source:
+        node_id: read_wiki_task
+        subgraph_id: null
+        output_id: return
+        graph_input_id: null
+      meta:
+        name: raw_pack_dir
+        annotations: null
+    - id: property_dir
+      iotype: DIRECTORY
+      source:
+        node_id: add_property_info
+        subgraph_id: null
+        output_id: return
+        graph_input_id: null
+      meta:
+        name: property_dir
+        annotations: null
+    outputs:
+    - id: return
+      iotype: DIRECTORY
+      meta:
+        name: return
+        annotations: null
+    meta:
+      name: add_literal_info
+      annotations: null
+  - id: add_object_info
+    entrypoints:
+      main:
+        version: v1
+        handler: forte_examples.wiki_parser.sample_pipeline:add_object_info
+        runtime: python:3.8
+        codeurl: null
+        image: nilabhra/pirlib-forte
+    framework: null
+    config: {}
+    inputs:
+    - id: base_input_dir
+      iotype: DIRECTORY
+      source:
+        node_id: null
+        subgraph_id: null
+        output_id: null
+        graph_input_id: input_dir
+      meta:
+        name: base_input_dir
+        annotations: null
+    - id: raw_pack_dir
+      iotype: DIRECTORY
+      source:
+        node_id: read_wiki_task
+        subgraph_id: null
+        output_id: return
+        graph_input_id: null
+      meta:
+        name: raw_pack_dir
+        annotations: null
+    - id: literal_dir
+      iotype: DIRECTORY
+      source:
+        node_id: add_literal_info
+        subgraph_id: null
+        output_id: return
+        graph_input_id: null
+      meta:
+        name: literal_dir
+        annotations: null
+    outputs:
+    - id: return
+      iotype: DIRECTORY
+      meta:
+        name: return
+        annotations: null
+    meta:
+      name: add_object_info
+      annotations: null
+  - id: add_category_info
+    entrypoints:
+      main:
+        version: v1
+        handler: forte_examples.wiki_parser.sample_pipeline:add_category_info
+        runtime: python:3.8
+        codeurl: null
+        image: nilabhra/pirlib-forte
+    framework: null
+    config: {}
+    inputs:
+    - id: base_input_dir
+      iotype: DIRECTORY
+      source:
+        node_id: null
+        subgraph_id: null
+        output_id: null
+        graph_input_id: input_dir
+      meta:
+        name: base_input_dir
+        annotations: null
+    - id: raw_pack_dir
+      iotype: DIRECTORY
+      source:
+        node_id: read_wiki_task
+        subgraph_id: null
+        output_id: return
+        graph_input_id: null
+      meta:
+        name: raw_pack_dir
+        annotations: null
+    - id: mapping_dir
+      iotype: DIRECTORY
+      source:
+        node_id: add_object_info
+        subgraph_id: null
+        output_id: return
+        graph_input_id: null
+      meta:
+        name: mapping_dir
+        annotations: null
+    outputs:
+    - id: return
+      iotype: DIRECTORY
+      meta:
+        name: return
+        annotations: null
+    meta:
+      name: add_category_info
+      annotations: null
+  subgraphs: []
+  inputs:
+  - id: input_dir
+    iotype: DIRECTORY
+    meta:
+      name: input_dir
+      annotations: null
+  outputs:
+  - id: return
+    iotype: DIRECTORY
+    source:
+      node_id: add_category_info
+      subgraph_id: null
+      output_id: return
+      graph_input_id: null
+    meta:
+      name: return
+      annotations: null
+  meta:
+    name: sample_pipeline
+    annotations: null
