@@ -110,6 +110,66 @@ Open up ``example/package_argo.yml``, ``argo-train.yml`` and see what's inside.
 
 .. include-end-before
 
+A Complex Example
+-----------------
+
+This example covers the usage of Forte to parse Wikipedia dumps as an Argo workflow.
+
+1. PIRlib's docerize module is used to generate a computation graph representation of the various steps of the process along with creating a Docker image which has all the necessary dependencies to run the example.
+2. PIRlib's argo backend converts the computation graph to an Argo Workflow YAML file.
+3. Finally, the workflow is executed by Argo.
+
+Install Forte with the right dependencies
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+::
+
+   pip install "forte[wikipedia]"
+
+
+Execute on sample data
+^^^^^^^^^^^^^^^^^^^^^^
+
+In order to test the pipeline, sample data is provided in inputs/dbpedia_sample/ under this directory. In order to execute the example with this data, just invoke
+
+::
+
+   mkdir forte_example/wiki_parser/outputs
+   bash forte_examples/wiki_parser/run_sample_pipeline.sh
+
+
+
+You should be able to see the live execution of the different steps of the pipeline in the browser. The resultant files will be generated in the outputs/ directory.
+
+Execute on the full data
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+If the previous step runs without any issues, you may now proceed to run the pipeline on the entirety of the data available. Follow the given steps:
+
+::
+
+   bash data_dowload.sh
+
+This script will take a while to execute as it downloads around 13GB of Wikipedia dumps and store them under inputs/dbpedia_full. Proceed to the next steps once the downloads are complete.
+
+If you have already run the example with the sample data, you can now directly execute
+
+::
+
+   rm -rf outputs/*
+   bash forte_examples/wiki_parser/run_full_pipeline.sh
+
+
+
+If you are executing the workflow on the full data without first executing on the sample data, do the following:
+
+::
+
+   mkdir forte_example/wiki_parser/outputs
+   bash forte_examples/wiki_parser/run_full_pipeline.sh
+
+The outputs would appear in the outputs/ directory and the Workflow execution can be viewed from the br
+
 TODOs
 -----
 
