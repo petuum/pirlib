@@ -1,0 +1,151 @@
+services:
+  sample_pipeline:
+    command:
+    - python
+    - -m
+    - pirlib.backends.docker_batch
+    - graph
+    - gASV/wAAAAAAAABdlIwKcGlybGliLnBpcpSMC0dyYXBoT3V0cHV0lJOUKYGUfZQojAJpZJSMBnJldHVybpSMBmlvdHlwZZSMCURJUkVDVE9SWZSMBnNvdXJjZZRoAYwKRGF0YVNvdXJjZZSTlCmBlH2UKIwHbm9kZV9pZJSMEWFkZF9jYXRlZ29yeV9pbmZvlIwLc3ViZ3JhcGhfaWSUTowJb3V0cHV0X2lklIwGcmV0dXJulIwOZ3JhcGhfaW5wdXRfaWSUTnVijARtZXRhlGgBjAhNZXRhZGF0YZSTlCmBlH2UKIwEbmFtZZSMBnJldHVybpSMC2Fubm90YXRpb25zlE51YnViYS4=
+    depends_on:
+      sample_pipeline.add_category_info:
+        condition: service_completed_successfully
+      sample_pipeline.add_link_info:
+        condition: service_completed_successfully
+      sample_pipeline.add_literal_info:
+        condition: service_completed_successfully
+      sample_pipeline.add_object_info:
+        condition: service_completed_successfully
+      sample_pipeline.add_property_info:
+        condition: service_completed_successfully
+      sample_pipeline.add_struct_info:
+        condition: service_completed_successfully
+      sample_pipeline.read_wiki_task:
+        condition: service_completed_successfully
+    image: nilabhra/pirlib-forte
+    user: "${UID}:${GID}"
+    volumes:
+    - node_outputs:/mnt/node_outputs
+    - ${INPUT_input_dir:?err}:/mnt/graph_inputs/input_dir
+    - ${OUTPUT:?err}:/mnt/graph_outputs
+  sample_pipeline.add_category_info:
+    command:
+    - python
+    - -m
+    - pirlib.backends.docker_batch
+    - node
+    - gASVegMAAAAAAACMCnBpcmxpYi5waXKUjAROb2RllJOUKYGUfZQojAJpZJSMEWFkZF9jYXRlZ29yeV9pbmZvlIwLZW50cnlwb2ludHOUfZSMBG1haW6UaACMCkVudHJ5cG9pbnSUk5QpgZR9lCiMB3ZlcnNpb26UjAJ2MZSMB2hhbmRsZXKUjDxmb3J0ZV9leGFtcGxlcy53aWtpX3BhcnNlci5zYW1wbGVfcGlwZWxpbmU6YWRkX2NhdGVnb3J5X2luZm+UjAdydW50aW1llIwKcHl0aG9uOjMuOJSMB2NvZGV1cmyUTowFaW1hZ2WUjBVuaWxhYmhyYS9waXJsaWItZm9ydGWUdWJzjAlmcmFtZXdvcmuUTowGY29uZmlnlH2UjAZpbnB1dHOUXZQoaACMBUlucHV0lJOUKYGUfZQoaAWMDmJhc2VfaW5wdXRfZGlylIwGaW90eXBllIwJRElSRUNUT1JZlIwGc291cmNllGgAjApEYXRhU291cmNllJOUKYGUfZQojAdub2RlX2lklE6MC3N1YmdyYXBoX2lklE6MCW91dHB1dF9pZJROjA5ncmFwaF9pbnB1dF9pZJSMCWlucHV0X2RpcpR1YowEbWV0YZRoAIwITWV0YWRhdGGUk5QpgZR9lCiMBG5hbWWUjA5iYXNlX2lucHV0X2RpcpSMC2Fubm90YXRpb25zlE51YnViaB0pgZR9lChoBYwMcmF3X3BhY2tfZGlylGghjAlESVJFQ1RPUlmUaCNoJSmBlH2UKGgojA5yZWFkX3dpa2lfdGFza5RoKU5oKowGcmV0dXJulGgrTnViaC1oLymBlH2UKGgyjAxyYXdfcGFja19kaXKUaDROdWJ1YmgdKYGUfZQoaAWMC21hcHBpbmdfZGlylGghjAlESVJFQ1RPUlmUaCNoJSmBlH2UKGgojA9hZGRfb2JqZWN0X2luZm+UaClOaCqMBnJldHVybpRoK051YmgtaC8pgZR9lChoMowLbWFwcGluZ19kaXKUaDROdWJ1YmWMB291dHB1dHOUXZRoAIwGT3V0cHV0lJOUKYGUfZQoaAWMBnJldHVybpRoIYwJRElSRUNUT1JZlGgtaC8pgZR9lChoMowGcmV0dXJulGg0TnVidWJhaC1oLymBlH2UKGgyjBFhZGRfY2F0ZWdvcnlfaW5mb5RoNE51YnViLg==
+    - gASVjgAAAAAAAABdlIwKcGlybGliLnBpcpSMCkdyYXBoSW5wdXSUk5QpgZR9lCiMAmlklIwJaW5wdXRfZGlylIwGaW90eXBllIwJRElSRUNUT1JZlIwEbWV0YZRoAYwITWV0YWRhdGGUk5QpgZR9lCiMBG5hbWWUjAlpbnB1dF9kaXKUjAthbm5vdGF0aW9uc5ROdWJ1YmEu
+    depends_on:
+      sample_pipeline.add_object_info:
+        condition: service_completed_successfully
+      sample_pipeline.read_wiki_task:
+        condition: service_completed_successfully
+    image: nilabhra/pirlib-forte
+    user: "${UID}:${GID}"
+    volumes:
+    - node_outputs:/mnt/node_outputs
+    - ${INPUT_input_dir:?err}:/mnt/graph_inputs/input_dir
+  sample_pipeline.add_link_info:
+    command:
+    - python
+    - -m
+    - pirlib.backends.docker_batch
+    - node
+    - gASVbAMAAAAAAACMCnBpcmxpYi5waXKUjAROb2RllJOUKYGUfZQojAJpZJSMDWFkZF9saW5rX2luZm+UjAtlbnRyeXBvaW50c5R9lIwEbWFpbpRoAIwKRW50cnlwb2ludJSTlCmBlH2UKIwHdmVyc2lvbpSMAnYxlIwHaGFuZGxlcpSMOGZvcnRlX2V4YW1wbGVzLndpa2lfcGFyc2VyLnNhbXBsZV9waXBlbGluZTphZGRfbGlua19pbmZvlIwHcnVudGltZZSMCnB5dGhvbjozLjiUjAdjb2RldXJslE6MBWltYWdllIwVbmlsYWJocmEvcGlybGliLWZvcnRllHVic4wJZnJhbWV3b3JrlE6MBmNvbmZpZ5R9lIwGaW5wdXRzlF2UKGgAjAVJbnB1dJSTlCmBlH2UKGgFjA5iYXNlX2lucHV0X2RpcpSMBmlvdHlwZZSMCURJUkVDVE9SWZSMBnNvdXJjZZRoAIwKRGF0YVNvdXJjZZSTlCmBlH2UKIwHbm9kZV9pZJROjAtzdWJncmFwaF9pZJROjAlvdXRwdXRfaWSUTowOZ3JhcGhfaW5wdXRfaWSUjAlpbnB1dF9kaXKUdWKMBG1ldGGUaACMCE1ldGFkYXRhlJOUKYGUfZQojARuYW1llIwOYmFzZV9pbnB1dF9kaXKUjAthbm5vdGF0aW9uc5ROdWJ1YmgdKYGUfZQoaAWMDHJhd19wYWNrX2RpcpRoIYwJRElSRUNUT1JZlGgjaCUpgZR9lChoKIwOcmVhZF93aWtpX3Rhc2uUaClOaCqMBnJldHVybpRoK051YmgtaC8pgZR9lChoMowMcmF3X3BhY2tfZGlylGg0TnVidWJoHSmBlH2UKGgFjApzdHJ1Y3RfZGlylGghjAlESVJFQ1RPUlmUaCNoJSmBlH2UKGgojA9hZGRfc3RydWN0X2luZm+UaClOaCqMBnJldHVybpRoK051YmgtaC8pgZR9lChoMowKc3RydWN0X2RpcpRoNE51YnViZYwHb3V0cHV0c5RdlGgAjAZPdXRwdXSUk5QpgZR9lChoBYwGcmV0dXJulGghjAlESVJFQ1RPUlmUaC1oLymBlH2UKGgyjAZyZXR1cm6UaDROdWJ1YmFoLWgvKYGUfZQoaDKMDWFkZF9saW5rX2luZm+UaDROdWJ1Yi4=
+    - gASVjgAAAAAAAABdlIwKcGlybGliLnBpcpSMCkdyYXBoSW5wdXSUk5QpgZR9lCiMAmlklIwJaW5wdXRfZGlylIwGaW90eXBllIwJRElSRUNUT1JZlIwEbWV0YZRoAYwITWV0YWRhdGGUk5QpgZR9lCiMBG5hbWWUjAlpbnB1dF9kaXKUjAthbm5vdGF0aW9uc5ROdWJ1YmEu
+    depends_on:
+      sample_pipeline.add_struct_info:
+        condition: service_completed_successfully
+      sample_pipeline.read_wiki_task:
+        condition: service_completed_successfully
+    image: nilabhra/pirlib-forte
+    user: "${UID}:${GID}"
+    volumes:
+    - node_outputs:/mnt/node_outputs
+    - ${INPUT_input_dir:?err}:/mnt/graph_inputs/input_dir
+  sample_pipeline.add_literal_info:
+    command:
+    - python
+    - -m
+    - pirlib.backends.docker_batch
+    - node
+    - gASVewMAAAAAAACMCnBpcmxpYi5waXKUjAROb2RllJOUKYGUfZQojAJpZJSMEGFkZF9saXRlcmFsX2luZm+UjAtlbnRyeXBvaW50c5R9lIwEbWFpbpRoAIwKRW50cnlwb2ludJSTlCmBlH2UKIwHdmVyc2lvbpSMAnYxlIwHaGFuZGxlcpSMO2ZvcnRlX2V4YW1wbGVzLndpa2lfcGFyc2VyLnNhbXBsZV9waXBlbGluZTphZGRfbGl0ZXJhbF9pbmZvlIwHcnVudGltZZSMCnB5dGhvbjozLjiUjAdjb2RldXJslE6MBWltYWdllIwVbmlsYWJocmEvcGlybGliLWZvcnRllHVic4wJZnJhbWV3b3JrlE6MBmNvbmZpZ5R9lIwGaW5wdXRzlF2UKGgAjAVJbnB1dJSTlCmBlH2UKGgFjA5iYXNlX2lucHV0X2RpcpSMBmlvdHlwZZSMCURJUkVDVE9SWZSMBnNvdXJjZZRoAIwKRGF0YVNvdXJjZZSTlCmBlH2UKIwHbm9kZV9pZJROjAtzdWJncmFwaF9pZJROjAlvdXRwdXRfaWSUTowOZ3JhcGhfaW5wdXRfaWSUjAlpbnB1dF9kaXKUdWKMBG1ldGGUaACMCE1ldGFkYXRhlJOUKYGUfZQojARuYW1llIwOYmFzZV9pbnB1dF9kaXKUjAthbm5vdGF0aW9uc5ROdWJ1YmgdKYGUfZQoaAWMDHJhd19wYWNrX2RpcpRoIYwJRElSRUNUT1JZlGgjaCUpgZR9lChoKIwOcmVhZF93aWtpX3Rhc2uUaClOaCqMBnJldHVybpRoK051YmgtaC8pgZR9lChoMowMcmF3X3BhY2tfZGlylGg0TnVidWJoHSmBlH2UKGgFjAxwcm9wZXJ0eV9kaXKUaCGMCURJUkVDVE9SWZRoI2glKYGUfZQoaCiMEWFkZF9wcm9wZXJ0eV9pbmZvlGgpTmgqjAZyZXR1cm6UaCtOdWJoLWgvKYGUfZQoaDKMDHByb3BlcnR5X2RpcpRoNE51YnViZYwHb3V0cHV0c5RdlGgAjAZPdXRwdXSUk5QpgZR9lChoBYwGcmV0dXJulGghjAlESVJFQ1RPUlmUaC1oLymBlH2UKGgyjAZyZXR1cm6UaDROdWJ1YmFoLWgvKYGUfZQoaDKMEGFkZF9saXRlcmFsX2luZm+UaDROdWJ1Yi4=
+    - gASVjgAAAAAAAABdlIwKcGlybGliLnBpcpSMCkdyYXBoSW5wdXSUk5QpgZR9lCiMAmlklIwJaW5wdXRfZGlylIwGaW90eXBllIwJRElSRUNUT1JZlIwEbWV0YZRoAYwITWV0YWRhdGGUk5QpgZR9lCiMBG5hbWWUjAlpbnB1dF9kaXKUjAthbm5vdGF0aW9uc5ROdWJ1YmEu
+    depends_on:
+      sample_pipeline.add_property_info:
+        condition: service_completed_successfully
+      sample_pipeline.read_wiki_task:
+        condition: service_completed_successfully
+    image: nilabhra/pirlib-forte
+    user: "${UID}:${GID}"
+    volumes:
+    - node_outputs:/mnt/node_outputs
+    - ${INPUT_input_dir:?err}:/mnt/graph_inputs/input_dir
+  sample_pipeline.add_object_info:
+    command:
+    - python
+    - -m
+    - pirlib.backends.docker_batch
+    - node
+    - gASVdQMAAAAAAACMCnBpcmxpYi5waXKUjAROb2RllJOUKYGUfZQojAJpZJSMD2FkZF9vYmplY3RfaW5mb5SMC2VudHJ5cG9pbnRzlH2UjARtYWlulGgAjApFbnRyeXBvaW50lJOUKYGUfZQojAd2ZXJzaW9ulIwCdjGUjAdoYW5kbGVylIw6Zm9ydGVfZXhhbXBsZXMud2lraV9wYXJzZXIuc2FtcGxlX3BpcGVsaW5lOmFkZF9vYmplY3RfaW5mb5SMB3J1bnRpbWWUjApweXRob246My44lIwHY29kZXVybJROjAVpbWFnZZSMFW5pbGFiaHJhL3BpcmxpYi1mb3J0ZZR1YnOMCWZyYW1ld29ya5ROjAZjb25maWeUfZSMBmlucHV0c5RdlChoAIwFSW5wdXSUk5QpgZR9lChoBYwOYmFzZV9pbnB1dF9kaXKUjAZpb3R5cGWUjAlESVJFQ1RPUlmUjAZzb3VyY2WUaACMCkRhdGFTb3VyY2WUk5QpgZR9lCiMB25vZGVfaWSUTowLc3ViZ3JhcGhfaWSUTowJb3V0cHV0X2lklE6MDmdyYXBoX2lucHV0X2lklIwJaW5wdXRfZGlylHVijARtZXRhlGgAjAhNZXRhZGF0YZSTlCmBlH2UKIwEbmFtZZSMDmJhc2VfaW5wdXRfZGlylIwLYW5ub3RhdGlvbnOUTnVidWJoHSmBlH2UKGgFjAxyYXdfcGFja19kaXKUaCGMCURJUkVDVE9SWZRoI2glKYGUfZQoaCiMDnJlYWRfd2lraV90YXNrlGgpTmgqjAZyZXR1cm6UaCtOdWJoLWgvKYGUfZQoaDKMDHJhd19wYWNrX2RpcpRoNE51YnViaB0pgZR9lChoBYwLbGl0ZXJhbF9kaXKUaCGMCURJUkVDVE9SWZRoI2glKYGUfZQoaCiMEGFkZF9saXRlcmFsX2luZm+UaClOaCqMBnJldHVybpRoK051YmgtaC8pgZR9lChoMowLbGl0ZXJhbF9kaXKUaDROdWJ1YmWMB291dHB1dHOUXZRoAIwGT3V0cHV0lJOUKYGUfZQoaAWMBnJldHVybpRoIYwJRElSRUNUT1JZlGgtaC8pgZR9lChoMowGcmV0dXJulGg0TnVidWJhaC1oLymBlH2UKGgyjA9hZGRfb2JqZWN0X2luZm+UaDROdWJ1Yi4=
+    - gASVjgAAAAAAAABdlIwKcGlybGliLnBpcpSMCkdyYXBoSW5wdXSUk5QpgZR9lCiMAmlklIwJaW5wdXRfZGlylIwGaW90eXBllIwJRElSRUNUT1JZlIwEbWV0YZRoAYwITWV0YWRhdGGUk5QpgZR9lCiMBG5hbWWUjAlpbnB1dF9kaXKUjAthbm5vdGF0aW9uc5ROdWJ1YmEu
+    depends_on:
+      sample_pipeline.add_literal_info:
+        condition: service_completed_successfully
+      sample_pipeline.read_wiki_task:
+        condition: service_completed_successfully
+    image: nilabhra/pirlib-forte
+    user: "${UID}:${GID}"
+    volumes:
+    - node_outputs:/mnt/node_outputs
+    - ${INPUT_input_dir:?err}:/mnt/graph_inputs/input_dir
+  sample_pipeline.add_property_info:
+    command:
+    - python
+    - -m
+    - pirlib.backends.docker_batch
+    - node
+    - gASVcgMAAAAAAACMCnBpcmxpYi5waXKUjAROb2RllJOUKYGUfZQojAJpZJSMEWFkZF9wcm9wZXJ0eV9pbmZvlIwLZW50cnlwb2ludHOUfZSMBG1haW6UaACMCkVudHJ5cG9pbnSUk5QpgZR9lCiMB3ZlcnNpb26UjAJ2MZSMB2hhbmRsZXKUjDxmb3J0ZV9leGFtcGxlcy53aWtpX3BhcnNlci5zYW1wbGVfcGlwZWxpbmU6YWRkX3Byb3BlcnR5X2luZm+UjAdydW50aW1llIwKcHl0aG9uOjMuOJSMB2NvZGV1cmyUTowFaW1hZ2WUjBVuaWxhYmhyYS9waXJsaWItZm9ydGWUdWJzjAlmcmFtZXdvcmuUTowGY29uZmlnlH2UjAZpbnB1dHOUXZQoaACMBUlucHV0lJOUKYGUfZQoaAWMDmJhc2VfaW5wdXRfZGlylIwGaW90eXBllIwJRElSRUNUT1JZlIwGc291cmNllGgAjApEYXRhU291cmNllJOUKYGUfZQojAdub2RlX2lklE6MC3N1YmdyYXBoX2lklE6MCW91dHB1dF9pZJROjA5ncmFwaF9pbnB1dF9pZJSMCWlucHV0X2RpcpR1YowEbWV0YZRoAIwITWV0YWRhdGGUk5QpgZR9lCiMBG5hbWWUjA5iYXNlX2lucHV0X2RpcpSMC2Fubm90YXRpb25zlE51YnViaB0pgZR9lChoBYwMcmF3X3BhY2tfZGlylGghjAlESVJFQ1RPUlmUaCNoJSmBlH2UKGgojA5yZWFkX3dpa2lfdGFza5RoKU5oKowGcmV0dXJulGgrTnViaC1oLymBlH2UKGgyjAxyYXdfcGFja19kaXKUaDROdWJ1YmgdKYGUfZQoaAWMCGxpbmtfZGlylGghjAlESVJFQ1RPUlmUaCNoJSmBlH2UKGgojA1hZGRfbGlua19pbmZvlGgpTmgqjAZyZXR1cm6UaCtOdWJoLWgvKYGUfZQoaDKMCGxpbmtfZGlylGg0TnVidWJljAdvdXRwdXRzlF2UaACMBk91dHB1dJSTlCmBlH2UKGgFjAZyZXR1cm6UaCGMCURJUkVDVE9SWZRoLWgvKYGUfZQoaDKMBnJldHVybpRoNE51YnViYWgtaC8pgZR9lChoMowRYWRkX3Byb3BlcnR5X2luZm+UaDROdWJ1Yi4=
+    - gASVjgAAAAAAAABdlIwKcGlybGliLnBpcpSMCkdyYXBoSW5wdXSUk5QpgZR9lCiMAmlklIwJaW5wdXRfZGlylIwGaW90eXBllIwJRElSRUNUT1JZlIwEbWV0YZRoAYwITWV0YWRhdGGUk5QpgZR9lCiMBG5hbWWUjAlpbnB1dF9kaXKUjAthbm5vdGF0aW9uc5ROdWJ1YmEu
+    depends_on:
+      sample_pipeline.add_link_info:
+        condition: service_completed_successfully
+      sample_pipeline.read_wiki_task:
+        condition: service_completed_successfully
+    image: nilabhra/pirlib-forte
+    user: "${UID}:${GID}"
+    volumes:
+    - node_outputs:/mnt/node_outputs
+    - ${INPUT_input_dir:?err}:/mnt/graph_inputs/input_dir
+  sample_pipeline.add_struct_info:
+    command:
+    - python
+    - -m
+    - pirlib.backends.docker_batch
+    - node
+    - gASV/AIAAAAAAACMCnBpcmxpYi5waXKUjAROb2RllJOUKYGUfZQojAJpZJSMD2FkZF9zdHJ1Y3RfaW5mb5SMC2VudHJ5cG9pbnRzlH2UjARtYWlulGgAjApFbnRyeXBvaW50lJOUKYGUfZQojAd2ZXJzaW9ulIwCdjGUjAdoYW5kbGVylIw6Zm9ydGVfZXhhbXBsZXMud2lraV9wYXJzZXIuc2FtcGxlX3BpcGVsaW5lOmFkZF9zdHJ1Y3RfaW5mb5SMB3J1bnRpbWWUjApweXRob246My44lIwHY29kZXVybJROjAVpbWFnZZSMFW5pbGFiaHJhL3BpcmxpYi1mb3J0ZZR1YnOMCWZyYW1ld29ya5ROjAZjb25maWeUfZSMBmlucHV0c5RdlChoAIwFSW5wdXSUk5QpgZR9lChoBYwOYmFzZV9pbnB1dF9kaXKUjAZpb3R5cGWUjAlESVJFQ1RPUlmUjAZzb3VyY2WUaACMCkRhdGFTb3VyY2WUk5QpgZR9lCiMB25vZGVfaWSUTowLc3ViZ3JhcGhfaWSUTowJb3V0cHV0X2lklE6MDmdyYXBoX2lucHV0X2lklIwJaW5wdXRfZGlylHVijARtZXRhlGgAjAhNZXRhZGF0YZSTlCmBlH2UKIwEbmFtZZSMDmJhc2VfaW5wdXRfZGlylIwLYW5ub3RhdGlvbnOUTnVidWJoHSmBlH2UKGgFjAxyYXdfcGFja19kaXKUaCGMCURJUkVDVE9SWZRoI2glKYGUfZQoaCiMDnJlYWRfd2lraV90YXNrlGgpTmgqjAZyZXR1cm6UaCtOdWJoLWgvKYGUfZQoaDKMDHJhd19wYWNrX2RpcpRoNE51YnViZYwHb3V0cHV0c5RdlGgAjAZPdXRwdXSUk5QpgZR9lChoBYwGcmV0dXJulGghjAlESVJFQ1RPUlmUaC1oLymBlH2UKGgyjAZyZXR1cm6UaDROdWJ1YmFoLWgvKYGUfZQoaDKMD2FkZF9zdHJ1Y3RfaW5mb5RoNE51YnViLg==
+    - gASVjgAAAAAAAABdlIwKcGlybGliLnBpcpSMCkdyYXBoSW5wdXSUk5QpgZR9lCiMAmlklIwJaW5wdXRfZGlylIwGaW90eXBllIwJRElSRUNUT1JZlIwEbWV0YZRoAYwITWV0YWRhdGGUk5QpgZR9lCiMBG5hbWWUjAlpbnB1dF9kaXKUjAthbm5vdGF0aW9uc5ROdWJ1YmEu
+    depends_on:
+      sample_pipeline.read_wiki_task:
+        condition: service_completed_successfully
+    image: nilabhra/pirlib-forte
+    user: "${UID}:${GID}"
+    volumes:
+    - node_outputs:/mnt/node_outputs
+    - ${INPUT_input_dir:?err}:/mnt/graph_inputs/input_dir
+  sample_pipeline.read_wiki_task:
+    command:
+    - python
+    - -m
+    - pirlib.backends.docker_batch
+    - node
+    - gASVfwIAAAAAAACMCnBpcmxpYi5waXKUjAROb2RllJOUKYGUfZQojAJpZJSMDnJlYWRfd2lraV90YXNrlIwLZW50cnlwb2ludHOUfZSMBG1haW6UaACMCkVudHJ5cG9pbnSUk5QpgZR9lCiMB3ZlcnNpb26UjAJ2MZSMB2hhbmRsZXKUjDlmb3J0ZV9leGFtcGxlcy53aWtpX3BhcnNlci5zYW1wbGVfcGlwZWxpbmU6cmVhZF93aWtpX3Rhc2uUjAdydW50aW1llIwKcHl0aG9uOjMuOJSMB2NvZGV1cmyUTowFaW1hZ2WUjBVuaWxhYmhyYS9waXJsaWItZm9ydGWUdWJzjAlmcmFtZXdvcmuUTowGY29uZmlnlH2UjAZpbnB1dHOUXZRoAIwFSW5wdXSUk5QpgZR9lChoBYwOYmFzZV9pbnB1dF9kaXKUjAZpb3R5cGWUjAlESVJFQ1RPUlmUjAZzb3VyY2WUaACMCkRhdGFTb3VyY2WUk5QpgZR9lCiMB25vZGVfaWSUTowLc3ViZ3JhcGhfaWSUTowJb3V0cHV0X2lklE6MDmdyYXBoX2lucHV0X2lklIwJaW5wdXRfZGlylHVijARtZXRhlGgAjAhNZXRhZGF0YZSTlCmBlH2UKIwEbmFtZZSMDmJhc2VfaW5wdXRfZGlylIwLYW5ub3RhdGlvbnOUTnVidWJhjAdvdXRwdXRzlF2UaACMBk91dHB1dJSTlCmBlH2UKGgFjAZyZXR1cm6UaCGMCURJUkVDVE9SWZRoLWgvKYGUfZQoaDKMBnJldHVybpRoNE51YnViYWgtaC8pgZR9lChoMowOcmVhZF93aWtpX3Rhc2uUaDROdWJ1Yi4=
+    - gASVjgAAAAAAAABdlIwKcGlybGliLnBpcpSMCkdyYXBoSW5wdXSUk5QpgZR9lCiMAmlklIwJaW5wdXRfZGlylIwGaW90eXBllIwJRElSRUNUT1JZlIwEbWV0YZRoAYwITWV0YWRhdGGUk5QpgZR9lCiMBG5hbWWUjAlpbnB1dF9kaXKUjAthbm5vdGF0aW9uc5ROdWJ1YmEu
+    image: nilabhra/pirlib-forte
+    user: "${UID}:${GID}"
+    volumes:
+    - node_outputs:/mnt/node_outputs
+    - ${INPUT_input_dir:?err}:/mnt/graph_inputs/input_dir
+version: '3.9'
+volumes:
+  node_outputs: {}
