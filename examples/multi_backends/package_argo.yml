@@ -1,118 +1,4 @@
 graphs:
-- id: infer_pipeline
-  nodes:
-  - id: translate_1
-    entrypoints:
-      main:
-        version: v1
-        handler: examples.multi_backends.example:translate
-        runtime: python:3.8
-        codeurl: null
-        image: null
-    framework: null
-    config:
-      key: value
-    inputs:
-    - id: args.0
-      iotype: FILE
-      source:
-        node_id: null
-        subgraph_id: null
-        output_id: null
-        graph_input_id: translate_model
-      meta:
-        name: args.0
-        annotations: null
-    - id: args.1
-      iotype: DIRECTORY
-      source:
-        node_id: null
-        subgraph_id: null
-        output_id: null
-        graph_input_id: sentences
-      meta:
-        name: args.1
-        annotations: null
-    outputs:
-    - id: return
-      iotype: DIRECTORY
-      meta:
-        name: return
-        annotations: null
-    meta:
-      name: translate_1
-      annotations: null
-  - id: sentiment
-    entrypoints:
-      main:
-        version: v1
-        handler: examples.multi_backends.example:sentiment
-        runtime: python:3.8
-        codeurl: null
-        image: null
-    framework: null
-    config: {}
-    inputs:
-    - id: model
-      iotype: FILE
-      source:
-        node_id: null
-        subgraph_id: null
-        output_id: null
-        graph_input_id: sentiment_model
-      meta:
-        name: model
-        annotations: null
-    - id: sentences
-      iotype: DIRECTORY
-      source:
-        node_id: translate_1
-        subgraph_id: null
-        output_id: return
-        graph_input_id: null
-      meta:
-        name: sentences
-        annotations: null
-    outputs:
-    - id: return
-      iotype: DIRECTORY
-      meta:
-        name: return
-        annotations: null
-    meta:
-      name: sentiment
-      annotations: null
-  subgraphs: []
-  inputs:
-  - id: translate_model
-    iotype: FILE
-    meta:
-      name: translate_model
-      annotations: null
-  - id: sentiment_model
-    iotype: FILE
-    meta:
-      name: sentiment_model
-      annotations: null
-  - id: sentences
-    iotype: DIRECTORY
-    meta:
-      name: sentences
-      annotations: null
-  outputs:
-  - id: return
-    iotype: DIRECTORY
-    source:
-      node_id: sentiment
-      subgraph_id: null
-      output_id: return
-      graph_input_id: null
-    meta:
-      name: return
-      annotations: null
-  meta:
-    name: infer_pipeline
-    annotations: null
 - id: train_pipeline
   nodes:
   - id: clean
@@ -122,7 +8,7 @@ graphs:
         handler: examples.multi_backends.example:clean
         runtime: python:3.8
         codeurl: null
-        image: null
+        image: nilabhra/pirlib
     framework: null
     config: {}
     inputs:
@@ -152,7 +38,7 @@ graphs:
         handler: examples.multi_backends.example:train
         runtime: python:3.8
         codeurl: null
-        image: null
+        image: nilabhra/pirlib
     framework:
       name: adaptdl
       version: null
@@ -186,7 +72,7 @@ graphs:
         handler: examples.multi_backends.example:evaluate
         runtime: python:3.8
         codeurl: null
-        image: null
+        image: nilabhra/pirlib
     framework: null
     config: {}
     inputs:
@@ -203,8 +89,8 @@ graphs:
     - id: kwargs.predictions
       iotype: DIRECTORY
       source:
-        node_id: null
-        subgraph_id: infer_pipeline
+        node_id: infer_pipeline.sentiment
+        subgraph_id: null
         output_id: return
         graph_input_id: null
       meta:
@@ -219,12 +105,19 @@ graphs:
     meta:
       name: evaluate
       annotations: null
-  subgraphs:
-  - id: infer_pipeline
-    graph_id: infer_pipeline
-    config: {}
+  - id: infer_pipeline.translate_1
+    entrypoints:
+      main:
+        version: v1
+        handler: examples.multi_backends.example:translate
+        runtime: python:3.8
+        codeurl: null
+        image: nilabhra/pirlib
+    framework: null
+    config:
+      key: value
     inputs:
-    - id: translate_model
+    - id: args.0
       iotype: FILE
       source:
         node_id: null
@@ -232,9 +125,39 @@ graphs:
         output_id: null
         graph_input_id: translate_model
       meta:
-        name: translate_model
+        name: args.0
         annotations: null
-    - id: sentiment_model
+    - id: args.1
+      iotype: DIRECTORY
+      source:
+        node_id: null
+        subgraph_id: null
+        output_id: null
+        graph_input_id: sentences
+      meta:
+        name: args.1
+        annotations: null
+    outputs:
+    - id: return
+      iotype: DIRECTORY
+      meta:
+        name: return
+        annotations: null
+    meta:
+      name: translate_1
+      annotations: null
+  - id: infer_pipeline.sentiment
+    entrypoints:
+      main:
+        version: v1
+        handler: examples.multi_backends.example:sentiment
+        runtime: python:3.8
+        codeurl: null
+        image: nilabhra/pirlib
+    framework: null
+    config: {}
+    inputs:
+    - id: model
       iotype: FILE
       source:
         node_id: train
@@ -242,15 +165,15 @@ graphs:
         output_id: return
         graph_input_id: null
       meta:
-        name: sentiment_model
+        name: model
         annotations: null
     - id: sentences
       iotype: DIRECTORY
       source:
-        node_id: null
+        node_id: infer_pipeline.translate_1
         subgraph_id: null
-        output_id: null
-        graph_input_id: sentences
+        output_id: return
+        graph_input_id: null
       meta:
         name: sentences
         annotations: null
@@ -261,8 +184,9 @@ graphs:
         name: return
         annotations: null
     meta:
-      name: infer_pipeline
+      name: sentiment
       annotations: null
+  subgraphs: []
   inputs:
   - id: train_dataset
     iotype: DIRECTORY

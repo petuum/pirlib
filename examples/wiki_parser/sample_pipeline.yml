@@ -5,7 +5,7 @@ graphs:
     entrypoints:
       main:
         version: v1
-        handler: forte_examples.wiki_parser.sample_pipeline:read_wiki_task
+        handler: examples.wiki_parser.sample_pipeline:read_wiki_task
         runtime: python:3.8
         codeurl: null
         image: nilabhra/pirlib-forte
@@ -35,7 +35,7 @@ graphs:
     entrypoints:
       main:
         version: v1
-        handler: forte_examples.wiki_parser.sample_pipeline:add_struct_info
+        handler: examples.wiki_parser.sample_pipeline:add_struct_info
         runtime: python:3.8
         codeurl: null
         image: nilabhra/pirlib-forte
@@ -75,7 +75,7 @@ graphs:
     entrypoints:
       main:
         version: v1
-        handler: forte_examples.wiki_parser.sample_pipeline:add_link_info
+        handler: examples.wiki_parser.sample_pipeline:add_link_info
         runtime: python:3.8
         codeurl: null
         image: nilabhra/pirlib-forte
@@ -125,7 +125,7 @@ graphs:
     entrypoints:
       main:
         version: v1
-        handler: forte_examples.wiki_parser.sample_pipeline:add_property_info
+        handler: examples.wiki_parser.sample_pipeline:add_property_info
         runtime: python:3.8
         codeurl: null
         image: nilabhra/pirlib-forte
@@ -175,7 +175,7 @@ graphs:
     entrypoints:
       main:
         version: v1
-        handler: forte_examples.wiki_parser.sample_pipeline:add_literal_info
+        handler: examples.wiki_parser.sample_pipeline:add_literal_info
         runtime: python:3.8
         codeurl: null
         image: nilabhra/pirlib-forte
@@ -225,7 +225,7 @@ graphs:
     entrypoints:
       main:
         version: v1
-        handler: forte_examples.wiki_parser.sample_pipeline:add_object_info
+        handler: examples.wiki_parser.sample_pipeline:add_object_info
         runtime: python:3.8
         codeurl: null
         image: nilabhra/pirlib-forte
@@ -275,7 +275,7 @@ graphs:
     entrypoints:
       main:
         version: v1
-        handler: forte_examples.wiki_parser.sample_pipeline:add_category_info
+        handler: examples.wiki_parser.sample_pipeline:add_category_info
         runtime: python:3.8
         codeurl: null
         image: nilabhra/pirlib-forte

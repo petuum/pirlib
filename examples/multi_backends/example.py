@@ -48,10 +48,10 @@ def evaluate(kwargs: EvaluateInput) -> pandas.DataFrame:
 
 
 @task
-def translate(args: Tuple[DirectoryPath, DirectoryPath]) -> DirectoryPath:
+def translate(args: Tuple[FilePath, DirectoryPath]) -> DirectoryPath:
     model_dir, sentences = args
     task_ctx = task.context()
-    with open(model_dir / "translate_model.txt") as f, open(sentences / "file.txt") as g:
+    with open(model_dir) as f, open(sentences / "file.txt") as g:
         print(
             "translate({}, {}, config={})".format(
                 f.read().strip(), g.read().strip(), task_ctx.config
@@ -75,7 +75,7 @@ def sentiment(model: FilePath, sentences: DirectoryPath) -> DirectoryPath:
 
 @pipeline
 def infer_pipeline(
-    translate_model: DirectoryPath, sentiment_model: FilePath, sentences: DirectoryPath
+    translate_model: FilePath, sentiment_model: FilePath, sentences: DirectoryPath
 ) -> DirectoryPath:
     translate_1 = translate.instance("translate_1")
     translate_1.config["key"] = "value"

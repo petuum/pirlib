@@ -4,7 +4,7 @@ import os
 import pickle
 import re
 import sys
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
 import yaml
 
@@ -24,31 +24,74 @@ def decode(x):
 argo_name = lambda x: re.sub("[^a-zA-Z0-9]", "-", x.strip())
 
 
-def create_nfs_volume_spec(name: str, path_env_var: str, readonly: bool = False) -> Dict[str, Any]:
+def create_nfs_volume_spec(
+    volume_name: str, is_file: bool, is_input: bool, readonly: bool = False, is_graph: bool = False
+) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """Creates Kubernetes specs for defining NFS volumes.
 
-    :param name: Name of the volume, required for mount reference.
-    :type name: str
-    :param path_env_var: Enviroment variable containing the NFS path of the
-    directory/file.
-    :type path_env_var: str
-    :param readonly: Defines if the volume should be read only, defaults to False
+    :param volume_name: Name of the volume, required for mount reference.
+    :type volume_name: str
+    :param is_file: True if the location is a file and False, if it's a directory.
+    :type is_file: bool
+    :param is_input: True if the volume contains input data and False if outputs
+    would be written to it.
+    :type is_input: bool
+    :param readonly: Defines if the volume should be read only, defaults to False.
     :type readonly: bool, optional
-    :return: K8s specification for the NFS volume.
-    :rtype: Dict[str, Any]
+    :param is_graph: True if the volume will be attached at the graph level, defaults to False.
+    :type is_gaph: bool, optional
+    :raises RuntimeError: If the environment variables containing the NFS locations are
+    not defined.
+    :return: K8s specification for the NFS volume and mount information.
+    :rtype: Tuple[Dict[str, Any], Dict[str, str]]
     """
+
+    # Decide if volume will be attached at a node level or at a graph level
+    if is_graph:
+        attach_level = "graph"
+    else:
+        attach_level = "node"
+
+    # Construct the name for the env var that contains the input directory/file path.
+    if is_input:
+        path_env_var = f"INPUT_{volume_name}"
+        mount_path = f"/mnt/graph_inputs/{volume_name}"
+    else:
+        path_env_var = "OUTPUT"
+        mount_path = f"/mnt/{attach_level}_outputs"
+
     for var in ("NFS_SERVER", path_env_var):
         if var not in os.environ:
             raise RuntimeError(f"Required environment variable `{var}` is undefined.")
 
-    spec = {"name": argo_name(name)}
+    spec = {"name": argo_name(volume_name)}
+    path = os.environ[path_env_var]
+
+    # If the data is coming from a file. The path will include only till the parent directory
+    # of the file.
+    if is_file:
+        split_path = path.split("/")
+        path = "/".join(split_path[:-1])
+        filename = split_path[-1]
+
     nfs = {
         "server": os.environ["NFS_SERVER"],
-        "path": os.environ[path_env_var],
+        "path": path,
         "readOnly": readonly,
     }
     spec["nfs"] = nfs
-    return spec
+
+    # Create mounting spec for the volume.
+    mount_spec = {
+        "name": argo_name(volume_name),
+        "mountPath": mount_path,
+    }
+
+    # If the input source is a file, add the filename as a subpath.
+    if is_file:
+        mount_spec["subPath"] = filename
+
+    return spec, mount_spec
 
 
 def create_template_from_node(
@@ -76,31 +119,30 @@ def create_template_from_node(
         graph_inputs_encoded,
     ]
 
-    # Define the volume to be mounted.
-    volumes = [create_nfs_volume_spec("node_outputs", "OUTPUT")]
-    volume_mounts = [{"name": argo_name("node_outputs"), "mountPath": "/mnt/node_outputs"}]
+    # Obtain specs for the output volume.
+    op_volume, op_volume_mount = create_nfs_volume_spec(
+        volume_name="node_outputs", is_file=False, is_input=False
+    )
+
+    # Define input volumes to be mounted.
+    volumes = [op_volume]
+    volume_mounts = [op_volume_mount]
     dependencies = []
 
     # If the node has a valid graph input source,
     # mount the respective host system's file to the input volume
     for inp in node.inputs:
+        is_file = inp.iotype == "FILE"
         if inp.source.graph_input_id:
-            # Construct the env var name for the env var that contains the
-            # input directory/file path.
             inp_id = inp.source.graph_input_id
-            inp_env_var = f"INPUT_{inp_id}"
 
             # Create NFS volume spec.
-            inp_volume_spec = create_nfs_volume_spec(inp_id, inp_env_var, readonly=True)
+            inp_volume_spec, mount_spec = create_nfs_volume_spec(
+                inp_id, is_file, True, readonly=True
+            )
 
             # Add the volume to the volume list.
             volumes.append(inp_volume_spec)
-
-            # Create mounting spec for the volume.
-            mount_spec = {
-                "name": argo_name(inp_id),
-                "mountPath": f"/mnt/graph_inputs/{inp_id}",
-            }
 
             # Add the volume mount spec to the volume mount list.
             volume_mounts.append(mount_spec)
@@ -139,27 +181,37 @@ def create_template_from_graph(
     name = graph.id
     image = graph.nodes[0].entrypoints["main"].image
     command = ["python", "-m", __name__, "graph", graph_outputs_encoded]
-    volumes = [create_nfs_volume_spec("node_outputs", "OUTPUT")]
-    volume_mounts = [{"name": argo_name("node_outputs"), "mountPath": "/mnt/node_outputs"}]
+
+    # Obtain specs for the output volume.
+    op_volume, op_volume_mount = create_nfs_volume_spec(
+        volume_name="node_outputs", is_file=False, is_input=False
+    )
+
+    # Define input volumes to be mounted.
+    volumes = [op_volume]
+    volume_mounts = [op_volume_mount]
 
     for inp in graph.inputs:
         inp_id = inp.id
-        inp_env_var = f"INPUT_{inp_id}"
+        is_file = inp.iotype == "FILE"
 
-        inp_volume_spec = create_nfs_volume_spec(inp_id, inp_env_var, readonly=True)
+        # Create NFS volume spec.
+        inp_volume_spec, inp_mount_spec = create_nfs_volume_spec(
+            inp_id, is_file, True, readonly=True, is_graph=True
+        )
+
+        # Add the volume spec to the volume list.
         volumes.append(inp_volume_spec)
 
-        inp_mount_spec = {
-            "name": argo_name(inp_id),
-            "mountPath": f"/mnt/graph_inputs/{inp_id}",
-        }
+        # Add the mount spec to the mount list.
         volume_mounts.append(inp_mount_spec)
 
     if graph.outputs:
-        volumes.append(create_nfs_volume_spec("graph_outputs", "OUTPUT"))
-        volume_mounts.append(
-            {"name": argo_name("graph_outputs"), "mountPath": "/mnt/graph_outputs"}
+        graph_op_volume_spec, graph_op_mount_spec = create_nfs_volume_spec(
+            "graph_outputs", is_file=False, is_input=False, is_graph=True
         )
+        volumes.append(graph_op_volume_spec)
+        volume_mounts.append(graph_op_mount_spec)
 
     template = {
         "name": argo_name(name),
@@ -335,7 +387,7 @@ def run_graph(graph_outputs):
             path_from = f"/mnt/graph_inputs/{source.graph_input_id}"
         path_to = f"/mnt/graph_outputs/{g_out.id}"
         if g_out.iotype == "DIRECTORY":
-            shutil.coptytree(path_from, path_to)
+            shutil.copytree(path_from, path_to)
         else:
             shutil.copy(path_from, path_to)
 
