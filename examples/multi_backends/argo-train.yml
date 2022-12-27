@@ -1,0 +1,208 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: argo-train-
+spec:
+  entrypoint: DAG-train-pipeline
+  templates:
+  - name: clean-template
+    container:
+      image: nilabhra/pirlib
+      command:
+      - python
+      - -m
+      - pirlib.backends.argo_batch
+      - node
+      - gASVSQIAAAAAAACMCnBpcmxpYi5waXKUjAROb2RllJOUKYGUfZQojAJpZJSMBWNsZWFulIwLZW50cnlwb2ludHOUfZSMBG1haW6UaACMCkVudHJ5cG9pbnSUk5QpgZR9lCiMB3ZlcnNpb26UjAJ2MZSMB2hhbmRsZXKUjCVleGFtcGxlcy5tdWx0aV9iYWNrZW5kcy5leGFtcGxlOmNsZWFulIwHcnVudGltZZSMCnB5dGhvbjozLjiUjAdjb2RldXJslE6MBWltYWdllIwPbmlsYWJocmEvcGlybGlilHVic4wJZnJhbWV3b3JrlE6MBmNvbmZpZ5R9lIwGaW5wdXRzlF2UaACMBUlucHV0lJOUKYGUfZQoaAWMB2RhdGFzZXSUjAZpb3R5cGWUjAlESVJFQ1RPUlmUjAZzb3VyY2WUaACMCkRhdGFTb3VyY2WUk5QpgZR9lCiMB25vZGVfaWSUTowLc3ViZ3JhcGhfaWSUTowJb3V0cHV0X2lklE6MDmdyYXBoX2lucHV0X2lklIwNdHJhaW5fZGF0YXNldJR1YowEbWV0YZRoAIwITWV0YWRhdGGUk5QpgZR9lCiMBG5hbWWUjAdkYXRhc2V0lIwLYW5ub3RhdGlvbnOUTnVidWJhjAdvdXRwdXRzlF2UaACMBk91dHB1dJSTlCmBlH2UKGgFjAZyZXR1cm6UaCGMCURJUkVDVE9SWZRoLWgvKYGUfZQoaDKMBnJldHVybpRoNE51YnViYWgtaC8pgZR9lChoMowFY2xlYW6UaDROdWJ1Yi4=
+      - gASVJAEAAAAAAABdlCiMCnBpcmxpYi5waXKUjApHcmFwaElucHV0lJOUKYGUfZQojAJpZJSMDXRyYWluX2RhdGFzZXSUjAZpb3R5cGWUjAlESVJFQ1RPUlmUjARtZXRhlGgBjAhNZXRhZGF0YZSTlCmBlH2UKIwEbmFtZZSMDXRyYWluX2RhdGFzZXSUjAthbm5vdGF0aW9uc5ROdWJ1YmgDKYGUfZQoaAaMD3RyYW5zbGF0ZV9tb2RlbJRoCIwERklMRZRoCmgMKYGUfZQoaA+MD3RyYW5zbGF0ZV9tb2RlbJRoEU51YnViaAMpgZR9lChoBowJc2VudGVuY2VzlGgIjAlESVJFQ1RPUlmUaApoDCmBlH2UKGgPjAlzZW50ZW5jZXOUaBFOdWJ1YmUu
+      volumeMounts:
+      - name: node-outputs
+        mountPath: /mnt/node_outputs
+      - name: train-dataset
+        mountPath: /mnt/graph_inputs/train_dataset
+    volumes:
+    - name: node-outputs
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib/examples/multi_backends/outputs
+        readOnly: no
+    - name: train-dataset
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib/examples/multi_backends/inputs/train_dataset
+        readOnly: yes
+  - name: train-template
+    container:
+      image: nilabhra/pirlib
+      command:
+      - python
+      - -m
+      - pirlib.backends.argo_batch
+      - node
+      - gASVoQIAAAAAAACMCnBpcmxpYi5waXKUjAROb2RllJOUKYGUfZQojAJpZJSMBXRyYWlulIwLZW50cnlwb2ludHOUfZSMBG1haW6UaACMCkVudHJ5cG9pbnSUk5QpgZR9lCiMB3ZlcnNpb26UjAJ2MZSMB2hhbmRsZXKUjCVleGFtcGxlcy5tdWx0aV9iYWNrZW5kcy5leGFtcGxlOnRyYWlulIwHcnVudGltZZSMCnB5dGhvbjozLjiUjAdjb2RldXJslE6MBWltYWdllIwPbmlsYWJocmEvcGlybGlilHVic4wJZnJhbWV3b3JrlGgAjAlGcmFtZXdvcmuUk5QpgZR9lCiMBG5hbWWUjAdhZGFwdGRslGgOTowGY29uZmlnlE51YmgefZQojBRhZGFwdGRsL21pbl9yZXBsaWNhc5RLAYwUYWRhcHRkbC9tYXhfcmVwbGljYXOUSwR1jAZpbnB1dHOUXZRoAIwFSW5wdXSUk5QpgZR9lChoBYwHZGF0YXNldJSMBmlvdHlwZZSMCURJUkVDVE9SWZSMBnNvdXJjZZRoAIwKRGF0YVNvdXJjZZSTlCmBlH2UKIwHbm9kZV9pZJSMBWNsZWFulIwLc3ViZ3JhcGhfaWSUTowJb3V0cHV0X2lklIwGcmV0dXJulIwOZ3JhcGhfaW5wdXRfaWSUTnVijARtZXRhlGgAjAhNZXRhZGF0YZSTlCmBlH2UKGgcjAdkYXRhc2V0lIwLYW5ub3RhdGlvbnOUTnVidWJhjAdvdXRwdXRzlF2UaACMBk91dHB1dJSTlCmBlH2UKGgFjAZyZXR1cm6UaCmMBEZJTEWUaDZoOCmBlH2UKGgcjAZyZXR1cm6UaDxOdWJ1YmFoNmg4KYGUfZQoaByMBXRyYWlulGg8TnVidWIu
+      - gASVJAEAAAAAAABdlCiMCnBpcmxpYi5waXKUjApHcmFwaElucHV0lJOUKYGUfZQojAJpZJSMDXRyYWluX2RhdGFzZXSUjAZpb3R5cGWUjAlESVJFQ1RPUlmUjARtZXRhlGgBjAhNZXRhZGF0YZSTlCmBlH2UKIwEbmFtZZSMDXRyYWluX2RhdGFzZXSUjAthbm5vdGF0aW9uc5ROdWJ1YmgDKYGUfZQoaAaMD3RyYW5zbGF0ZV9tb2RlbJRoCIwERklMRZRoCmgMKYGUfZQoaA+MD3RyYW5zbGF0ZV9tb2RlbJRoEU51YnViaAMpgZR9lChoBowJc2VudGVuY2VzlGgIjAlESVJFQ1RPUlmUaApoDCmBlH2UKGgPjAlzZW50ZW5jZXOUaBFOdWJ1YmUu
+      volumeMounts:
+      - name: node-outputs
+        mountPath: /mnt/node_outputs
+    volumes:
+    - name: node-outputs
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib/examples/multi_backends/outputs
+        readOnly: no
+  - name: evaluate-template
+    container:
+      image: nilabhra/pirlib
+      command:
+      - python
+      - -m
+      - pirlib.backends.argo_batch
+      - node
+      - gASV9gIAAAAAAACMCnBpcmxpYi5waXKUjAROb2RllJOUKYGUfZQojAJpZJSMCGV2YWx1YXRllIwLZW50cnlwb2ludHOUfZSMBG1haW6UaACMCkVudHJ5cG9pbnSUk5QpgZR9lCiMB3ZlcnNpb26UjAJ2MZSMB2hhbmRsZXKUjChleGFtcGxlcy5tdWx0aV9iYWNrZW5kcy5leGFtcGxlOmV2YWx1YXRllIwHcnVudGltZZSMCnB5dGhvbjozLjiUjAdjb2RldXJslE6MBWltYWdllIwPbmlsYWJocmEvcGlybGlilHVic4wJZnJhbWV3b3JrlE6MBmNvbmZpZ5R9lIwGaW5wdXRzlF2UKGgAjAVJbnB1dJSTlCmBlH2UKGgFjBNrd2FyZ3MudGVzdF9kYXRhc2V0lIwGaW90eXBllIwJRElSRUNUT1JZlIwGc291cmNllGgAjApEYXRhU291cmNllJOUKYGUfZQojAdub2RlX2lklE6MC3N1YmdyYXBoX2lklE6MCW91dHB1dF9pZJROjA5ncmFwaF9pbnB1dF9pZJSMCXNlbnRlbmNlc5R1YowEbWV0YZRoAIwITWV0YWRhdGGUk5QpgZR9lCiMBG5hbWWUjBNrd2FyZ3MudGVzdF9kYXRhc2V0lIwLYW5ub3RhdGlvbnOUTnVidWJoHSmBlH2UKGgFjBJrd2FyZ3MucHJlZGljdGlvbnOUaCGMCURJUkVDVE9SWZRoI2glKYGUfZQoaCiMGGluZmVyX3BpcGVsaW5lLnNlbnRpbWVudJRoKU5oKowGcmV0dXJulGgrTnViaC1oLymBlH2UKGgyjBJrd2FyZ3MucHJlZGljdGlvbnOUaDROdWJ1YmWMB291dHB1dHOUXZRoAIwGT3V0cHV0lJOUKYGUfZQoaAWMBnJldHVybpRoIYwJREFUQUZSQU1FlGgtaC8pgZR9lChoMowGcmV0dXJulGg0TnVidWJhaC1oLymBlH2UKGgyjAhldmFsdWF0ZZRoNE51YnViLg==
+      - gASVJAEAAAAAAABdlCiMCnBpcmxpYi5waXKUjApHcmFwaElucHV0lJOUKYGUfZQojAJpZJSMDXRyYWluX2RhdGFzZXSUjAZpb3R5cGWUjAlESVJFQ1RPUlmUjARtZXRhlGgBjAhNZXRhZGF0YZSTlCmBlH2UKIwEbmFtZZSMDXRyYWluX2RhdGFzZXSUjAthbm5vdGF0aW9uc5ROdWJ1YmgDKYGUfZQoaAaMD3RyYW5zbGF0ZV9tb2RlbJRoCIwERklMRZRoCmgMKYGUfZQoaA+MD3RyYW5zbGF0ZV9tb2RlbJRoEU51YnViaAMpgZR9lChoBowJc2VudGVuY2VzlGgIjAlESVJFQ1RPUlmUaApoDCmBlH2UKGgPjAlzZW50ZW5jZXOUaBFOdWJ1YmUu
+      volumeMounts:
+      - name: node-outputs
+        mountPath: /mnt/node_outputs
+      - name: sentences
+        mountPath: /mnt/graph_inputs/sentences
+    volumes:
+    - name: node-outputs
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib/examples/multi_backends/outputs
+        readOnly: no
+    - name: sentences
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib/examples/multi_backends/inputs/sentences
+        readOnly: yes
+  - name: infer-pipeline-translate-1-template
+    container:
+      image: nilabhra/pirlib
+      command:
+      - python
+      - -m
+      - pirlib.backends.argo_batch
+      - node
+      - gASV0wIAAAAAAACMCnBpcmxpYi5waXKUjAROb2RllJOUKYGUfZQojAJpZJSMGmluZmVyX3BpcGVsaW5lLnRyYW5zbGF0ZV8xlIwLZW50cnlwb2ludHOUfZSMBG1haW6UaACMCkVudHJ5cG9pbnSUk5QpgZR9lCiMB3ZlcnNpb26UjAJ2MZSMB2hhbmRsZXKUjClleGFtcGxlcy5tdWx0aV9iYWNrZW5kcy5leGFtcGxlOnRyYW5zbGF0ZZSMB3J1bnRpbWWUjApweXRob246My44lIwHY29kZXVybJROjAVpbWFnZZSMD25pbGFiaHJhL3BpcmxpYpR1YnOMCWZyYW1ld29ya5ROjAZjb25maWeUfZSMA2tleZSMBXZhbHVllHOMBmlucHV0c5RdlChoAIwFSW5wdXSUk5QpgZR9lChoBYwGYXJncy4wlIwGaW90eXBllIwERklMRZSMBnNvdXJjZZRoAIwKRGF0YVNvdXJjZZSTlCmBlH2UKIwHbm9kZV9pZJROjAtzdWJncmFwaF9pZJROjAlvdXRwdXRfaWSUTowOZ3JhcGhfaW5wdXRfaWSUjA90cmFuc2xhdGVfbW9kZWyUdWKMBG1ldGGUaACMCE1ldGFkYXRhlJOUKYGUfZQojARuYW1llIwGYXJncy4wlIwLYW5ub3RhdGlvbnOUTnVidWJoHymBlH2UKGgFjAZhcmdzLjGUaCOMCURJUkVDVE9SWZRoJWgnKYGUfZQoaCpOaCtOaCxOaC2MCXNlbnRlbmNlc5R1YmgvaDEpgZR9lChoNIwGYXJncy4xlGg2TnVidWJljAdvdXRwdXRzlF2UaACMBk91dHB1dJSTlCmBlH2UKGgFjAZyZXR1cm6UaCOMCURJUkVDVE9SWZRoL2gxKYGUfZQoaDSMBnJldHVybpRoNk51YnViYWgvaDEpgZR9lChoNIwLdHJhbnNsYXRlXzGUaDZOdWJ1Yi4=
+      - gASVJAEAAAAAAABdlCiMCnBpcmxpYi5waXKUjApHcmFwaElucHV0lJOUKYGUfZQojAJpZJSMDXRyYWluX2RhdGFzZXSUjAZpb3R5cGWUjAlESVJFQ1RPUlmUjARtZXRhlGgBjAhNZXRhZGF0YZSTlCmBlH2UKIwEbmFtZZSMDXRyYWluX2RhdGFzZXSUjAthbm5vdGF0aW9uc5ROdWJ1YmgDKYGUfZQoaAaMD3RyYW5zbGF0ZV9tb2RlbJRoCIwERklMRZRoCmgMKYGUfZQoaA+MD3RyYW5zbGF0ZV9tb2RlbJRoEU51YnViaAMpgZR9lChoBowJc2VudGVuY2VzlGgIjAlESVJFQ1RPUlmUaApoDCmBlH2UKGgPjAlzZW50ZW5jZXOUaBFOdWJ1YmUu
+      volumeMounts:
+      - name: node-outputs
+        mountPath: /mnt/node_outputs
+      - name: translate-model
+        mountPath: /mnt/graph_inputs/translate_model
+        subPath: translate_model.txt
+      - name: sentences
+        mountPath: /mnt/graph_inputs/sentences
+    volumes:
+    - name: node-outputs
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib/examples/multi_backends/outputs
+        readOnly: no
+    - name: translate-model
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib/examples/multi_backends/inputs
+        readOnly: yes
+    - name: sentences
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib/examples/multi_backends/inputs/sentences
+        readOnly: yes
+  - name: infer-pipeline-sentiment-template
+    container:
+      image: nilabhra/pirlib
+      command:
+      - python
+      - -m
+      - pirlib.backends.argo_batch
+      - node
+      - gASV2wIAAAAAAACMCnBpcmxpYi5waXKUjAROb2RllJOUKYGUfZQojAJpZJSMGGluZmVyX3BpcGVsaW5lLnNlbnRpbWVudJSMC2VudHJ5cG9pbnRzlH2UjARtYWlulGgAjApFbnRyeXBvaW50lJOUKYGUfZQojAd2ZXJzaW9ulIwCdjGUjAdoYW5kbGVylIwpZXhhbXBsZXMubXVsdGlfYmFja2VuZHMuZXhhbXBsZTpzZW50aW1lbnSUjAdydW50aW1llIwKcHl0aG9uOjMuOJSMB2NvZGV1cmyUTowFaW1hZ2WUjA9uaWxhYmhyYS9waXJsaWKUdWJzjAlmcmFtZXdvcmuUTowGY29uZmlnlH2UjAZpbnB1dHOUXZQoaACMBUlucHV0lJOUKYGUfZQoaAWMBW1vZGVslIwGaW90eXBllIwERklMRZSMBnNvdXJjZZRoAIwKRGF0YVNvdXJjZZSTlCmBlH2UKIwHbm9kZV9pZJSMBXRyYWlulIwLc3ViZ3JhcGhfaWSUTowJb3V0cHV0X2lklIwGcmV0dXJulIwOZ3JhcGhfaW5wdXRfaWSUTnVijARtZXRhlGgAjAhNZXRhZGF0YZSTlCmBlH2UKIwEbmFtZZSMBW1vZGVslIwLYW5ub3RhdGlvbnOUTnVidWJoHSmBlH2UKGgFjAlzZW50ZW5jZXOUaCGMCURJUkVDVE9SWZRoI2glKYGUfZQoaCiMGmluZmVyX3BpcGVsaW5lLnRyYW5zbGF0ZV8xlGgqTmgrjAZyZXR1cm6UaC1OdWJoLmgwKYGUfZQoaDOMCXNlbnRlbmNlc5RoNU51YnViZYwHb3V0cHV0c5RdlGgAjAZPdXRwdXSUk5QpgZR9lChoBYwGcmV0dXJulGghjAlESVJFQ1RPUlmUaC5oMCmBlH2UKGgzjAZyZXR1cm6UaDVOdWJ1YmFoLmgwKYGUfZQoaDOMCXNlbnRpbWVudJRoNU51YnViLg==
+      - gASVJAEAAAAAAABdlCiMCnBpcmxpYi5waXKUjApHcmFwaElucHV0lJOUKYGUfZQojAJpZJSMDXRyYWluX2RhdGFzZXSUjAZpb3R5cGWUjAlESVJFQ1RPUlmUjARtZXRhlGgBjAhNZXRhZGF0YZSTlCmBlH2UKIwEbmFtZZSMDXRyYWluX2RhdGFzZXSUjAthbm5vdGF0aW9uc5ROdWJ1YmgDKYGUfZQoaAaMD3RyYW5zbGF0ZV9tb2RlbJRoCIwERklMRZRoCmgMKYGUfZQoaA+MD3RyYW5zbGF0ZV9tb2RlbJRoEU51YnViaAMpgZR9lChoBowJc2VudGVuY2VzlGgIjAlESVJFQ1RPUlmUaApoDCmBlH2UKGgPjAlzZW50ZW5jZXOUaBFOdWJ1YmUu
+      volumeMounts:
+      - name: node-outputs
+        mountPath: /mnt/node_outputs
+    volumes:
+    - name: node-outputs
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib/examples/multi_backends/outputs
+        readOnly: no
+  - name: train-pipeline-template
+    container:
+      image: nilabhra/pirlib
+      command:
+      - python
+      - -m
+      - pirlib.backends.argo_batch
+      - graph
+      - gASVXgEAAAAAAABdlCiMCnBpcmxpYi5waXKUjAtHcmFwaE91dHB1dJSTlCmBlH2UKIwCaWSUjAhyZXR1cm4uMJSMBmlvdHlwZZSMBEZJTEWUjAZzb3VyY2WUaAGMCkRhdGFTb3VyY2WUk5QpgZR9lCiMB25vZGVfaWSUjAV0cmFpbpSMC3N1YmdyYXBoX2lklE6MCW91dHB1dF9pZJSMBnJldHVybpSMDmdyYXBoX2lucHV0X2lklE51YowEbWV0YZRoAYwITWV0YWRhdGGUk5QpgZR9lCiMBG5hbWWUjAhyZXR1cm4uMJSMC2Fubm90YXRpb25zlE51YnViaAMpgZR9lChoBowIcmV0dXJuLjGUaAiMCURBVEFGUkFNRZRoCmgMKYGUfZQoaA+MCGV2YWx1YXRllGgRTmgSjAZyZXR1cm6UaBROdWJoFWgXKYGUfZQoaBqMCHJldHVybi4xlGgcTnVidWJlLg==
+      volumeMounts:
+      - name: node-outputs
+        mountPath: /mnt/node_outputs
+      - name: train-dataset
+        mountPath: /mnt/graph_inputs/train_dataset
+      - name: translate-model
+        mountPath: /mnt/graph_inputs/translate_model
+        subPath: translate_model.txt
+      - name: sentences
+        mountPath: /mnt/graph_inputs/sentences
+      - name: graph-outputs
+        mountPath: /mnt/graph_outputs
+    volumes:
+    - name: node-outputs
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib/examples/multi_backends/outputs
+        readOnly: no
+    - name: train-dataset
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib/examples/multi_backends/inputs/train_dataset
+        readOnly: yes
+    - name: translate-model
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib/examples/multi_backends/inputs
+        readOnly: yes
+    - name: sentences
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib/examples/multi_backends/inputs/sentences
+        readOnly: yes
+    - name: graph-outputs
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib/examples/multi_backends/outputs
+        readOnly: no
+  - name: DAG-train-pipeline
+    dag:
+      tasks:
+      - name: clean
+        template: clean-template
+        dependencies: []
+      - name: train
+        template: train-template
+        dependencies:
+        - clean
+      - name: evaluate
+        template: evaluate-template
+        dependencies:
+        - infer-pipeline-sentiment
+      - name: infer-pipeline-translate-1
+        template: infer-pipeline-translate-1-template
+        dependencies: []
+      - name: infer-pipeline-sentiment
+        template: infer-pipeline-sentiment-template
+        dependencies:
+        - train
+        - infer-pipeline-translate-1
+      - name: train-pipeline
+        template: train-pipeline-template
+        dependencies:
+        - clean
+        - train
+        - evaluate
+        - infer-pipeline-translate-1
+        - infer-pipeline-sentiment
