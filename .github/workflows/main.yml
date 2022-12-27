@@ -36,7 +36,7 @@ jobs:
         run: pip install --progress-bar off .
         
       - name: Install example dependencies
-        run: pip install -r example/requirements.txt
+        run: pip install -r examples/multi_backends/requirements.txt
 
       - name: Test with pytest
         run: |
