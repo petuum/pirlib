@@ -4,7 +4,7 @@ ROOTDIR=$EXAMPLEDIR/../..
 ### Step 1: Docker Packaging
 python $ROOTDIR/bin/pircli dockerize \
     --auto $ROOTDIR \
-	--pipeline forte_examples.wiki_parser.sample_pipeline:sample_pipeline \
+	--pipeline examples.wiki_parser.sample_pipeline:sample_pipeline \
 	--output $EXAMPLEDIR/sample_pipeline.yml \
 	--flatten
 
