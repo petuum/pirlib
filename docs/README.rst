@@ -105,7 +105,7 @@ Finally, execute the example.
 
 
 You should be able to see the live execution of the different steps of the pipeline in the browser.
-Open up ``example/package_argo.yml``, ``argo-train.yml`` and see what's inside.
+Open up ``examples/multi_backends/package_argo.yml``, ``argo-train.yml`` and see what's inside.
 
 
 Running as an Argo Workflow
