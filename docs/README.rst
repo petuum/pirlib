@@ -54,9 +54,12 @@ Running with the `pircli` command:
 
    $ bash examples/multi_backends/run_inproc.sh
 
-This script will (1) run the ``pircli`` command to convert serialize
-the pipeline into ``example/package_inproc.yml``, and then (2) run the
-``pircli`` command to execute the pipeline locally, feeding in inputs
+This script will 
+
+1. Run the ``pircli`` command to convert serialize
+the pipeline into ``example/package_inproc.yml``.
+
+2. Run the ``pircli`` command to execute the pipeline locally, feeding in inputs
 from ``example/inputs`` and saving its outputs to ``example/outputs``.
 
 Open up ``examples/multi_backends/run_inproc.sh`` and ``examples/multi_backends/package_inproc.yml`` and
@@ -101,42 +104,12 @@ Follow the instructions `here <https://argoproj.github.io/argo-workflows/quick-s
 Finally, execute the example.
 ::
 
-   bash examples/multi_backends/run_argo.sh
+   $ bash examples/multi_backends/run_argo.sh
 
 
 You should be able to see the live execution of the different steps of the pipeline in the browser.
 Open up ``examples/multi_backends/package_argo.yml``, ``argo-train.yml`` and see what's inside.
 
-
-Running as an Argo Workflow
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-The following steps require and existing installations of Docker, Kubernetes and Argo.
-
-
-In order for Argo to have access to the docker images, a docker registry needs to be configured. Currently the `dockerize` module uses Docker Hub as the docker registry and only supports public repositories. Follow the following steps to configure Docker Hub:
-
-::
-
-   $ docker login
-   $ export DOCKER_USER=<username>
-   $ export PIRLIB_REPO=<reponame>
-
-Please ensure that the repository already exists under the user name in Docker Hub
-
-
-Follow the instructions `here <https://argoproj.github.io/argo-workflows/quick-start/>`_ and navigate your browser to ``https://127.0.0.1:2746``.
-
-Finally, execute the example.
-::
-
-   bash example/run_argo.sh
-
-
-You should be able to see the live execution of the different steps of the pipeline in the browser.
-Open up ``example/package_argo.yml``, ``argo-train.yml`` and see what's inside.
-
-
-.. include-end-before
 
 A Complex Example
 -----------------
@@ -151,8 +124,9 @@ Install Forte with the right dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ::
-   conda create -n pirlib-wiki-parser python=3.8 && conda activate pirlib-wiki-parser
-   pip install "forte[wikipedia]"
+
+   $ conda create -n pirlib-wiki-parser python=3.8 && conda activate pirlib-wiki-parser
+   $ pip install "forte[wikipedia]"
 
 
 Execute on sample data
@@ -162,8 +136,8 @@ In order to test the pipeline, sample data is provided in inputs/dbpedia_sample/
 
 ::
 
-   mkdir examples/wiki_parser/outputs
-   bash examples/wiki_parser/run_sample_pipeline.sh
+   $ mkdir examples/wiki_parser/outputs
+   $ bash examples/wiki_parser/run_sample_pipeline.sh
 
 
 
@@ -176,7 +150,7 @@ If the previous step runs without any issues, you may now proceed to run the pip
 
 ::
 
-   bash data_dowload.sh
+   $ bash data_dowload.sh
 
 This script will take a while to execute as it downloads around 13GB of Wikipedia dumps and store them under inputs/dbpedia_full. Proceed to the next steps once the downloads are complete.
 
@@ -184,8 +158,8 @@ If you have already run the example with the sample data, you can now directly e
 
 ::
 
-   rm -rf examples/wiki_parser/outputs/*
-   bash examples/wiki_parser/run_full_pipeline.sh
+   $ rm -rf examples/wiki_parser/outputs/*
+   $ bash examples/wiki_parser/run_full_pipeline.sh
 
 
 
@@ -193,8 +167,8 @@ If you are executing the workflow on the full data without first executing on th
 
 ::
 
-   mkdir examples/wiki_parser/outputs
-   bash examples/wiki_parser/run_full_pipeline.sh
+   $ mkdir examples/wiki_parser/outputs
+   $ bash examples/wiki_parser/run_full_pipeline.sh
 
 The outputs would appear in the outputs/ directory and the Workflow execution can be viewed from the br
 
