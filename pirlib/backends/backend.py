@@ -1,5 +1,4 @@
 import argparse
-
 from typing import Any, Optional
 
 import pirlib.pir
@@ -14,7 +13,7 @@ class Backend(object):
 
     def generate(
         self,
-        graph: pirlib.pir.Graph,
+        graph: pirlib.pir.Package,
         config: Optional[dict] = None,
         args: Optional[argparse.Namespace] = None,
     ) -> Any:
@@ -22,7 +21,7 @@ class Backend(object):
 
     def execute(
         self,
-        graph: pirlib.pir.Graph,
+        graph: pirlib.pir.Package,
         config: Optional[dict] = None,
         args: Optional[argparse.Namespace] = None,
     ) -> Any:
