@@ -170,7 +170,7 @@ If you are executing the workflow on the full data without first executing on th
    $ mkdir examples/wiki_parser/outputs
    $ bash examples/wiki_parser/run_full_pipeline.sh
 
-The outputs would appear in the outputs/ directory and the Workflow execution can be viewed from the br
+The outputs would appear in the outputs/ directory and the Workflow execution can be viewed from the browser.
 
 TODOs
 -----
