@@ -1,9 +1,9 @@
 EXAMPLEDIR=$(dirname $0)
-ROOTDIR=$EXAMPLEDIR/..
+ROOTDIR=$EXAMPLEDIR/../..
 
 PYTHONPATH=$ROOTDIR $ROOTDIR/bin/pircli package \
-	--pipeline example.example:infer_pipeline \
-	--pipeline example.example:train_pipeline \
+	--pipeline examples.multi_backends.example:infer_pipeline \
+	--pipeline examples.multi_backends.example:train_pipeline \
 	--output $EXAMPLEDIR/package_inproc.yml
 
 PYTHONPATH=$ROOTDIR $ROOTDIR/bin/pircli execute \

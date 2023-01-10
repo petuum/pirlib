@@ -1,11 +1,11 @@
 EXAMPLEDIR=$(dirname $0)
-ROOTDIR=$EXAMPLEDIR/..
+ROOTDIR=$EXAMPLEDIR/../..
 
 ### Module 1: Docker_Packaging
 python $ROOTDIR/bin/pircli dockerize \
     $ROOTDIR \
 	--auto \
-	--pipeline example.example:train_pipeline \
+	--pipeline examples.multi_backends.example:train_pipeline \
 	--output $EXAMPLEDIR/package_argo.yml \
 	--flatten
 
@@ -14,7 +14,7 @@ EXAMPLEDIR=$([[ $EXAMPLEDIR = /* ]] && echo "$EXAMPLEDIR" || echo "$PWD/${EXAMPL
 
 ### Module 2: Argoize_Module
 INPUT_train_dataset=$EXAMPLEDIR/inputs/train_dataset \
-INPUT_translate_model=$EXAMPLEDIR/inputs/ \
+INPUT_translate_model=$EXAMPLEDIR/inputs/translate_model.txt \
 INPUT_sentences=$EXAMPLEDIR/inputs/sentences \
 OUTPUT=$EXAMPLEDIR/outputs \
 NFS_SERVER=k8s-master.cm.cluster \
