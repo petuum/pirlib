@@ -56,11 +56,9 @@ Running with the `pircli` command:
 
 This script will 
 
-1. Run the ``pircli`` command to convert serialize
-the pipeline into ``example/package_inproc.yml``.
+1. Run the ``pircli`` command to convert serialize the pipeline into ``example/package_inproc.yml``.
 
-2. Run the ``pircli`` command to execute the pipeline locally, feeding in inputs
-from ``example/inputs`` and saving its outputs to ``example/outputs``.
+2. Run the ``pircli`` command to execute the pipeline locally, feeding in inputs from ``example/inputs`` and saving its outputs to ``example/outputs``.
 
 Open up ``examples/multi_backends/run_inproc.sh`` and ``examples/multi_backends/package_inproc.yml`` and
 see what's inside.
@@ -74,11 +72,13 @@ The following steps require a existing docker installation.
 
    $ bash examples/multi_backends/run_docker.sh
 
-This script will (1) automatically dockerize the local environment and
-serialize the pipeline into ``example/package_docker.yml``, (2) generate
-a docker-compose workflow from the serialized pipeline and save it to
-``example/docker-compose.yml``, (3) execute the generated docker-compose
-workflow.
+This script will
+
+1. Automatically dockerize the local environment and serialize the pipeline into ``examples/multi_backends/package_docker.yml``.
+
+2. Generate a docker-compose workflow from the serialized pipeline and save it to ``examples/multi_backends/docker-compose.yml``.
+
+3. Execute the generated docker-compose workflow.
 
 Open up ``examples/multi_backends/run_docker.sh``, ``example/multi_backends/package_docker.yml``, and
 ``examples/multi_backends/docker-compose.yml`` and see what's inside.
@@ -108,7 +108,7 @@ Finally, execute the example.
 
 
 You should be able to see the live execution of the different steps of the pipeline in the browser.
-Open up ``examples/multi_backends/package_argo.yml``, ``argo-train.yml`` and see what's inside.
+Open up ``examples/multi_backends/package_argo.yml``, ``examples/multi_backends/argo-train.yml`` and see what's inside.
 
 
 A Complex Example
