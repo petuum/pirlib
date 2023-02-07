@@ -1,11 +1,9 @@
 import shutil
-from io import BytesIO
 from pathlib import Path
-from zipfile import ZipFile
 
 from diskcache import Cache
 
-CACHE_DIR = "../tmp/cache"
+CACHE_DIR = Path("../tmp/cache")
 
 
 def cache_directory(dir_path: Path, cache_key: str) -> bool:
@@ -18,20 +16,18 @@ def cache_directory(dir_path: Path, cache_key: str) -> bool:
     :return: True if caching was a success, False if the key already exists.
     :rtype: bool
     """
-    # Zip the contents of the directory.
-    zipped_dir = shutil.make_archive(str(dir_path.parts[-1]), "zip", dir_path)
-
-    # Cache the zip file.
     with Cache(CACHE_DIR) as cache_ref:
-        # Read the zip file as bytestream.
-        with open(zipped_dir, "rb") as f:
-            dir_bytes = BytesIO(f.read())
+        if cache_key in cache_ref:
+            # Key already exists, caching not possible.
+            return False
+        else:
+            # Key doesn't exist, caching is possible.
+            # Copy the contents to a directory in the cache.
+            target_dir = CACHE_DIR / f"DIR_{cache_key}"
+            shutil.copytree(dir_path, target_dir)
 
-        # Add the zipped stream to the cache.
-        status = cache_ref.add(cache_key, dir_bytes)
-
-    # Delete the zipped file.
-    Path(zipped_dir).unlink()
+            # Add the temp directory to the cache.
+            status = cache_ref.add(cache_key, target_dir)
 
     # Return the status of cache add operation.
     return status
@@ -50,16 +46,14 @@ def fetch_directory(dir_path: Path, cache_key: str) -> bool:
     :return: True if the directory was retrived successfully, False otherwise.
     :rtype: bool
     """
-    # Retreive the zip bytestream if key exists.
+    # Retreive the temp directory location if key exists.
     with Cache(CACHE_DIR) as cache_ref:
         if cache_key in cache_ref:
-            zipped_stream = cache_ref.get(cache_key)
+            cached_dir = cache_ref.get(cache_key)
         else:
             return False
 
-    # Create a ZipFile object from the bystream.
-    with ZipFile(zipped_stream, mode="r") as zipped_dir:
-        # Extract the ziped directory in the provided path.
-        zipped_dir.extractall(path=dir_path)
+    # Copy the contents of the temp directory to the given directory.
+    shutil.copytree(cached_dir, dir_path, dirs_exist_ok=True)
 
     return True
