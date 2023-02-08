@@ -13,7 +13,7 @@ python $ROOTDIR/bin/pircli dockerize \
 EXAMPLEDIR=$([[ $EXAMPLEDIR = /* ]] && echo "$EXAMPLEDIR" || echo "$PWD/${EXAMPLEDIR#./}")
 
 ### Module 2: Argoize_Module
-INPUT_dataset=$EXAMPLEDIR/dataset \
+INPUT_raw_data=$EXAMPLEDIR/dataset \
 OUTPUT=$EXAMPLEDIR/outputs \
 NFS_SERVER=k8s-master.cm.cluster \
 python  $ROOTDIR/bin/pircli generate $EXAMPLEDIR/package_argo.yml \
