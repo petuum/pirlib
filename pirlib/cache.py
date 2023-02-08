@@ -1,3 +1,4 @@
+import hashlib
 import shutil
 from pathlib import Path
 
@@ -57,3 +58,13 @@ def fetch_directory(dir_path: Path, cache_key: str) -> bool:
     shutil.copytree(cached_dir, dir_path, dirs_exist_ok=True)
 
     return True
+
+
+def generate_cache_key(key_file: Path) -> str:
+    # Read contents of key file as a string.
+    with key_file.read("r") as f:
+        key_data = f.read()
+
+    # Compute a hash value from the key file contents.
+    preprocess_cache_key = hashlib.sha256(f"{str(key_file)}_{key_data}".encode()).hexdigest()
+    return preprocess_cache_key
