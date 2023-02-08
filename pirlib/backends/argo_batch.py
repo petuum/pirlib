@@ -286,6 +286,7 @@ class ArgoBatchBackend(Backend):
         # Generate template for the nodes.
         for node in graph.nodes:
             # Creating a template for the current node.
+            print(node)
             template = create_template_from_node(graph_inputs_encoded, node)
             # NOTE: Need to replace true and false with yes and no in the final string.
             templates.append(template)

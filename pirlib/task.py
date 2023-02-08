@@ -52,6 +52,14 @@ class TaskInstance(object):
     def framework(self):
         return self.defn.framework
 
+    @property
+    def enable_cache(self):
+        return self._enable_cache
+
+    @property
+    def cache_key_fn(self):
+        return self._cache_key_fn
+
     @task_call
     def __call__(self, *args, **kwargs):
         package = package_task(self.defn)
@@ -85,8 +93,8 @@ class TaskDefinition(HandlerV1):
         self._name = name if name else getattr(func, "__name__", None)
         self._config = copy.deepcopy(config) if config else None
         self._framework = framework
-        self.enable_cache = enable_cache
-        self.cache_key_fn = cache_key_fn
+        self._enable_cache = enable_cache
+        self._cache_key_fn = cache_key_fn
 
     @property
     def func(self):
@@ -103,6 +111,14 @@ class TaskDefinition(HandlerV1):
     @property
     def framework(self):
         return self._framework
+
+    @property
+    def enable_cache(self):
+        return self._enable_cache
+
+    @property
+    def cache_key_fn(self):
+        return self._cache_key_fn
 
     def __call__(self, *args, **kwargs):
         if len(args) == 1 and callable(args[0]) and not kwargs:
@@ -148,8 +164,8 @@ class TaskDefinition(HandlerV1):
                 args.append(value)
         token = _TASK_CONTEXT.set(task_context)
         try:
-            if self.enable_cache:
-                cache_key = self.cache_key_fn()
+            if self._enable_cache:
+                cache_key = self._cache_key_fn()
                 ok = fetch_directory(dir_path=task_context.output, cache_key=cache_key)
                 if not ok:
                     return_value = self.func(*args, **kwargs)
