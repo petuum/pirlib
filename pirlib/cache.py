@@ -3,7 +3,7 @@ from pathlib import Path
 
 from diskcache import Cache
 
-CACHE_DIR = Path("../tmp/cache")
+CACHE_DIR = Path("/tmp/cache")
 
 
 def cache_directory(dir_path: Path, cache_key: str) -> bool:
