@@ -13,6 +13,8 @@ python $ROOTDIR/bin/pircli dockerize \
 EXAMPLEDIR=$([[ $EXAMPLEDIR = /* ]] && echo "$EXAMPLEDIR" || echo "$PWD/${EXAMPLEDIR#./}")
 
 ### Module 2: Argoize_Module
+mkdir -p $EXAMPLEDIR/outputs
+
 INPUT_raw_data=$EXAMPLEDIR/dataset \
 INPUT_preproc_hp=$EXAMPLEDIR/dataset/preproc_hp.txt \
 INPUT_train_hp=$EXAMPLEDIR/dataset/train_hp.txt \
@@ -25,4 +27,4 @@ python  $ROOTDIR/bin/pircli generate $EXAMPLEDIR/package_argo.yml \
 	--output $EXAMPLEDIR/argo-ml-pipeline.yml
 
 # Run the Argo workflow
-#argo submit -n argo --watch $EXAMPLEDIR/argo-ml-pipeline.yml
+argo submit -n argo --watch $EXAMPLEDIR/argo-ml-pipeline.yml
