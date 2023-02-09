@@ -1,0 +1,3 @@
+postprocessed_alpha:1.2
+beam-size:3.21 the [dataset_preprocessed_mask:0.5] using [model_learning_rate:0.01
+opt=adam trained on [dataset_preprocessed_mask:0.5]].

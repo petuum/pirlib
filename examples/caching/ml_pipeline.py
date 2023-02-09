@@ -14,7 +14,7 @@ from pirlib.task import task
 
 
 @task(config=dict(cache=True, cache_key_file="hparams"))
-def preprocess(dataset: DirectoryPath, hparams: FilePath) -> DirectoryPath:
+def preprocess(dataset: DirectoryPath, *, hparams: FilePath) -> DirectoryPath:
     # Read the raw data.
     with (dataset / "data.txt").open("r") as f:
         data = f.read()
@@ -27,7 +27,7 @@ def preprocess(dataset: DirectoryPath, hparams: FilePath) -> DirectoryPath:
     # Write the preprocessed data in the output directory.
     with (output_dir / "preprocessed_data.txt").open("w") as f:
         f.write(f"{data}_preprocessed_{hp}")
-    time.sleep(3)
+    time.sleep(10)
     return output_dir
 
 
@@ -42,7 +42,7 @@ def preprocess(dataset: DirectoryPath, hparams: FilePath) -> DirectoryPath:
 
 
 @task(config=dict(cache=True, cache_key_file="hparams"))
-def train(preprocessed_dir: DirectoryPath, hparams: FilePath) -> DirectoryPath:
+def train(preprocessed_dir: DirectoryPath, *, hparams: FilePath) -> DirectoryPath:
     # Read the preprocessed data.
     with (preprocessed_dir / "preprocessed_data.txt").open("r") as f:
         data = f.read()
@@ -55,7 +55,7 @@ def train(preprocessed_dir: DirectoryPath, hparams: FilePath) -> DirectoryPath:
     # Write the trained model.
     with (output_dir / "model.txt").open("w") as f:
         f.write(f"model_{hp} trained on [{data}]")
-    time.sleep(3)
+    time.sleep(10)
     return output_dir
 
 
@@ -71,7 +71,7 @@ def train(preprocessed_dir: DirectoryPath, hparams: FilePath) -> DirectoryPath:
 
 @task(config=dict(cache=True, cache_key_file="hparams"))
 def postprocess(
-    preprocessed_dir: DirectoryPath, model_dir: DirectoryPath, hparams: FilePath
+    preprocessed_dir: DirectoryPath, model_dir: DirectoryPath, *, hparams: FilePath
 ) -> DirectoryPath:
     # Read the preprocessed data.
     with (preprocessed_dir / "preprocessed_data.txt").open("r") as f:
@@ -89,7 +89,7 @@ def postprocess(
     # Write the posprocessed data.
     with (output_dir / "postprocessed_data.txt").open("w") as f:
         f.write(f"postprocessed_{hp} the [{data}] using [{model}].")
-    time.sleep(3)
+    time.sleep(10)
     return output_dir
 
 
@@ -98,7 +98,7 @@ def ml_job(
     raw_data: DirectoryPath, preproc_hp: FilePath, train_hp: FilePath, postproc_hp: FilePath
 ) -> DirectoryPath:
 
-    preprocess_data = preprocess(raw_data, preproc_hp)
-    train_model = train(preprocess_data, train_hp)
-    postprocess_data = postprocess(preprocess_data, train_model, postproc_hp)
+    preprocess_data = preprocess(raw_data, hparams=preproc_hp)
+    train_model = train(preprocess_data, hparams=train_hp)
+    postprocess_data = postprocess(preprocess_data, train_model, hparams=postproc_hp)
     return postprocess_data
