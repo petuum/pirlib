@@ -14,9 +14,10 @@ EXAMPLEDIR=$([[ $EXAMPLEDIR = /* ]] && echo "$EXAMPLEDIR" || echo "$PWD/${EXAMPL
 
 ### Module 2: Argoize_Module
 INPUT_raw_data=$EXAMPLEDIR/dataset \
-INPUT_prepoc_hp=$EXAMPLEDIR/dataset/prepoc_hp.txt \
+INPUT_preproc_hp=$EXAMPLEDIR/dataset/preproc_hp.txt \
 INPUT_train_hp=$EXAMPLEDIR/dataset/train_hp.txt \
 INPUT_postproc_hp=$EXAMPLEDIR/dataset/postproc_hp.txt \
+CACHE=$EXAMPLEDIR/cache_dir \
 OUTPUT=$EXAMPLEDIR/outputs \
 NFS_SERVER=k8s-master.cm.cluster \
 python  $ROOTDIR/bin/pircli generate $EXAMPLEDIR/package_argo.yml \

@@ -11,6 +11,7 @@ import yaml
 import pirlib.pir
 from pirlib.backends import Backend
 from pirlib.handlers.v1 import HandlerV1Context, HandlerV1Event
+from pirlib.cache import CACHE_DIR
 
 
 def encode(x):
@@ -25,7 +26,7 @@ argo_name = lambda x: re.sub("[^a-zA-Z0-9]", "-", x.strip())
 
 
 def create_nfs_volume_spec(
-    volume_name: str, is_file: bool, is_input: bool, readonly: bool = False, is_graph: bool = False
+    volume_name: str, is_file: bool, vol_type: str, readonly: bool = False, is_graph: bool = False
 ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """Creates Kubernetes specs for defining NFS volumes.
 
@@ -33,9 +34,9 @@ def create_nfs_volume_spec(
     :type volume_name: str
     :param is_file: True if the location is a file and False, if it's a directory.
     :type is_file: bool
-    :param is_input: True if the volume contains input data and False if outputs
-    would be written to it.
-    :type is_input: bool
+    :param vol_type: `input` if the volume contains input data, `output` if the volume contains 
+    output data, `cache` if the volume contains cache data.
+    :type is_type: str
     :param readonly: Defines if the volume should be read only, defaults to False.
     :type readonly: bool, optional
     :param is_graph: True if the volume will be attached at the graph level, defaults to False.
@@ -53,12 +54,15 @@ def create_nfs_volume_spec(
         attach_level = "node"
 
     # Construct the name for the env var that contains the input directory/file path.
-    if is_input:
+    if vol_type=='input':
         path_env_var = f"INPUT_{volume_name}"
         mount_path = f"/mnt/graph_inputs/{volume_name}"
-    else:
+    elif vol_type=='output':
         path_env_var = "OUTPUT"
         mount_path = f"/mnt/{attach_level}_outputs"
+    elif vol_type=='cache':
+        path_env_var = "CACHE"
+        mount_path = str(CACHE_DIR)
 
     for var in ("NFS_SERVER", path_env_var):
         if var not in os.environ:
@@ -121,7 +125,7 @@ def create_template_from_node(
 
     # Obtain specs for the output volume.
     op_volume, op_volume_mount = create_nfs_volume_spec(
-        volume_name="node_outputs", is_file=False, is_input=False
+        volume_name="node_outputs", is_file=False, vol_type="output"
     )
 
     # Define input volumes to be mounted.
@@ -138,7 +142,7 @@ def create_template_from_node(
 
             # Create NFS volume spec.
             inp_volume_spec, mount_spec = create_nfs_volume_spec(
-                inp_id, is_file, True, readonly=True
+                inp_id, is_file, vol_type="input", readonly=True
             )
 
             # Add the volume to the volume list.
@@ -151,6 +155,17 @@ def create_template_from_node(
         if inp.source.node_id:
             dependencies.append(argo_name(inp.source.node_id))
 
+    # Mount cache volume if Cache is enabled.
+    if node.config.get('cache'):
+        cache_volume_spec, cache_mount_spec = create_nfs_volume_spec("cache_dir", is_file=False, vol_type="cache", readonly=False, is_graph=False)
+
+        # Add the volume to the volume list.
+        volumes.append(cache_volume_spec)
+
+        # Add the volume mount spec to the volume mount list.
+        volume_mounts.append(cache_mount_spec)
+
+        
     # Create the template dictionary.
     template = {
         "name": argo_name(name),
@@ -184,7 +199,7 @@ def create_template_from_graph(
 
     # Obtain specs for the output volume.
     op_volume, op_volume_mount = create_nfs_volume_spec(
-        volume_name="node_outputs", is_file=False, is_input=False
+        volume_name="node_outputs", is_file=False, vol_type="output"
     )
 
     # Define input volumes to be mounted.
@@ -197,7 +212,7 @@ def create_template_from_graph(
 
         # Create NFS volume spec.
         inp_volume_spec, inp_mount_spec = create_nfs_volume_spec(
-            inp_id, is_file, True, readonly=True, is_graph=True
+            inp_id, is_file, vol_type="input", readonly=True, is_graph=True
         )
 
         # Add the volume spec to the volume list.
@@ -208,7 +223,7 @@ def create_template_from_graph(
 
     if graph.outputs:
         graph_op_volume_spec, graph_op_mount_spec = create_nfs_volume_spec(
-            "graph_outputs", is_file=False, is_input=False, is_graph=True
+            "graph_outputs", is_file=False, vol_type="output", is_graph=True
         )
         volumes.append(graph_op_volume_spec)
         volume_mounts.append(graph_op_mount_spec)
@@ -286,7 +301,6 @@ class ArgoBatchBackend(Backend):
         # Generate template for the nodes.
         for node in graph.nodes:
             # Creating a template for the current node.
-            print(node)
             template = create_template_from_node(graph_inputs_encoded, node)
             # NOTE: Need to replace true and false with yes and no in the final string.
             templates.append(template)
