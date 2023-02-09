@@ -2,16 +2,16 @@ import contextvars
 import copy
 import functools
 import inspect
-import typeguard
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Optional
 
+import typeguard
+
 import pirlib.pir
 from pirlib.backends.inproc import InprocBackend
+from pirlib.cache import cache_directory, fetch_directory, generate_cache_key
 from pirlib.handlers.v1 import HandlerV1, HandlerV1Context, HandlerV1Event
-from pirlib.package import recurse_hint, task_call, package_task
-from pirlib.cache import cache_directory, fetch_directory
-
+from pirlib.package import package_task, recurse_hint, task_call
 
 _TASK_CONTEXT = contextvars.ContextVar("_TASK_CONTEXT")
 
@@ -52,14 +52,6 @@ class TaskInstance(object):
     def framework(self):
         return self.defn.framework
 
-    @property
-    def enable_cache(self):
-        return self._enable_cache
-
-    @property
-    def cache_key_fn(self):
-        return self._cache_key_fn
-
     @task_call
     def __call__(self, *args, **kwargs):
         package = package_task(self.defn)
@@ -86,15 +78,11 @@ class TaskDefinition(HandlerV1):
         name: Optional[str] = None,
         config: Optional[dict] = None,
         framework: Optional[pirlib.pir.Framework] = None,
-        enable_cache: bool = False,
-        cache_key_fn: Callable = None
     ):
         self._func = func if func is None else typeguard.typechecked(func)
         self._name = name if name else getattr(func, "__name__", None)
         self._config = copy.deepcopy(config) if config else None
         self._framework = framework
-        self._enable_cache = enable_cache
-        self._cache_key_fn = cache_key_fn
 
     @property
     def func(self):
@@ -111,14 +99,6 @@ class TaskDefinition(HandlerV1):
     @property
     def framework(self):
         return self._framework
-
-    @property
-    def enable_cache(self):
-        return self._enable_cache
-
-    @property
-    def cache_key_fn(self):
-        return self._cache_key_fn
 
     def __call__(self, *args, **kwargs):
         if len(args) == 1 and callable(args[0]) and not kwargs:
@@ -164,15 +144,33 @@ class TaskDefinition(HandlerV1):
                 args.append(value)
         token = _TASK_CONTEXT.set(task_context)
         try:
-            if self._enable_cache:
-                cache_key = self._cache_key_fn()
+            if self._config.get("cache"):
+                try:
+                    key_file_param = self._config.get("cache_key_file")
+
+                    if key_file_param is None:
+                        raise ValueError("Cache is enabled but `cache_key_file` is not set.")
+
+                    key_file = kwargs[key_file_param]
+                except KeyError:
+                    raise ValueError("Specified parameter for `cache_key_file` doesn't exist.")
+
+                # Generate cache key from the key file.
+                cache_key = generate_cache_key(key_file)
+
+                # Try to fetch the outputs in case the key is already present
                 ok = fetch_directory(dir_path=task_context.output, cache_key=cache_key)
+
                 if not ok:
+                    # In case the key is not already present in cache
+                    # invoke the function to generate the outputs.
                     return_value = self.func(*args, **kwargs)
-                    cache_status = cache_directory(task_context.output, cache_key)
-                    if not cache_status:
-                        raise ValueError("Key already exists, caching not possible")
+
+                    # Use the key to cache the outputs.
+                    cache_directory(task_context.output, cache_key)
+
                 else:
+                    # In case the key is already present in cache.
                     return_value = task_context.output
             else:
                 return_value = self.func(*args, **kwargs)
@@ -192,8 +190,6 @@ def task(
     name: Optional[str] = None,
     config: Optional[dict] = None,
     framework: Optional[pirlib.pir.Framework] = None,
-    enable_cache: bool = False,
-    cache_key_fn: Callable = None
 ) -> TaskDefinition:
     if framework:
         if config is None:
@@ -201,17 +197,12 @@ def task(
         f_name = framework.name
         for k, v in framework.config.items():
             config[f"{f_name}/{k}"] = v
-    
-    if enable_cache and cache_key_fn == None:
-        raise ValueError("Cache is enabled but cache_key_fn is not defined")
 
     wrapper = TaskDefinition(
         func=func,
         name=name,
         config=config,
         framework=framework,
-        enable_cache = enable_cache,
-        cache_key_fn = cache_key_fn
     )
     functools.update_wrapper(wrapper, func)
     return wrapper
