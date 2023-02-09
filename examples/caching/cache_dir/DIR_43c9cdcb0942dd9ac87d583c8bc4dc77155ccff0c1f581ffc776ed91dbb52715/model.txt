@@ -1,2 +1,0 @@
-model_learning_rate:0.01
-opt=adam trained on [dataset_preprocessed_mask:0.5]
