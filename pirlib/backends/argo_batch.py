@@ -119,14 +119,9 @@ def create_template_from_node(
         graph_inputs_encoded,
     ]
 
-    # Obtain specs for the output volume.
-    op_volume, op_volume_mount = create_nfs_volume_spec(
-        volume_name="node_outputs", is_file=False, is_input=False
-    )
-
     # Define input volumes to be mounted.
-    volumes = [op_volume]
-    volume_mounts = [op_volume_mount]
+    volumes = []
+    volume_mounts = []
     dependencies = []
 
     # If the node has a valid graph input source,
@@ -151,6 +146,21 @@ def create_template_from_node(
         if inp.source.node_id:
             dependencies.append(argo_name(inp.source.node_id))
 
+    # Obtain specs for the output volume.
+    op_volume, op_volume_mount = create_nfs_volume_spec(
+        volume_name="node_outputs", is_file=False, is_input=False
+    )
+    volumes.append(op_volume)
+    volume_mounts.append(op_volume_mount)
+
+    # Create spec for output artifact.
+    artifacts = []
+    for output in node.outputs:
+        # Infer the mount path
+        path = f"{op_volume_mount.get('mountPath')}/{name}/{output.id}"
+        artifacts.append({"name": argo_name(name), "path": path})
+    outputs = {"artifacts": artifacts}
+
     # Create the template dictionary.
     template = {
         "name": argo_name(name),
@@ -159,6 +169,7 @@ def create_template_from_node(
             "command": command,
             "volumeMounts": volume_mounts,
         },
+        "outputs": outputs,
         "volumes": volumes,
         "dependencies": dependencies,
     }
