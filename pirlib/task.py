@@ -146,8 +146,6 @@ class TaskDefinition(HandlerV1):
         try:
             if self._config.get("cache"):
                 try:
-                    print("args", args)
-                    print("kwargs", kwargs)
                     key_file_param = self._config.get("cache_key_file")
 
                     if key_file_param is None:
