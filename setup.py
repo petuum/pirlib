@@ -14,8 +14,8 @@
 
 
 import os
-import setuptools
 
+import setuptools
 
 if __name__ == "__main__":
     setuptools.setup(
@@ -31,10 +31,6 @@ if __name__ == "__main__":
             "Operating System :: POSIX :: Linux",
         ],
         packages=setuptools.find_packages(include=["pirlib", "pirlib.*"]),
-        python_requires='>=3.8',
-        install_requires=[
-            "dacite>=1.6",
-            "pyyaml>=6.0",
-            "typeguard>=2.13",
-        ],
+        python_requires=">=3.8",
+        install_requires=["dacite>=1.6", "pyyaml>=6.0", "typeguard>=2.13", "diskcache==5.4.0"],
     )
