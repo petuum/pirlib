@@ -62,7 +62,7 @@ def fetch_directory(dir_path: Path, cache_key: str) -> bool:
 
 def generate_cache_key(key_file: Path) -> str:
     # Read contents of key file as a string.
-    with open(str(key_file),"r") as f:
+    with open(str(key_file), "r") as f:
         key_data = f.read()
 
     # Compute a hash value from the key file contents.
