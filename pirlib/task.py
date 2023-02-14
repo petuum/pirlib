@@ -12,6 +12,7 @@ from pirlib.backends.inproc import InprocBackend
 from pirlib.cache import cache_directory, fetch_directory, generate_cache_key
 from pirlib.handlers.v1 import HandlerV1, HandlerV1Context, HandlerV1Event
 from pirlib.package import package_task, recurse_hint, task_call
+from pirlib.utils import PerformanceTimer
 
 _TASK_CONTEXT = contextvars.ContextVar("_TASK_CONTEXT")
 
@@ -124,6 +125,58 @@ class TaskDefinition(HandlerV1):
     def get_output_type(self, output_name: str) -> type:
         pass
 
+    def cache_wrapper(self, func):
+        """
+        Wrape this function by cache.
+        """
+        print("Add cache to func: {}()".format(func.__name__))
+        @functools.wraps(func)
+        def run_func_with_cache(*args, **kwargs):
+            try:
+                key_file_param = self._config.get("cache_key_file")
+
+                if key_file_param is None:
+                    raise ValueError("Cache is enabled but `cache_key_file` is not set.")
+
+                key_file = kwargs[key_file_param]
+            except KeyError:
+                raise ValueError("Specified parameter for `cache_key_file` doesn't exist.")
+
+            # Generate cache key from the key file.
+            cache_key = generate_cache_key(key_file)
+
+            # Try to fetch the outputs in case the key is already present
+            ok = fetch_directory(dir_path=task_context.output, cache_key=cache_key)
+
+            if not ok:
+                # In case the key is not already present in cache
+                # invoke the function to generate the outputs.
+                return_value = self.func(*args, **kwargs)
+
+                # Use the key to cache the outputs.
+                cache_directory(task_context.output, cache_key)
+
+            else:
+                # In case the key is already present in cache.
+                return_value = task_context.output
+            return return_value
+        print("Cache has been added to {}()".format(func.__name__))
+        return run_func_with_cache
+
+
+    def timer_wrapper(self, func):
+        """
+        Wrape this function by timer.
+        """
+        print("Add timer to func: {}()".format(func.__name__))
+        @functools.wraps(func)
+        def run_func_with_timer(*args, **kwargs):
+            with PerformanceTimer(self.func.__name__):
+                return_value = self.func(*args, **kwargs)
+            return return_value
+        print("Timer has been added to {}()".format(func.__name__))
+        return run_func_with_timer
+
     def run_handler(
         self,
         event: HandlerV1Event,
@@ -144,36 +197,13 @@ class TaskDefinition(HandlerV1):
                 args.append(value)
         token = _TASK_CONTEXT.set(task_context)
         try:
-            if self._config.get("cache"):
-                try:
-                    key_file_param = self._config.get("cache_key_file")
-
-                    if key_file_param is None:
-                        raise ValueError("Cache is enabled but `cache_key_file` is not set.")
-
-                    key_file = kwargs[key_file_param]
-                except KeyError:
-                    raise ValueError("Specified parameter for `cache_key_file` doesn't exist.")
-
-                # Generate cache key from the key file.
-                cache_key = generate_cache_key(key_file)
-
-                # Try to fetch the outputs in case the key is already present
-                ok = fetch_directory(dir_path=task_context.output, cache_key=cache_key)
-
-                if not ok:
-                    # In case the key is not already present in cache
-                    # invoke the function to generate the outputs.
-                    return_value = self.func(*args, **kwargs)
-
-                    # Use the key to cache the outputs.
-                    cache_directory(task_context.output, cache_key)
-
-                else:
-                    # In case the key is already present in cache.
-                    return_value = task_context.output
-            else:
-                return_value = self.func(*args, **kwargs)
+            func = self.func
+            if self._config != None:
+                if self._config.get("cache"):
+                    func = self.cache_wrapper(func)
+                if self._config.get("timer"):
+                    func = self.timer_wrapper(func)
+            return_value = func(*args, **kwargs)
         finally:
             _TASK_CONTEXT.reset(token)
         recurse_hint(
