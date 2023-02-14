@@ -14,6 +14,7 @@ EXAMPLEDIR=$([[ $EXAMPLEDIR = /* ]] && echo "$EXAMPLEDIR" || echo "$PWD/${EXAMPL
 
 ### Module 2: Argoize_Module
 mkdir -p $EXAMPLEDIR/outputs
+mkdir -p $EXAMPLEDIR/cache_dir
 
 INPUT_raw_data=$EXAMPLEDIR/dataset \
 INPUT_preproc_hp=$EXAMPLEDIR/dataset/preproc_hp.txt \

@@ -61,10 +61,18 @@ def fetch_directory(dir_path: Path, cache_key: str) -> bool:
 
 
 def generate_cache_key(key_file: Path) -> str:
+    """Create cache key given an input file.
+
+    :param key_file: Input file to read the key.
+    :type key_file: Path
+    :return: hashed value of the key read.
+    :rtype: str
+    """
+
     # Read contents of key file as a string.
     with open(str(key_file), "r") as f:
         key_data = f.read()
 
     # Compute a hash value from the key file contents.
-    preprocess_cache_key = hashlib.sha256(f"{str(key_file)}_{key_data}".encode()).hexdigest()
-    return preprocess_cache_key
+    cache_key = hashlib.sha256(f"{str(key_file)}_{key_data}".encode()).hexdigest()
+    return cache_key
