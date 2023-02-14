@@ -146,19 +146,19 @@ class TaskDefinition(HandlerV1):
             cache_key = generate_cache_key(key_file)
 
             # Try to fetch the outputs in case the key is already present
-            ok = fetch_directory(dir_path=task_context.output, cache_key=cache_key)
+            ok = fetch_directory(dir_path=task_context().output, cache_key=cache_key)
 
             if not ok:
                 # In case the key is not already present in cache
                 # invoke the function to generate the outputs.
-                return_value = self.func(*args, **kwargs)
+                return_value = func(*args, **kwargs)
 
                 # Use the key to cache the outputs.
-                cache_directory(task_context.output, cache_key)
+                cache_directory(task_context().output, cache_key)
 
             else:
                 # In case the key is already present in cache.
-                return_value = task_context.output
+                return_value = task_context().output
             return return_value
         print("Cache has been added to {}()".format(func.__name__))
         return run_func_with_cache
@@ -172,7 +172,7 @@ class TaskDefinition(HandlerV1):
         @functools.wraps(func)
         def run_func_with_timer(*args, **kwargs):
             with PerformanceTimer(self.func.__name__):
-                return_value = self.func(*args, **kwargs)
+                return_value = func(*args, **kwargs)
             return return_value
         print("Timer has been added to {}()".format(func.__name__))
         return run_func_with_timer
