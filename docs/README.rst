@@ -175,7 +175,7 @@ The outputs would appear in the outputs/ directory and the Workflow execution ca
 Timer
 -----------------
 
-This example will lete you know how to use timer feature to record how long time every task (python functions) will take. If set timer feature on, Wall-Clock tiem and Process time will be print on you concole.
+This example will let you know how to use timer feature to record how long time every task (python functions) will take. If set timer feature on, Wall-Clock tiem and Process time will be print on you console.
 This feature is off by default. Please find the detail in this examples file below.
 
 - `examples/caching/ml_pipeline.py`: In the decorator for each functions, user need to specify whether timer is enabled. If you want it, you need add decorator like this ``@task(config=dict(timer=True))``.
@@ -202,7 +202,7 @@ In order to test the pipeline, dummy data has been provided in examples/caching/
 
 
 
-You should be able to see the live execution of the different steps of the pipeline in the browser. The resultant files will be generated in the outputs/ directory. And you will see the Wall-Clock time and Process time in your log file or concole.
+You should be able to see the live execution of the different steps of the pipeline in the browser. The resultant files will be generated in the outputs/ directory. And you will see the Wall-Clock time and Process time in your log file or console.
 
 
 TODOs
