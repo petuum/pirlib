@@ -172,6 +172,39 @@ If you are executing the workflow on the full data without first executing on th
 
 The outputs would appear in the outputs/ directory and the Workflow execution can be viewed from the browser.
 
+Timer
+-----------------
+
+This example will lete you know how to use timer feature to record how long time every task (python functions) will take. If set timer feature on, Wall-Clock tiem and Process time will be print on you concole.
+This feature is off by default. Please find the detail in this examples file below.
+
+- `examples/caching/ml_pipeline.py`: In the decorator for each functions, user need to specify whether timer is enabled. If you want it, you need add decorator like this ``@task(config=dict(timer=True))``.
+
+Install dependencies
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Update the same pirlib conda environment used in earlier examples
+::
+
+   $ conda activate pirlib
+   $ pip install diskcache
+
+.. note:: Because timer feature use the same example file wit cache feature. So, you need install diskcache model for you pirlib environment also.
+
+Execution
+^^^^^^^^^^^^^^^^^^^^^^
+
+In order to test the pipeline, dummy data has been provided in examples/caching/dataset directory.
+
+::
+
+   $ bash examples/caching/run_argo.sh
+
+
+
+You should be able to see the live execution of the different steps of the pipeline in the browser. The resultant files will be generated in the outputs/ directory. And you will see the Wall-Clock time and Process time in your log file or concole.
+
+
 TODOs
 -----
 
