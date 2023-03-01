@@ -28,10 +28,11 @@ def task_context() -> TaskContext:
 
 
 class TaskInstance(object):
-    def __init__(self, defn, name, config=None):
+    def __init__(self, defn, name, config=None, timer=False):
         self._defn = defn
         self._name = name
         self._config = copy.deepcopy(config) if config else {}
+        self._timer = timer
 
     @property
     def defn(self):
@@ -78,11 +79,13 @@ class TaskDefinition(HandlerV1):
         *,  # Keyword-only arguments below.
         name: Optional[str] = None,
         config: Optional[dict] = None,
+        timer: Optional[bool] = False,
         framework: Optional[pirlib.pir.Framework] = None,
     ):
         self._func = func if func is None else typeguard.typechecked(func)
         self._name = name if name else getattr(func, "__name__", None)
         self._config = copy.deepcopy(config) if config else {}
+        self._timer = timer
         self._framework = framework
 
     @property
@@ -96,6 +99,10 @@ class TaskDefinition(HandlerV1):
     @property
     def config(self):
         return self._config
+    
+    @property
+    def timer(self):
+        return self._timer
 
     @property
     def framework(self):
@@ -107,6 +114,7 @@ class TaskDefinition(HandlerV1):
                 func=args[0],
                 name=self.name,
                 config=self.config,
+                timer=self.timer,
                 framework=self.framework,
             )
             functools.update_wrapper(wrapper, args[0])
@@ -114,7 +122,7 @@ class TaskDefinition(HandlerV1):
         return self.instance(self.name)(*args, **kwargs)
 
     def instance(self, name: str) -> TaskInstance:
-        return TaskInstance(self, name, config=self.config)
+        return TaskInstance(self, name, config=self.config, timer=self.timer)
 
     def get_input_type(self, input_name: str) -> type:
         sig = inspect.signature(self.func)
@@ -201,7 +209,7 @@ class TaskDefinition(HandlerV1):
             if self._config != None:
                 if self._config.get("cache"):
                     func = self.cache_wrapper(func)
-                if self._config.get("timer"):
+                if self._timer:
                     func = self.timer_wrapper(func)
             return_value = func(*args, **kwargs)
         finally:
@@ -219,6 +227,7 @@ def task(
     *,  # Keyword-only arguments below.
     name: Optional[str] = None,
     config: Optional[dict] = None,
+    timer: Optional[bool] = False,
     framework: Optional[pirlib.pir.Framework] = None,
 ) -> TaskDefinition:
     if framework:
@@ -232,6 +241,7 @@ def task(
         func=func,
         name=name,
         config=config,
+        timer=timer,
         framework=framework,
     )
     functools.update_wrapper(wrapper, func)
