@@ -82,7 +82,7 @@ class TaskDefinition(HandlerV1):
     ):
         self._func = func if func is None else typeguard.typechecked(func)
         self._name = name if name else getattr(func, "__name__", None)
-        self._config = copy.deepcopy(config) if config else None
+        self._config = copy.deepcopy(config) if config else {}
         self._framework = framework
 
     @property
