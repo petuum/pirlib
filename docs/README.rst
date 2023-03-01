@@ -178,7 +178,7 @@ Timer
 This example will let you know how to use timer feature to record how long time every task (python functions) will take. If set timer feature on, Wall-Clock tiem and Process time will be print on you console.
 This feature is off by default. Please find the detail in this examples file below.
 
-- `examples/caching/ml_pipeline.py`: In the decorator for each functions, user need to specify whether timer is enabled. If you want it, you need add decorator like this ``@task(config=dict(timer=True))``.
+- `examples/caching/ml_pipeline.py`: In the decorator for each functions, user need to specify whether timer is enabled. If you want it, you need add decorator like this ``@task(timer=True)``.
 
 Install dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
