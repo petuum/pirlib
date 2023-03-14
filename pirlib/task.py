@@ -28,11 +28,10 @@ def task_context() -> TaskContext:
 
 
 class TaskInstance(object):
-    def __init__(self, defn, name, config=None, timer=False):
+    def __init__(self, defn, name, config=None):
         self._defn = defn
         self._name = name
         self._config = copy.deepcopy(config) if config else {}
-        self._timer = timer
 
     @property
     def defn(self):
@@ -79,13 +78,11 @@ class TaskDefinition(HandlerV1):
         *,  # Keyword-only arguments below.
         name: Optional[str] = None,
         config: Optional[dict] = None,
-        timer: Optional[bool] = False,
         framework: Optional[pirlib.pir.Framework] = None,
     ):
         self._func = func if func is None else typeguard.typechecked(func)
         self._name = name if name else getattr(func, "__name__", None)
         self._config = copy.deepcopy(config) if config else {}
-        self._timer = timer
         self._framework = framework
 
     @property
@@ -99,10 +96,6 @@ class TaskDefinition(HandlerV1):
     @property
     def config(self):
         return self._config
-    
-    @property
-    def timer(self):
-        return self._timer
 
     @property
     def framework(self):
@@ -114,7 +107,6 @@ class TaskDefinition(HandlerV1):
                 func=args[0],
                 name=self.name,
                 config=self.config,
-                timer=self.timer,
                 framework=self.framework,
             )
             functools.update_wrapper(wrapper, args[0])
@@ -122,7 +114,7 @@ class TaskDefinition(HandlerV1):
         return self.instance(self.name)(*args, **kwargs)
 
     def instance(self, name: str) -> TaskInstance:
-        return TaskInstance(self, name, config=self.config, timer=self.timer)
+        return TaskInstance(self, name, config=self.config)
 
     def get_input_type(self, input_name: str) -> type:
         sig = inspect.signature(self.func)
@@ -138,6 +130,7 @@ class TaskDefinition(HandlerV1):
         Wrape this function by cache.
         """
         print("Add cache to func: {}()".format(func.__name__))
+
         @functools.wraps(func)
         def run_func_with_cache(*args, **kwargs):
             try:
@@ -168,20 +161,22 @@ class TaskDefinition(HandlerV1):
                 # In case the key is already present in cache.
                 return_value = task_context().output
             return return_value
+
         print("Cache has been added to {}()".format(func.__name__))
         return run_func_with_cache
-
 
     def timer_wrapper(self, func):
         """
         Wrape this function by timer.
         """
         print("Add timer to func: {}()".format(func.__name__))
+
         @functools.wraps(func)
         def run_func_with_timer(*args, **kwargs):
             with PerformanceTimer(self.func.__name__):
                 return_value = func(*args, **kwargs)
             return return_value
+
         print("Timer has been added to {}()".format(func.__name__))
         return run_func_with_timer
 
@@ -209,7 +204,7 @@ class TaskDefinition(HandlerV1):
             if self._config != None:
                 if self._config.get("cache"):
                     func = self.cache_wrapper(func)
-                if self._timer:
+                if self._config.get("timer"):
                     func = self.timer_wrapper(func)
             return_value = func(*args, **kwargs)
         finally:
@@ -236,12 +231,11 @@ def task(
         f_name = framework.name
         for k, v in framework.config.items():
             config[f"{f_name}/{k}"] = v
-
+    config["timer"] = timer
     wrapper = TaskDefinition(
         func=func,
         name=name,
         config=config,
-        timer=timer,
         framework=framework,
     )
     functools.update_wrapper(wrapper, func)

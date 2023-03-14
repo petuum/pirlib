@@ -1,6 +1,7 @@
 import time as _time
 from datetime import datetime
 
+
 def find_by_id(iterable, id):
     for item in iterable:
         if item.id == id:
@@ -22,7 +23,11 @@ class PerformanceTimer(object):
         self._start_process_time = None
 
     def __enter__(self):
-        print("{} Entering timed context: {}".format(datetime.now().strftime("%Y-%m-%d %H:%M:%S.%F"), self._context_statement))
+        print(
+            "{} Entering timed context: {}".format(
+                datetime.now().strftime("%Y-%m-%d %H:%M:%S.%F"), self._context_statement
+            )
+        )
         self._start_wall_time = _time.perf_counter()
         self._start_process_time = _time.process_time()
 
