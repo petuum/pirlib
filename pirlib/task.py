@@ -124,6 +124,44 @@ class TaskDefinition(HandlerV1):
     def get_output_type(self, output_name: str) -> type:
         pass
 
+    def cache_wrapper(self, func):
+        """
+        Wrapper function to enable caching.
+        """
+        print("Add cache to func: {}()".format(func.__name__))
+
+        @functools.wraps(func)
+        def run_func_with_cache(*args, **kwargs):
+            try:
+                key_file_param = self._config.get("cache_key_file")
+                key_file = kwargs[key_file_param]
+            except KeyError:
+                raise ValueError(
+                    f"Specified parameter `{key_file_param}` for `cache_key_file` doesn't exist."
+                )
+
+            # Generate cache key from the key file.
+            cache_key = generate_cache_key(key_file)
+
+            # Try to fetch the outputs in case the key is already present
+            ok = fetch_directory(dir_path=task_context().output, cache_key=cache_key)
+
+            if not ok:
+                # In case the key is not already present in cache
+                # invoke the function to generate the outputs.
+                return_value = func(*args, **kwargs)
+
+                # Use the key to cache the outputs.
+                cache_directory(task_context().output, cache_key)
+
+            else:
+                # In case the key is already present in cache.
+                return_value = task_context().output
+            return return_value
+
+        print("Cache has been added to {}()".format(func.__name__))
+        return run_func_with_cache
+
     def run_handler(
         self,
         event: HandlerV1Event,
@@ -146,12 +184,7 @@ class TaskDefinition(HandlerV1):
         try:
             if self._config.get("cache"):
                 try:
-                    print("args", args)
-                    print("kwargs", kwargs)
                     key_file_param = self._config.get("cache_key_file")
-
-                    if key_file_param is None:
-                        raise ValueError("Cache is enabled but `cache_key_file` is not set.")
 
                     key_file = kwargs[key_file_param]
                 except KeyError:
@@ -192,6 +225,8 @@ def task(
     name: Optional[str] = None,
     config: Optional[dict] = None,
     framework: Optional[pirlib.pir.Framework] = None,
+    cache: Optional[bool] = False,
+    cache_key_file: Optional[str] = "",
 ) -> TaskDefinition:
     if framework:
         if config is None:
@@ -199,6 +234,13 @@ def task(
         f_name = framework.name
         for k, v in framework.config.items():
             config[f"{f_name}/{k}"] = v
+
+    if cache:
+        if cache_key_file:
+            config["cache"] = (True,)
+            config["cache_key_file"] = cache_key_file
+        else:
+            raise ValueError("Cache is enabled but `cache_key_file` is not set.")
 
     wrapper = TaskDefinition(
         func=func,
