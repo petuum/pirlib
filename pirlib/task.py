@@ -231,6 +231,7 @@ def task(
         f_name = framework.name
         for k, v in framework.config.items():
             config[f"{f_name}/{k}"] = v
+    config = config if config else {}
     config["timer"] = timer
     wrapper = TaskDefinition(
         func=func,
