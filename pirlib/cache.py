@@ -26,7 +26,7 @@ def cache_directory(dir_path: DirectoryPath, cache_key: str) -> bool:
         else:
             # Key doesn't exist, caching is possible.
             # Copy the contents to a directory in the cache.
-            target_dir = CACHE_DIR + f"/DIR_{cache_key}"
+            target_dir = os.path.join(CACHE_DIR, f"DIR_{cache_key}")
             shutil.copytree(dir_path, target_dir)
 
             # Add the temp directory to the cache.
