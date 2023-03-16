@@ -6,7 +6,7 @@ from diskcache import Cache
 
 from pirlib.iotypes import DirectoryPath, FilePath
 
-CACHE_DIR = os.getenv("PIRLIB_CACHE_DIR", "~/.pirlib/cache")
+CACHE_DIR = os.getenv("PIRLIB_CACHE_DIR", "/pirlib/cache")
 
 
 def cache_directory(dir_path: DirectoryPath, cache_key: str) -> bool:
