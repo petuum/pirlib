@@ -19,6 +19,8 @@ def preprocess(dataset: DirectoryPath, *, hparams: FilePath) -> DirectoryPath:
     # Write the preprocessed data in the output directory.
     with (output_dir / "preprocessed_data.txt").open("w") as f:
         f.write(f"{data}_preprocessed_{hp}")
+
+    # time.sleep is used to imitate processing time
     time.sleep(10)
     return output_dir
 
@@ -37,6 +39,8 @@ def train(preprocessed_dir: DirectoryPath, *, hparams: FilePath) -> DirectoryPat
     # Write the trained model.
     with (output_dir / "model.txt").open("w") as f:
         f.write(f"model_{hp} trained on [{data}]")
+
+    # time.sleep is used to imitate processing time
     time.sleep(10)
     return output_dir
 
@@ -61,6 +65,8 @@ def postprocess(
     # Write the posprocessed data.
     with (output_dir / "postprocessed_data.txt").open("w") as f:
         f.write(f"postprocessed_{hp} the [{data}] using [{model}].")
+
+    # time.sleep is used to imitate processing time
     time.sleep(10)
     return output_dir
 

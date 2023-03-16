@@ -10,8 +10,8 @@ import yaml
 
 import pirlib.pir
 from pirlib.backends import Backend
-from pirlib.handlers.v1 import HandlerV1Context, HandlerV1Event
 from pirlib.cache import CACHE_DIR
+from pirlib.handlers.v1 import HandlerV1Context, HandlerV1Event
 
 
 def encode(x):
@@ -34,7 +34,7 @@ def create_nfs_volume_spec(
     :type volume_name: str
     :param is_file: True if the location is a file and False, if it's a directory.
     :type is_file: bool
-    :param vol_type: `input` if the volume contains input data, `output` if the volume contains 
+    :param vol_type: `input` if the volume contains input data, `output` if the volume contains
     output data, `cache` if the volume contains cache data.
     :type is_type: str
     :param readonly: Defines if the volume should be read only, defaults to False.
@@ -54,13 +54,13 @@ def create_nfs_volume_spec(
         attach_level = "node"
 
     # Construct the name for the env var that contains the input directory/file path.
-    if vol_type=='input':
+    if vol_type == "input":
         path_env_var = f"INPUT_{volume_name}"
         mount_path = f"/mnt/graph_inputs/{volume_name}"
-    elif vol_type=='output':
+    elif vol_type == "output":
         path_env_var = "OUTPUT"
         mount_path = f"/mnt/{attach_level}_outputs"
-    elif vol_type=='cache':
+    elif vol_type == "cache":
         path_env_var = "CACHE"
         mount_path = str(CACHE_DIR)
 
@@ -156,8 +156,10 @@ def create_template_from_node(
             dependencies.append(argo_name(inp.source.node_id))
 
     # Mount cache volume if Cache is enabled.
-    if node.config.get('cache'):
-        cache_volume_spec, cache_mount_spec = create_nfs_volume_spec("cache_dir", is_file=False, vol_type="cache", readonly=False, is_graph=False)
+    if node.config.get("cache"):
+        cache_volume_spec, cache_mount_spec = create_nfs_volume_spec(
+            "cache_dir", is_file=False, vol_type="cache", readonly=False, is_graph=False
+        )
 
         # Add the volume to the volume list.
         volumes.append(cache_volume_spec)
@@ -165,7 +167,6 @@ def create_template_from_node(
         # Add the volume mount spec to the volume mount list.
         volume_mounts.append(cache_mount_spec)
 
-        
     # Create the template dictionary.
     template = {
         "name": argo_name(name),
@@ -402,7 +403,7 @@ def run_graph(graph_outputs):
             path_from = f"/mnt/graph_inputs/{source.graph_input_id}"
         path_to = f"/mnt/graph_outputs/{g_out.id}"
         if g_out.iotype == "DIRECTORY":
-            shutil.copytree(path_from, path_to)
+            shutil.copytree(path_from, path_to, dirs_exist_ok=True)
         else:
             shutil.copy(path_from, path_to)
 
