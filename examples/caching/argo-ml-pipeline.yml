@@ -1,0 +1,193 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: argo-ml-pipeline-
+spec:
+  entrypoint: DAG-ml-job
+  templates:
+  - name: preprocess-template
+    container:
+      image: nilabhra/pirlib
+      command:
+      - python
+      - -m
+      - pirlib.backends.argo_batch
+      - node
+      - gASV1QIAAAAAAACMCnBpcmxpYi5waXKUjAROb2RllJOUKYGUfZQojAJpZJSMCnByZXByb2Nlc3OUjAtlbnRyeXBvaW50c5R9lIwEbWFpbpRoAIwKRW50cnlwb2ludJSTlCmBlH2UKIwHdmVyc2lvbpSMAnYxlIwHaGFuZGxlcpSMJ2V4YW1wbGVzLmNhY2hpbmcubWxfcGlwZWxpbmU6cHJlcHJvY2Vzc5SMB3J1bnRpbWWUjApweXRob246My44lIwHY29kZXVybJROjAVpbWFnZZSMD25pbGFiaHJhL3BpcmxpYpR1YnOMCWZyYW1ld29ya5ROjAZjb25maWeUfZQojAVjYWNoZZSIjA5jYWNoZV9rZXlfZmlsZZSMB2hwYXJhbXOUdYwGaW5wdXRzlF2UKGgAjAVJbnB1dJSTlCmBlH2UKGgFjAdkYXRhc2V0lIwGaW90eXBllIwJRElSRUNUT1JZlIwGc291cmNllGgAjApEYXRhU291cmNllJOUKYGUfZQojAdub2RlX2lklE6MC3N1YmdyYXBoX2lklE6MCW91dHB1dF9pZJROjA5ncmFwaF9pbnB1dF9pZJSMCHJhd19kYXRhlHVijARtZXRhlGgAjAhNZXRhZGF0YZSTlCmBlH2UKIwEbmFtZZSMB2RhdGFzZXSUjAthbm5vdGF0aW9uc5ROdWJ1YmggKYGUfZQoaAWMB2hwYXJhbXOUaCSMBEZJTEWUaCZoKCmBlH2UKGgrTmgsTmgtTmgujApwcmVwcm9jX2hwlHViaDBoMimBlH2UKGg1jAdocGFyYW1zlGg3TnVidWJljAdvdXRwdXRzlF2UaACMBk91dHB1dJSTlCmBlH2UKGgFjAZyZXR1cm6UaCSMCURJUkVDVE9SWZRoMGgyKYGUfZQoaDWMBnJldHVybpRoN051YnViYWgwaDIpgZR9lChoNYwKcHJlcHJvY2Vzc5RoN051YnViLg==
+      - gASVSwEAAAAAAABdlCiMCnBpcmxpYi5waXKUjApHcmFwaElucHV0lJOUKYGUfZQojAJpZJSMCHJhd19kYXRhlIwGaW90eXBllIwJRElSRUNUT1JZlIwEbWV0YZRoAYwITWV0YWRhdGGUk5QpgZR9lCiMBG5hbWWUjAhyYXdfZGF0YZSMC2Fubm90YXRpb25zlE51YnViaAMpgZR9lChoBowKcHJlcHJvY19ocJRoCIwERklMRZRoCmgMKYGUfZQoaA+MCnByZXByb2NfaHCUaBFOdWJ1YmgDKYGUfZQoaAaMCHRyYWluX2hwlGgIjARGSUxFlGgKaAwpgZR9lChoD4wIdHJhaW5faHCUaBFOdWJ1YmgDKYGUfZQoaAaMC3Bvc3Rwcm9jX2hwlGgIjARGSUxFlGgKaAwpgZR9lChoD4wLcG9zdHByb2NfaHCUaBFOdWJ1YmUu
+      volumeMounts:
+      - name: node-outputs
+        mountPath: /mnt/node_outputs
+      - name: raw-data
+        mountPath: /mnt/graph_inputs/raw_data
+      - name: preproc-hp
+        mountPath: /mnt/graph_inputs/preproc_hp
+        subPath: preproc_hp.txt
+      - name: cache-dir
+        mountPath: /tmp/cache
+    volumes:
+    - name: node-outputs
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib-nikhil/pirlib/examples/caching/outputs
+        readOnly: no
+    - name: raw-data
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib-nikhil/pirlib/examples/caching/inputs
+        readOnly: yes
+    - name: preproc-hp
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib-nikhil/pirlib/examples/caching/inputs
+        readOnly: yes
+    - name: cache-dir
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib-nikhil/pirlib/examples/caching/cache_dir
+        readOnly: no
+  - name: train-template
+    container:
+      image: nilabhra/pirlib
+      command:
+      - python
+      - -m
+      - pirlib.backends.argo_batch
+      - node
+      - gASV4AIAAAAAAACMCnBpcmxpYi5waXKUjAROb2RllJOUKYGUfZQojAJpZJSMBXRyYWlulIwLZW50cnlwb2ludHOUfZSMBG1haW6UaACMCkVudHJ5cG9pbnSUk5QpgZR9lCiMB3ZlcnNpb26UjAJ2MZSMB2hhbmRsZXKUjCJleGFtcGxlcy5jYWNoaW5nLm1sX3BpcGVsaW5lOnRyYWlulIwHcnVudGltZZSMCnB5dGhvbjozLjiUjAdjb2RldXJslE6MBWltYWdllIwPbmlsYWJocmEvcGlybGlilHVic4wJZnJhbWV3b3JrlE6MBmNvbmZpZ5R9lCiMBWNhY2hllIiMDmNhY2hlX2tleV9maWxllIwHaHBhcmFtc5R1jAZpbnB1dHOUXZQoaACMBUlucHV0lJOUKYGUfZQoaAWMEHByZXByb2Nlc3NlZF9kaXKUjAZpb3R5cGWUjAlESVJFQ1RPUlmUjAZzb3VyY2WUaACMCkRhdGFTb3VyY2WUk5QpgZR9lCiMB25vZGVfaWSUjApwcmVwcm9jZXNzlIwLc3ViZ3JhcGhfaWSUTowJb3V0cHV0X2lklIwGcmV0dXJulIwOZ3JhcGhfaW5wdXRfaWSUTnVijARtZXRhlGgAjAhNZXRhZGF0YZSTlCmBlH2UKIwEbmFtZZSMEHByZXByb2Nlc3NlZF9kaXKUjAthbm5vdGF0aW9uc5ROdWJ1YmggKYGUfZQoaAWMB2hwYXJhbXOUaCSMBEZJTEWUaCZoKCmBlH2UKGgrTmgtTmguTmgwjAh0cmFpbl9ocJR1YmgxaDMpgZR9lChoNowHaHBhcmFtc5RoOE51YnViZYwHb3V0cHV0c5RdlGgAjAZPdXRwdXSUk5QpgZR9lChoBYwGcmV0dXJulGgkjAlESVJFQ1RPUlmUaDFoMymBlH2UKGg2jAZyZXR1cm6UaDhOdWJ1YmFoMWgzKYGUfZQoaDaMBXRyYWlulGg4TnVidWIu
+      - gASVSwEAAAAAAABdlCiMCnBpcmxpYi5waXKUjApHcmFwaElucHV0lJOUKYGUfZQojAJpZJSMCHJhd19kYXRhlIwGaW90eXBllIwJRElSRUNUT1JZlIwEbWV0YZRoAYwITWV0YWRhdGGUk5QpgZR9lCiMBG5hbWWUjAhyYXdfZGF0YZSMC2Fubm90YXRpb25zlE51YnViaAMpgZR9lChoBowKcHJlcHJvY19ocJRoCIwERklMRZRoCmgMKYGUfZQoaA+MCnByZXByb2NfaHCUaBFOdWJ1YmgDKYGUfZQoaAaMCHRyYWluX2hwlGgIjARGSUxFlGgKaAwpgZR9lChoD4wIdHJhaW5faHCUaBFOdWJ1YmgDKYGUfZQoaAaMC3Bvc3Rwcm9jX2hwlGgIjARGSUxFlGgKaAwpgZR9lChoD4wLcG9zdHByb2NfaHCUaBFOdWJ1YmUu
+      volumeMounts:
+      - name: node-outputs
+        mountPath: /mnt/node_outputs
+      - name: train-hp
+        mountPath: /mnt/graph_inputs/train_hp
+        subPath: train_hp.txt
+      - name: cache-dir
+        mountPath: /tmp/cache
+    volumes:
+    - name: node-outputs
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib-nikhil/pirlib/examples/caching/outputs
+        readOnly: no
+    - name: train-hp
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib-nikhil/pirlib/examples/caching/inputs
+        readOnly: yes
+    - name: cache-dir
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib-nikhil/pirlib/examples/caching/cache_dir
+        readOnly: no
+  - name: postprocess-template
+    container:
+      image: nilabhra/pirlib
+      command:
+      - python
+      - -m
+      - pirlib.backends.argo_batch
+      - node
+      - gASVXwMAAAAAAACMCnBpcmxpYi5waXKUjAROb2RllJOUKYGUfZQojAJpZJSMC3Bvc3Rwcm9jZXNzlIwLZW50cnlwb2ludHOUfZSMBG1haW6UaACMCkVudHJ5cG9pbnSUk5QpgZR9lCiMB3ZlcnNpb26UjAJ2MZSMB2hhbmRsZXKUjChleGFtcGxlcy5jYWNoaW5nLm1sX3BpcGVsaW5lOnBvc3Rwcm9jZXNzlIwHcnVudGltZZSMCnB5dGhvbjozLjiUjAdjb2RldXJslE6MBWltYWdllIwPbmlsYWJocmEvcGlybGlilHVic4wJZnJhbWV3b3JrlE6MBmNvbmZpZ5R9lCiMBWNhY2hllIiMDmNhY2hlX2tleV9maWxllIwHaHBhcmFtc5R1jAZpbnB1dHOUXZQoaACMBUlucHV0lJOUKYGUfZQoaAWMEHByZXByb2Nlc3NlZF9kaXKUjAZpb3R5cGWUjAlESVJFQ1RPUlmUjAZzb3VyY2WUaACMCkRhdGFTb3VyY2WUk5QpgZR9lCiMB25vZGVfaWSUjApwcmVwcm9jZXNzlIwLc3ViZ3JhcGhfaWSUTowJb3V0cHV0X2lklIwGcmV0dXJulIwOZ3JhcGhfaW5wdXRfaWSUTnVijARtZXRhlGgAjAhNZXRhZGF0YZSTlCmBlH2UKIwEbmFtZZSMEHByZXByb2Nlc3NlZF9kaXKUjAthbm5vdGF0aW9uc5ROdWJ1YmggKYGUfZQoaAWMCW1vZGVsX2RpcpRoJIwJRElSRUNUT1JZlGgmaCgpgZR9lChoK4wFdHJhaW6UaC1OaC6MBnJldHVybpRoME51YmgxaDMpgZR9lChoNowJbW9kZWxfZGlylGg4TnVidWJoICmBlH2UKGgFjAdocGFyYW1zlGgkjARGSUxFlGgmaCgpgZR9lChoK05oLU5oLk5oMIwLcG9zdHByb2NfaHCUdWJoMWgzKYGUfZQoaDaMB2hwYXJhbXOUaDhOdWJ1YmWMB291dHB1dHOUXZRoAIwGT3V0cHV0lJOUKYGUfZQoaAWMBnJldHVybpRoJIwJRElSRUNUT1JZlGgxaDMpgZR9lChoNowGcmV0dXJulGg4TnVidWJhaDFoMymBlH2UKGg2jAtwb3N0cHJvY2Vzc5RoOE51YnViLg==
+      - gASVSwEAAAAAAABdlCiMCnBpcmxpYi5waXKUjApHcmFwaElucHV0lJOUKYGUfZQojAJpZJSMCHJhd19kYXRhlIwGaW90eXBllIwJRElSRUNUT1JZlIwEbWV0YZRoAYwITWV0YWRhdGGUk5QpgZR9lCiMBG5hbWWUjAhyYXdfZGF0YZSMC2Fubm90YXRpb25zlE51YnViaAMpgZR9lChoBowKcHJlcHJvY19ocJRoCIwERklMRZRoCmgMKYGUfZQoaA+MCnByZXByb2NfaHCUaBFOdWJ1YmgDKYGUfZQoaAaMCHRyYWluX2hwlGgIjARGSUxFlGgKaAwpgZR9lChoD4wIdHJhaW5faHCUaBFOdWJ1YmgDKYGUfZQoaAaMC3Bvc3Rwcm9jX2hwlGgIjARGSUxFlGgKaAwpgZR9lChoD4wLcG9zdHByb2NfaHCUaBFOdWJ1YmUu
+      volumeMounts:
+      - name: node-outputs
+        mountPath: /mnt/node_outputs
+      - name: postproc-hp
+        mountPath: /mnt/graph_inputs/postproc_hp
+        subPath: postproc_hp.txt
+      - name: cache-dir
+        mountPath: /tmp/cache
+    volumes:
+    - name: node-outputs
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib-nikhil/pirlib/examples/caching/outputs
+        readOnly: no
+    - name: postproc-hp
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib-nikhil/pirlib/examples/caching/inputs
+        readOnly: yes
+    - name: cache-dir
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib-nikhil/pirlib/examples/caching/cache_dir
+        readOnly: no
+  - name: ml-job-template
+    container:
+      image: nilabhra/pirlib
+      command:
+      - python
+      - -m
+      - pirlib.backends.argo_batch
+      - graph
+      - gASV+QAAAAAAAABdlIwKcGlybGliLnBpcpSMC0dyYXBoT3V0cHV0lJOUKYGUfZQojAJpZJSMBnJldHVybpSMBmlvdHlwZZSMCURJUkVDVE9SWZSMBnNvdXJjZZRoAYwKRGF0YVNvdXJjZZSTlCmBlH2UKIwHbm9kZV9pZJSMC3Bvc3Rwcm9jZXNzlIwLc3ViZ3JhcGhfaWSUTowJb3V0cHV0X2lklIwGcmV0dXJulIwOZ3JhcGhfaW5wdXRfaWSUTnVijARtZXRhlGgBjAhNZXRhZGF0YZSTlCmBlH2UKIwEbmFtZZSMBnJldHVybpSMC2Fubm90YXRpb25zlE51YnViYS4=
+      volumeMounts:
+      - name: node-outputs
+        mountPath: /mnt/node_outputs
+      - name: raw-data
+        mountPath: /mnt/graph_inputs/raw_data
+      - name: preproc-hp
+        mountPath: /mnt/graph_inputs/preproc_hp
+        subPath: preproc_hp.txt
+      - name: train-hp
+        mountPath: /mnt/graph_inputs/train_hp
+        subPath: train_hp.txt
+      - name: postproc-hp
+        mountPath: /mnt/graph_inputs/postproc_hp
+        subPath: postproc_hp.txt
+      - name: graph-outputs
+        mountPath: /mnt/graph_outputs
+    volumes:
+    - name: node-outputs
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib-nikhil/pirlib/examples/caching/outputs
+        readOnly: no
+    - name: raw-data
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib-nikhil/pirlib/examples/caching/inputs
+        readOnly: yes
+    - name: preproc-hp
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib-nikhil/pirlib/examples/caching/inputs
+        readOnly: yes
+    - name: train-hp
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib-nikhil/pirlib/examples/caching/inputs
+        readOnly: yes
+    - name: postproc-hp
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib-nikhil/pirlib/examples/caching/inputs
+        readOnly: yes
+    - name: graph-outputs
+      nfs:
+        server: k8s-master.cm.cluster
+        path: /home/nilabhra/pirlib-nikhil/pirlib/examples/caching/outputs
+        readOnly: no
+  - name: DAG-ml-job
+    dag:
+      tasks:
+      - name: preprocess
+        template: preprocess-template
+        dependencies: []
+      - name: train
+        template: train-template
+        dependencies:
+        - preprocess
+      - name: postprocess
+        template: postprocess-template
+        dependencies:
+        - preprocess
+        - train
+      - name: ml-job
+        template: ml-job-template
+        dependencies:
+        - preprocess
+        - train
+        - postprocess
