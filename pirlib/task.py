@@ -181,36 +181,17 @@ class TaskDefinition(HandlerV1):
             else:
                 args.append(value)
         token = _TASK_CONTEXT.set(task_context)
+
+        # Wrap the function with PIRlib features if they are enabled.
         try:
-            if self._config.get("cache"):
-                try:
-                    key_file_param = self._config.get("cache_key_file")
-
-                    key_file = kwargs[key_file_param]
-                except KeyError:
-                    raise ValueError("Specified parameter for `cache_key_file` doesn't exist.")
-
-                # Generate cache key from the key file.
-                cache_key = generate_cache_key(key_file)
-
-                # Try to fetch the outputs in case the key is already present
-                ok = fetch_directory(dir_path=task_context.output, cache_key=cache_key)
-
-                if not ok:
-                    # In case the key is not already present in cache
-                    # invoke the function to generate the outputs.
-                    return_value = self.func(*args, **kwargs)
-
-                    # Use the key to cache the outputs.
-                    cache_directory(task_context.output, cache_key)
-
-                else:
-                    # In case the key is already present in cache.
-                    return_value = task_context.output
-            else:
-                return_value = self.func(*args, **kwargs)
+            func = self.func
+            if self._config:
+                if self._config.get("cache"):
+                    func = self.cache_wrapper(func)
+            return_value = func(*args, **kwargs)
         finally:
             _TASK_CONTEXT.reset(token)
+
         recurse_hint(
             lambda n, h, v: outputs.__setitem__(n, v),
             "return",
@@ -228,6 +209,10 @@ def task(
     cache: Optional[bool] = False,
     cache_key_file: Optional[str] = "",
 ) -> TaskDefinition:
+    # Create config if not provided
+    config = config if config else {}
+
+    # Modify config if framework is provided.
     if framework:
         if config is None:
             config = {}
@@ -235,9 +220,10 @@ def task(
         for k, v in framework.config.items():
             config[f"{f_name}/{k}"] = v
 
+    # Modify config if caching is enabled.
     if cache:
         if cache_key_file:
-            config["cache"] = (True,)
+            config["cache"] = True
             config["cache_key_file"] = cache_key_file
         else:
             raise ValueError("Cache is enabled but `cache_key_file` is not set.")
