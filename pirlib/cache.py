@@ -1,10 +1,10 @@
 import hashlib
-import shutil
 import os
-from pathlib import Path
-from pirlib.iotypes import DirectoryPath, FilePath
+import shutil
 
 from diskcache import Cache
+
+from pirlib.iotypes import DirectoryPath, FilePath
 
 CACHE_DIR = os.getenv("PIRLIB_CACHE_DIR", "~/.pirlib/cache")
 
@@ -28,7 +28,6 @@ def cache_directory(dir_path: DirectoryPath, cache_key: str) -> bool:
             # Copy the contents to a directory in the cache.
             target_dir = os.path.join(CACHE_DIR, f"DIR_{cache_key}")
             shutil.copytree(dir_path, target_dir)
-
             # Add the temp directory to the cache.
             status = cache_ref.add(cache_key, target_dir)
 

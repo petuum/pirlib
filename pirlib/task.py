@@ -128,7 +128,6 @@ class TaskDefinition(HandlerV1):
         """
         Wrapper function to enable caching.
         """
-        print("Add cache to func: {}()".format(func.__name__))
 
         @functools.wraps(func)
         def run_func_with_cache(*args, **kwargs):
@@ -159,7 +158,6 @@ class TaskDefinition(HandlerV1):
                 return_value = task_context().output
             return return_value
 
-        print("Cache has been added to {}()".format(func.__name__))
         return run_func_with_cache
 
     def run_handler(
