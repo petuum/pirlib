@@ -32,5 +32,5 @@ if __name__ == "__main__":
         ],
         packages=setuptools.find_packages(include=["pirlib", "pirlib.*"]),
         python_requires=">=3.8",
-        install_requires=["dacite>=1.6", "pyyaml>=6.0", "typeguard>=2.13", "diskcache==5.4.0"],
+        install_requires=["dacite>=1.6", "pyyaml>=6.0", "typeguard>=2.13,<3.0.0", "diskcache==5.4.0"],
     )
