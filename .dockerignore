@@ -2,5 +2,6 @@
 !examples/*.py
 !examples/multi_backends/*.py
 !examples/wiki_parser/*.py
+!examples/caching/*.py
 !bin
 !pirlib

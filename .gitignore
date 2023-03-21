@@ -8,6 +8,7 @@ htmlcov
 *.swp
 *.vscode
 *.log*
+*.db
 
 # virtualenv
 *env/

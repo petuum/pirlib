@@ -1,12 +1,15 @@
+import hashlib
+import os
 import shutil
-from pathlib import Path
 
 from diskcache import Cache
 
-CACHE_DIR = Path("../tmp/cache")
+from pirlib.iotypes import DirectoryPath, FilePath
+
+CACHE_DIR = os.getenv("PIRLIB_CACHE_DIR", "/pirlib/cache")
 
 
-def cache_directory(dir_path: Path, cache_key: str) -> bool:
+def cache_directory(dir_path: DirectoryPath, cache_key: str) -> bool:
     """Caches a given directory with the given key.
 
     :param dir_path: The directory to be cached.
@@ -23,9 +26,8 @@ def cache_directory(dir_path: Path, cache_key: str) -> bool:
         else:
             # Key doesn't exist, caching is possible.
             # Copy the contents to a directory in the cache.
-            target_dir = CACHE_DIR / f"DIR_{cache_key}"
+            target_dir = os.path.join(CACHE_DIR, f"DIR_{cache_key}")
             shutil.copytree(dir_path, target_dir)
-
             # Add the temp directory to the cache.
             status = cache_ref.add(cache_key, target_dir)
 
@@ -33,7 +35,7 @@ def cache_directory(dir_path: Path, cache_key: str) -> bool:
     return status
 
 
-def fetch_directory(dir_path: Path, cache_key: str) -> bool:
+def fetch_directory(dir_path: DirectoryPath, cache_key: str) -> bool:
     """Retrieves a cached directory. Contents of the existing directory
     will get overwritten if they share the same file name with that of the
     files in the cache.
@@ -57,3 +59,21 @@ def fetch_directory(dir_path: Path, cache_key: str) -> bool:
     shutil.copytree(cached_dir, dir_path, dirs_exist_ok=True)
 
     return True
+
+
+def generate_cache_key(key_file: FilePath) -> str:
+    """Create cache key given an input file.
+
+    :param key_file: Input file to read the key.
+    :type key_file: Path
+    :return: hashed value of the key read.
+    :rtype: str
+    """
+
+    # Read contents of key file as a string.
+    with open(str(key_file), "r") as f:
+        key_data = f.read()
+
+    # Compute a hash value from the key file contents.
+    cache_key = hashlib.sha256(f"{str(key_file)}_{key_data}".encode()).hexdigest()
+    return cache_key
