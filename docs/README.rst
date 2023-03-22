@@ -172,6 +172,43 @@ If you are executing the workflow on the full data without first executing on th
 
 The outputs would appear in the outputs/ directory and the Workflow execution can be viewed from the browser.
 
+Caching
+-----------------
+
+This example covers the usage of diskcache to implement caching functionality for the output from argo tasks (python functions). In addition to the previous example, caching functionality is explained below.
+
+- `pirlib/cache.py`: This file is used to implement cache logic using three functions
+   1. `cache_directory`: Caches a given directory with the given key
+   2. `fetch_directory`: Retrives a directory given key if exist
+   3. `generate_cache_key`: Create cache key given an input file
+
+- `examples/caching/ml_pipeline.py`: In the decorator for each functions, user need to specify whether caching is enabled and the input file from while cache_keys are to be generated.
+
+Install dependencies
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Update the same pirlib conda environment used in earlier examples
+::
+
+   $ conda activate pirlib
+   $ pip install diskcache
+
+
+Execution
+^^^^^^^^^^^^^^^^^^^^^^
+
+In order to test the pipeline, dummy data has been provided in examples/caching/dataset directory.
+
+::
+
+   $ bash examples/caching/run_argo.sh
+
+
+
+You should be able to see the live execution of the different steps of the pipeline in the browser. The resultant files will be generated in the outputs/ directory. The output files will be cached in cache_dir.
+
+Same command is invoked again to see the difference in the duration of each steps.
+
 Timer
 -----------------
 

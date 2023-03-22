@@ -199,6 +199,8 @@ class TaskDefinition(HandlerV1):
             else:
                 args.append(value)
         token = _TASK_CONTEXT.set(task_context)
+
+        # Wrap the function with PIRlib features if they are enabled.
         try:
             func = self.func
             if self._config != None:
@@ -209,6 +211,7 @@ class TaskDefinition(HandlerV1):
             return_value = func(*args, **kwargs)
         finally:
             _TASK_CONTEXT.reset(token)
+
         recurse_hint(
             lambda n, h, v: outputs.__setitem__(n, v),
             "return",
@@ -224,7 +227,13 @@ def task(
     config: Optional[dict] = None,
     timer: Optional[bool] = False,
     framework: Optional[pirlib.pir.Framework] = None,
+    cache: Optional[bool] = False,
+    cache_key_file: Optional[str] = "",
 ) -> TaskDefinition:
+    # Create config if not provided
+    config = config if config else {}
+
+    # Modify config if framework is provided.
     if framework:
         if config is None:
             config = {}
@@ -233,6 +242,13 @@ def task(
             config[f"{f_name}/{k}"] = v
     config = config if config else {}
     config["timer"] = timer
+    # Modify config if caching is enabled.
+    if cache:
+        if cache_key_file:
+            config["cache"] = True
+            config["cache_key_file"] = cache_key_file
+        else:
+            raise ValueError("Cache is enabled but `cache_key_file` is not set.")
     wrapper = TaskDefinition(
         func=func,
         name=name,

@@ -9,7 +9,7 @@ from pirlib.pipeline import pipeline
 from pirlib.task import task
 
 
-@task(config=dict(cache=True, cache_key_file="hparams"), timer=True)
+@task(cache=True, cache_key_file="hparams", timer=True)
 def preprocess(dataset: DirectoryPath, *, hparams: FilePath) -> DirectoryPath:
     # Read the raw data.
     with (dataset / "data.txt").open("r") as f:
@@ -29,7 +29,7 @@ def preprocess(dataset: DirectoryPath, *, hparams: FilePath) -> DirectoryPath:
     return output_dir
 
 
-@task(config=dict(cache=True, cache_key_file="hparams"), timer=True)
+@task(cache=True, cache_key_file="hparams", timer=True)
 def train(preprocessed_dir: DirectoryPath, *, hparams: FilePath) -> DirectoryPath:
     # Read the preprocessed data.
     with (preprocessed_dir / "preprocessed_data.txt").open("r") as f:
@@ -49,7 +49,7 @@ def train(preprocessed_dir: DirectoryPath, *, hparams: FilePath) -> DirectoryPat
     return output_dir
 
 
-@task(config=dict(cache=True, cache_key_file="hparams"), timer=True)
+@task(cache=True, cache_key_file="hparams", timer=True)
 def postprocess(
     preprocessed_dir: DirectoryPath, model_dir: DirectoryPath, *, hparams: FilePath
 ) -> DirectoryPath:
