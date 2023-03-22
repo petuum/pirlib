@@ -12,6 +12,7 @@ from pirlib.backends.inproc import InprocBackend
 from pirlib.cache import cache_directory, fetch_directory, generate_cache_key
 from pirlib.handlers.v1 import HandlerV1, HandlerV1Context, HandlerV1Event
 from pirlib.package import package_task, recurse_hint, task_call
+from pirlib.utils import PerformanceTimer
 
 _TASK_CONTEXT = contextvars.ContextVar("_TASK_CONTEXT")
 
@@ -126,18 +127,21 @@ class TaskDefinition(HandlerV1):
 
     def cache_wrapper(self, func):
         """
-        Wrapper function to enable caching.
+        Wrape this function by cache.
         """
+        print("Add cache to func: {}()".format(func.__name__))
 
         @functools.wraps(func)
         def run_func_with_cache(*args, **kwargs):
             try:
                 key_file_param = self._config.get("cache_key_file")
+
+                if key_file_param is None:
+                    raise ValueError("Cache is enabled but `cache_key_file` is not set.")
+
                 key_file = kwargs[key_file_param]
             except KeyError:
-                raise ValueError(
-                    f"Specified parameter `{key_file_param}` for `cache_key_file` doesn't exist."
-                )
+                raise ValueError("Specified parameter for `cache_key_file` doesn't exist.")
 
             # Generate cache key from the key file.
             cache_key = generate_cache_key(key_file)
@@ -158,7 +162,23 @@ class TaskDefinition(HandlerV1):
                 return_value = task_context().output
             return return_value
 
+        print("Cache has been added to {}()".format(func.__name__))
         return run_func_with_cache
+
+    def timer_wrapper(self, func):
+        """
+        Wrape this function by timer.
+        """
+        print("Add timer to func: {}()".format(func.__name__))
+
+        @functools.wraps(func)
+        def run_func_with_timer(*args, **kwargs):
+            with PerformanceTimer(self.func.__name__):
+                return_value = func(*args, **kwargs)
+            return return_value
+
+        print("Timer has been added to {}()".format(func.__name__))
+        return run_func_with_timer
 
     def run_handler(
         self,
@@ -183,9 +203,11 @@ class TaskDefinition(HandlerV1):
         # Wrap the function with PIRlib features if they are enabled.
         try:
             func = self.func
-            if self._config:
+            if self._config != None:
                 if self._config.get("cache"):
                     func = self.cache_wrapper(func)
+                if self._config.get("timer"):
+                    func = self.timer_wrapper(func)
             return_value = func(*args, **kwargs)
         finally:
             _TASK_CONTEXT.reset(token)
@@ -203,6 +225,7 @@ def task(
     *,  # Keyword-only arguments below.
     name: Optional[str] = None,
     config: Optional[dict] = None,
+    timer: Optional[bool] = False,
     framework: Optional[pirlib.pir.Framework] = None,
     cache: Optional[bool] = False,
     cache_key_file: Optional[str] = "",
@@ -217,7 +240,8 @@ def task(
         f_name = framework.name
         for k, v in framework.config.items():
             config[f"{f_name}/{k}"] = v
-
+    config = config if config else {}
+    config["timer"] = timer
     # Modify config if caching is enabled.
     if cache:
         if cache_key_file:
@@ -225,7 +249,6 @@ def task(
             config["cache_key_file"] = cache_key_file
         else:
             raise ValueError("Cache is enabled but `cache_key_file` is not set.")
-
     wrapper = TaskDefinition(
         func=func,
         name=name,
