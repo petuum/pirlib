@@ -7,7 +7,8 @@ python $ROOTDIR/bin/pircli dockerize \
 	--auto \
 	--pipeline examples.multi_backends.example:train_pipeline \
 	--output $EXAMPLEDIR/package_argo.yml \
-	--flatten
+	--flatten \
+	--docker_base_image python:3
 
 # Convert EXAMPLEDIR to absolute path since docker can't bind-mount relative paths.
 EXAMPLEDIR=$([[ $EXAMPLEDIR = /* ]] && echo "$EXAMPLEDIR" || echo "$PWD/${EXAMPLEDIR#./}")
