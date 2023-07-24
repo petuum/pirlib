@@ -112,18 +112,40 @@ def _generate_dockerfile(context_path: pathlib.Path, docker_base_image: str) -> 
     print("=========== BASE DOCKER IMAGE ===========")
     print(base_image)
 
-    return "\n".join(
-        [
-            f"FROM {base_image}",
-            "ARG CONDA_ENV_B64",
-            "RUN echo $CONDA_ENV_B64 | base64 -d > /tmp/environment.yml",
-            "RUN conda env create -n pircli -f /tmp/environment.yml",
-            f"COPY . {workdir}",
-            f"WORKDIR {workdir}",
-            f"ENV PYTHONPATH={pythonpath}",
-            f'ENV PATH="{miniconda3}/envs/pircli/bin":$PATH',
-        ]
-    )
+    # return "\n".join(
+    #     [
+    #         "FROM continuumio/miniconda3:4.12.0",
+    #         "ARG CONDA_ENV_B64",
+    #         "RUN echo $CONDA_ENV_B64 | base64 -d > /tmp/environment.yml",
+    #         "RUN conda env create -n pircli -f /tmp/environment.yml",
+    #         f"COPY . {workdir}",
+    #         f"WORKDIR {workdir}",
+    #         f"ENV PYTHONPATH={pythonpath}",
+    #         f'ENV PATH="{miniconda3}/envs/pircli/bin":$PATH',
+    #     ]
+    # )
+
+    return "\n".join([
+        "FROM continuumio/miniconda3:latest AS base",
+        "ARG CONDA_ENV_B64",
+        "RUN echo $CONDA_ENV_B64 | base64 -d > /tmp/environment.yml",
+        "RUN conda env create -n pircli -f /tmp/environment.yml",
+        f"COPY . {workdir}",
+        f"WORKDIR {workdir}",
+        f"ENV PYTHONPATH={pythonpath}",
+        f'ENV PATH="{miniconda3}/envs/pircli/bin":$PATH',
+        "",
+        f"FROM {base_image} AS final",
+        "COPY --from=base /opt/conda/ /opt/conda/",
+        "COPY --from=base /tmp/environment.yml /tmp/environment.yml",
+        f"COPY --from=base {workdir} {workdir}",
+        # "RUN conda env update -n pircli -f /tmp/environment.yml --prune",
+        f"WORKDIR {workdir}",
+        f"ENV PYTHONPATH={pythonpath}",
+        f'ENV PATH="{miniconda3}/envs/pircli/bin":$PATH',
+        'ENV PYSPARK_PYTHON=python3.8',
+        'ENV PYSPARK_DRIVER_PYTHON=python3.8'
+    ])
 
 
 def _infer_pythonpath(context_path, workdir) -> str:

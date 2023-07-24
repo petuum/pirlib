@@ -1,0 +1,86 @@
+graphs:
+- id: etl_pipeline
+  nodes:
+  - id: create_spark_session
+    entrypoints:
+      main:
+        version: v1
+        handler: examples.etl_pipeline.etl:create_spark_session
+        runtime: python:3.8
+        codeurl: null
+        image: maaz112233/pirlib
+    framework: null
+    config:
+      timer: false
+    inputs:
+    - id: dataset
+      iotype: DIRECTORY
+      source:
+        node_id: null
+        subgraph_id: null
+        output_id: null
+        graph_input_id: dataset
+      meta:
+        name: dataset
+        annotations: null
+    outputs:
+    - id: return
+      iotype: DIRECTORY
+      meta:
+        name: return
+        annotations: null
+    meta:
+      name: create_spark_session
+      annotations: null
+  - id: extract_transform_load
+    entrypoints:
+      main:
+        version: v1
+        handler: examples.etl_pipeline.etl:extract_transform_load
+        runtime: python:3.8
+        codeurl: null
+        image: maaz112233/pirlib
+    framework: null
+    config:
+      timer: false
+    inputs:
+    - id: dataset
+      iotype: DIRECTORY
+      source:
+        node_id: null
+        subgraph_id: null
+        output_id: null
+        graph_input_id: dataset
+      meta:
+        name: dataset
+        annotations: null
+    outputs:
+    - id: return
+      iotype: DIRECTORY
+      meta:
+        name: return
+        annotations: null
+    meta:
+      name: extract_transform_load
+      annotations: null
+  subgraphs: []
+  inputs:
+  - id: dataset
+    iotype: DIRECTORY
+    meta:
+      name: dataset
+      annotations: null
+  outputs:
+  - id: return
+    iotype: DIRECTORY
+    source:
+      node_id: extract_transform_load
+      subgraph_id: null
+      output_id: return
+      graph_input_id: null
+    meta:
+      name: return
+      annotations: null
+  meta:
+    name: etl_pipeline
+    annotations: null
