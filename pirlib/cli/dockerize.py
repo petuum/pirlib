@@ -48,9 +48,7 @@ def config_dockerize_parser(parser: argparse.ArgumentParser) -> None:
     parser.set_defaults(parser=parser, handler=_dockerize_handler)
 
 
-def _dockerize_handler(
-    parser: argparse.ArgumentParser, args: argparse.Namespace
-) -> None:
+def _dockerize_handler(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
     package = package_pipelines(parser, args.pipeline, flatten=args.flatten)
     image = f"pircli-build:{uuid.uuid4()}"
     command = ["docker", "build", args.path, "-t", image]
@@ -173,9 +171,7 @@ def _infer_conda_env() -> dict:
     except FileNotFoundError:
         sys.exit("ERROR: conda is required for automatic dockerization")
     except subprocess.CalledProcessError:
-        sys.exit(
-            "ERROR: could not infer current conda environment for automatic dockerization"
-        )
+        sys.exit("ERROR: could not infer current conda environment for automatic dockerization")
     env = {"channels": full["channels"], "dependencies": hist["dependencies"]}
     for idx, dep in enumerate(env["dependencies"]):
         if not isinstance(dep, str):
