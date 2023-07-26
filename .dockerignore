@@ -3,5 +3,7 @@
 !examples/multi_backends/*.py
 !examples/wiki_parser/*.py
 !examples/caching/*.py
+!examples/etl_pipeline/*.py
+!examples/utilizing_gpu/*.py
 !bin
 !pirlib

@@ -23,3 +23,4 @@ python  $ROOTDIR/bin/pircli generate $EXAMPLEDIR/package_argo.yml \
 
 # Run the Argo workflow
 argo submit -n argo --watch $EXAMPLEDIR/argo-train.yml
+ 

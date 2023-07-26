@@ -44,11 +44,13 @@ def config_dockerize_parser(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--flatten", action="store_true", help="flatten pipeline(s)")
 
     parser.add_argument("--docker_base_image", help="base docker image to be used.")
-    
+
     parser.set_defaults(parser=parser, handler=_dockerize_handler)
 
 
-def _dockerize_handler(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
+def _dockerize_handler(
+    parser: argparse.ArgumentParser, args: argparse.Namespace
+) -> None:
     package = package_pipelines(parser, args.pipeline, flatten=args.flatten)
     image = f"pircli-build:{uuid.uuid4()}"
     command = ["docker", "build", args.path, "-t", image]
@@ -112,40 +114,29 @@ def _generate_dockerfile(context_path: pathlib.Path, docker_base_image: str) -> 
     print("=========== BASE DOCKER IMAGE ===========")
     print(base_image)
 
-    # return "\n".join(
-    #     [
-    #         "FROM continuumio/miniconda3:4.12.0",
-    #         "ARG CONDA_ENV_B64",
-    #         "RUN echo $CONDA_ENV_B64 | base64 -d > /tmp/environment.yml",
-    #         "RUN conda env create -n pircli -f /tmp/environment.yml",
-    #         f"COPY . {workdir}",
-    #         f"WORKDIR {workdir}",
-    #         f"ENV PYTHONPATH={pythonpath}",
-    #         f'ENV PATH="{miniconda3}/envs/pircli/bin":$PATH',
-    #     ]
-    # )
-
-    return "\n".join([
-        "FROM continuumio/miniconda3:latest AS base",
-        "ARG CONDA_ENV_B64",
-        "RUN echo $CONDA_ENV_B64 | base64 -d > /tmp/environment.yml",
-        "RUN conda env create -n pircli -f /tmp/environment.yml",
-        f"COPY . {workdir}",
-        f"WORKDIR {workdir}",
-        f"ENV PYTHONPATH={pythonpath}",
-        f'ENV PATH="{miniconda3}/envs/pircli/bin":$PATH',
-        "",
-        f"FROM {base_image} AS final",
-        "COPY --from=base /opt/conda/ /opt/conda/",
-        "COPY --from=base /tmp/environment.yml /tmp/environment.yml",
-        f"COPY --from=base {workdir} {workdir}",
-        # "RUN conda env update -n pircli -f /tmp/environment.yml --prune",
-        f"WORKDIR {workdir}",
-        f"ENV PYTHONPATH={pythonpath}",
-        f'ENV PATH="{miniconda3}/envs/pircli/bin":$PATH',
-        'ENV PYSPARK_PYTHON=python3.8',
-        'ENV PYSPARK_DRIVER_PYTHON=python3.8'
-    ])
+    return "\n".join(
+        [
+            "FROM continuumio/miniconda3:latest AS base",
+            "ARG CONDA_ENV_B64",
+            "RUN echo $CONDA_ENV_B64 | base64 -d > /tmp/environment.yml",
+            "RUN conda env create -n pircli -f /tmp/environment.yml",
+            f"COPY . {workdir}",
+            f"WORKDIR {workdir}",
+            f"ENV PYTHONPATH={pythonpath}",
+            f'ENV PATH="{miniconda3}/envs/pircli/bin":$PATH',
+            "",
+            f"FROM {base_image} AS final",
+            "COPY --from=base /opt/conda/ /opt/conda/",
+            "COPY --from=base /tmp/environment.yml /tmp/environment.yml",
+            f"COPY --from=base {workdir} {workdir}",
+            # "RUN conda env update -n pircli -f /tmp/environment.yml --prune",
+            f"WORKDIR {workdir}",
+            f"ENV PYTHONPATH={pythonpath}",
+            f'ENV PATH="{miniconda3}/envs/pircli/bin":$PATH',
+            "ENV PYSPARK_PYTHON=python3.8",
+            "ENV PYSPARK_DRIVER_PYTHON=python3.8",
+        ]
+    )
 
 
 def _infer_pythonpath(context_path, workdir) -> str:
@@ -182,7 +173,9 @@ def _infer_conda_env() -> dict:
     except FileNotFoundError:
         sys.exit("ERROR: conda is required for automatic dockerization")
     except subprocess.CalledProcessError:
-        sys.exit("ERROR: could not infer current conda environment for automatic dockerization")
+        sys.exit(
+            "ERROR: could not infer current conda environment for automatic dockerization"
+        )
     env = {"channels": full["channels"], "dependencies": hist["dependencies"]}
     for idx, dep in enumerate(env["dependencies"]):
         if not isinstance(dep, str):
