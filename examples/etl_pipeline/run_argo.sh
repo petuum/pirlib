@@ -5,18 +5,16 @@ ROOTDIR=$EXAMPLEDIR/../..
 python $ROOTDIR/bin/pircli dockerize \
     $ROOTDIR \
 	--auto \
-	--pipeline examples.multi_backends.example:train_pipeline \
+	--pipeline examples.etl_pipeline.etl:etl_pipeline \
 	--output $EXAMPLEDIR/package_argo.yml \
 	--flatten \
-	--docker_base_image python:3
+	--docker_base_image godatadriven/pyspark:latest
 
 # Convert EXAMPLEDIR to absolute path since docker can't bind-mount relative paths.
 EXAMPLEDIR=$([[ $EXAMPLEDIR = /* ]] && echo "$EXAMPLEDIR" || echo "$PWD/${EXAMPLEDIR#./}")
 
 ### Module 2: Argoize_Module
-INPUT_train_dataset=$EXAMPLEDIR/inputs/train_dataset \
-INPUT_translate_model=$EXAMPLEDIR/inputs/translate_model.txt \
-INPUT_sentences=$EXAMPLEDIR/inputs/sentences \
+INPUT_dataset=$EXAMPLEDIR/inputs \
 OUTPUT=$EXAMPLEDIR/outputs \
 NFS_SERVER=k8s-master.cm.cluster \
 python  $ROOTDIR/bin/pircli generate $EXAMPLEDIR/package_argo.yml \
@@ -25,3 +23,4 @@ python  $ROOTDIR/bin/pircli generate $EXAMPLEDIR/package_argo.yml \
 
 # Run the Argo workflow
 argo submit -n argo --watch $EXAMPLEDIR/argo-train.yml
+ 

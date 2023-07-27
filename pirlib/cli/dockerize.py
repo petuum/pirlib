@@ -42,6 +42,9 @@ def config_dockerize_parser(parser: argparse.ArgumentParser) -> None:
         help="path to output file (or - for stdout)",
     )
     parser.add_argument("--flatten", action="store_true", help="flatten pipeline(s)")
+
+    parser.add_argument("--docker_base_image", help="base docker image to be used.")
+
     parser.set_defaults(parser=parser, handler=_dockerize_handler)
 
 
@@ -54,7 +57,7 @@ def _dockerize_handler(parser: argparse.ArgumentParser, args: argparse.Namespace
         print("=========== BEGIN INFERRED CONDA ENV ===========")
         print(conda_env.strip())
         print("===========  END INFERRED CONDA ENV  ===========")
-        dockerfile = _generate_dockerfile(args.path)
+        dockerfile = _generate_dockerfile(args.path, args.docker_base_image)
         print("========== BEGIN GENERATED DOCKERFILE ==========")
         print(dockerfile.strip())
         print("==========  END GENERATED DOCKERFILE  ==========")
@@ -100,18 +103,31 @@ def _dockerize_handler(parser: argparse.ArgumentParser, args: argparse.Namespace
         yaml.dump(dataclasses.asdict(package), args.output, sort_keys=False)
 
 
-def _generate_dockerfile(context_path: pathlib.Path) -> str:
+def _generate_dockerfile(context_path: pathlib.Path, docker_base_image: str) -> str:
     workdir = "/pircli/workdir"
     miniconda3 = "/opt/conda"
     pythonpath = _infer_pythonpath(context_path, workdir)
+    base_image = docker_base_image
+
+    print("=========== BASE DOCKER IMAGE ===========")
+    print(base_image)
 
     return "\n".join(
         [
-            "FROM continuumio/miniconda3:4.12.0",
+            "FROM continuumio/miniconda3:4.12.0 AS base",
             "ARG CONDA_ENV_B64",
             "RUN echo $CONDA_ENV_B64 | base64 -d > /tmp/environment.yml",
             "RUN conda env create -n pircli -f /tmp/environment.yml",
             f"COPY . {workdir}",
+            f"WORKDIR {workdir}",
+            f"ENV PYTHONPATH={pythonpath}",
+            f'ENV PATH="{miniconda3}/envs/pircli/bin":$PATH',
+            "",
+            f"FROM {base_image} AS final",
+            "COPY --from=base /opt/conda/ /opt/conda/",
+            "COPY --from=base /tmp/environment.yml /tmp/environment.yml",
+            f"COPY --from=base {workdir} {workdir}",
+            # "RUN conda env update -n pircli -f /tmp/environment.yml --prune",
             f"WORKDIR {workdir}",
             f"ENV PYTHONPATH={pythonpath}",
             f'ENV PATH="{miniconda3}/envs/pircli/bin":$PATH',
