@@ -114,7 +114,7 @@ def _generate_dockerfile(context_path: pathlib.Path, docker_base_image: str) -> 
 
     return "\n".join(
         [
-            "FROM continuumio/miniconda3:latest AS base",
+            "FROM continuumio/miniconda3:4.12.0 AS base",
             "ARG CONDA_ENV_B64",
             "RUN echo $CONDA_ENV_B64 | base64 -d > /tmp/environment.yml",
             "RUN conda env create -n pircli -f /tmp/environment.yml",
@@ -131,8 +131,6 @@ def _generate_dockerfile(context_path: pathlib.Path, docker_base_image: str) -> 
             f"WORKDIR {workdir}",
             f"ENV PYTHONPATH={pythonpath}",
             f'ENV PATH="{miniconda3}/envs/pircli/bin":$PATH',
-            "ENV PYSPARK_PYTHON=python3.8",
-            "ENV PYSPARK_DRIVER_PYTHON=python3.8",
         ]
     )
 
